@@ -1,0 +1,16 @@
+[Unit]
+Description=STime Redirector
+After=syslog.target network.target remote-fs.target nss-lookup.target
+
+[Service]
+Type=simple
+WorkingDirectory=/usr/local/redirector/
+ExecStart=/usr/local/redirector/redirector
+Restart=on-failure
+LimitNOFILE=10000
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=redirector.service
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,16 @@
+[Unit]
+Description=STime Hive
+After=syslog.target network.target remote-fs.target nss-lookup.target
+
+[Service]
+Type=simple
+WorkingDirectory=/usr/local/STHive/
+ExecStart=/usr/local/STHive/hive
+Restart=on-failure
+LimitNOFILE=10000
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=hive.service
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,8 @@
+USERNAME:<firsusername>
+PASSWORD:<firstpassword>
+port:<port>
+accesskey:<awsaccesskey>
+secretkey:<awssecretkey>
+region:<region>
+keyname:<keyname>
+ami:<ami>

@@ -1,0 +1,202 @@
+		provider "aws" {
+		  alias = "hiveaws"
+		  access_key = "@access_key"
+		  secret_key = "@secret_key"
+		  region     = "@region"
+		}
+
+		resource "aws_security_group" "hive_sec_group" {
+		  provider = "aws.hiveaws"
+		  name        = "hive_sec_group"
+
+		  ingress {
+		    from_port   = 0
+		    to_port     = 65535
+		    protocol    = "tcp"
+		    cidr_blocks = ["0.0.0.0/0"]
+		  }
+
+		  egress {
+		    from_port       = 0
+		    to_port         = 65535
+		    protocol        = "tcp"
+		    cidr_blocks     = ["0.0.0.0/0"]
+		  }
+		}
+
+
+		resource "aws_instance" "hiveinstance" {
+		  provider = "aws.hiveaws"
+		  depends_on = ["aws_security_group.hive_sec_group"]
+		  ami           = "@ami"
+		  instance_type = "t2.micro"
+		  key_name = "@keyname"
+		  security_groups = ["hive_sec_group"]
+
+		  provisioner "remote-exec" {
+		    inline = [
+		    	"sudo apt-get update",
+		    	"sudo apt-get update",
+		    	"sudo apt-get update",
+		    	"sudo apt-get update",
+		    	"sudo apt-get install -y sqlite3",
+		    	"sudo apt-get install -y gcc",
+		    	"sudo apt-get install -y unzip",
+		    	"sudo mkdir /usr/local/STHive",
+		    	"sudo mkdir /usr/local/STHive/implants",
+		    	"sudo mkdir /usr/local/STHive/stagings",		      
+		    	"sudo mkdir /usr/local/STHive/logs",
+		    	"sudo mkdir /usr/local/STHive/certs",
+		    	"sudo mkdir /usr/local/STHive/sources",
+		    	"sudo mkdir /usr/local/STHive/sources/src",
+		    	"sudo mkdir /usr/local/STHive/sources/src/bichito",
+		    	"sudo mkdir /usr/local/STHive/sources/src/redirector",
+		    	"sudo mkdir /usr/local/STHive/sources/src/infra",
+		    	"sudo mkdir /usr/local/STHive/sources/src/infra/.terraform",
+		    	"sudo mkdir /usr/local/STHive/sources/src/infra/.terraform/plugins",
+		    	"sudo wget https://dl.google.com/go/go1.10.3.linux-amd64.tar.gz -P /usr/local/STHive",
+		    	"sudo tar xvf /usr/local/STHive/go1.10.3.linux-amd64.tar.gz -C /usr/local/STHive/sources",
+		    	"sudo chown -R ubuntu:ubuntu /usr/local/STHive/sources",
+		    	"export GOPATH=/usr/local/STHive/sources/",
+		    	"/usr/local/STHive/sources/go/bin/go get \"github.com/mattn/go-sqlite3\"",
+				"/usr/local/STHive/sources/go/bin/go get \"github.com/gorilla/mux\"",
+				"/usr/local/STHive/sources/go/bin/go get \"golang.org/x/crypto/blowfish\"",
+				"/usr/local/STHive/sources/go/bin/go get \"golang.org/x/crypto/bcrypt\"",
+				"/usr/local/STHive/sources/go/bin/go get \"golang.org/x/net/context\"",
+				"/usr/local/STHive/sources/go/bin/go get \"golang.org/x/oauth2\"",
+				"/usr/local/STHive/sources/go/bin/go get \"golang.org/x/oauth2/google\"",
+				"/usr/local/STHive/sources/go/bin/go get \"google.golang.org/api/gmail/v1\"",
+		    	"cd /usr/local/STHive/sources/src/infra/.terraform/plugins",
+		    	"sudo wget https://github.com/n3integration/terraform-godaddy/releases/download/v1.6.4/terraform-godaddy_linux_amd64.tgz",
+		    	"sudo tar xvf terraform-godaddy_linux_amd64.tgz",
+		    	"sudo mv terraform-godaddy_linux_amd64 terraform-godaddy",
+		    	"sudo rm terraform-godaddy_linux_amd64.tgz",
+		    	"cd /usr/local/STHive/sources/src/infra/",
+		    	"sudo wget https://releases.hashicorp.com/terraform/0.11.13/terraform_0.11.13_linux_amd64.zip",
+		    	"sudo unzip terraform_0.11.13_linux_amd64.zip",
+		    	"sudo rm terraform_0.11.13_linux_amd64.zip",
+		    	"sudo chown ubuntu:ubuntu -R /usr/local/STHive/",
+		    ]
+			
+			on_failure = "continue"
+		    
+		    connection {
+		      type     = "ssh"
+		      user     = "ubuntu"
+		      private_key = "${file("@keyname.pem")}"
+		    }
+		  }
+
+		  provisioner "file" {
+		    source      = "ST.db"
+		    destination = "/usr/local/STHive/ST.db"
+		    connection {
+		      type     = "ssh"
+		      user     = "ubuntu"
+		      private_key = "${file("@keyname.pem")}"
+		    }
+		  }
+
+		  provisioner "file" {
+		    source      = "../src/bichito/"
+		    destination = "/usr/local/STHive/sources/src/bichito/"
+		    connection {
+		      type     = "ssh"
+		      user     = "ubuntu"
+		      private_key = "${file("@keyname.pem")}"
+		    }
+		  }
+
+		  provisioner "file" {
+		    source      = "../src/redirector/"
+		    destination = "/usr/local/STHive/sources/src/redirector/"
+		    connection {
+		      type     = "ssh"
+		      user     = "ubuntu"
+		      private_key = "${file("@keyname.pem")}"
+		    }
+		  }
+
+		  provisioner "file" {
+		    source      = "../src/infra/.terraformrc"
+		    destination = "/usr/local/STHive/sources/src/infra/.terraformrc"
+		    connection {
+		      type     = "ssh"
+		      user     = "ubuntu"
+		      private_key = "${file("@keyname.pem")}"
+		    }
+		  }
+
+		  provisioner "file" {
+		    source      = "hive"
+		    destination = "/usr/local/STHive/hive"
+		    connection {
+		      type     = "ssh"
+		      user     = "ubuntu"
+		      private_key = "${file("@keyname.pem")}"
+		    }
+		  }
+
+		  provisioner "file" {
+		    source      = "hive.service"
+		    destination = "/usr/local/STHive/hive.service"
+		    
+		    connection {
+		      type     = "ssh"
+		      user     = "ubuntu"
+		      private_key = "${file("@keyname.pem")}"
+		    }
+		  }
+
+		  provisioner "file" {
+		    source      = "hive.key"
+		    destination = "/usr/local/STHive/certs/hive.key"
+		    
+		    connection {
+		      type     = "ssh"
+		      user     = "ubuntu"
+		      private_key = "${file("@keyname.pem")}"
+		    }
+		  }
+
+		  provisioner "file" {
+		    source      = "hive.pem"
+		    destination = "/usr/local/STHive/certs/hive.pem"
+		    
+		    connection {
+		      type     = "ssh"
+		      user     = "ubuntu"
+		      private_key = "${file("@keyname.pem")}"
+		    }
+		  }
+
+		  provisioner "file" {
+		    source      = "instScript.sh"
+		    destination = "/tmp/instScript.sh"
+		    
+		    connection {
+		      type     = "ssh"
+		      user     = "ubuntu"
+		      private_key = "${file("remotetest.pem")}"
+		    }
+		  }		  
+
+		  provisioner "remote-exec" {
+		    inline = [
+		      "sudo chmod +x /tmp/instScript.sh",
+		      "sudo bash /tmp/instScript.sh",
+		      "sudo rm /tmp/instScript.sh",
+		      "sudo reboot",
+		    ]
+		    on_failure = "continue"
+
+		    connection {
+		      type     = "ssh"
+		      user     = "ubuntu"
+		      private_key = "${file("remotetest.pem")}"
+		    }
+		  }
+		}
+	output "ip" {
+  		value = "${aws_instance.hiveinstance.public_ip}"
+	}
