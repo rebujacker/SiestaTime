@@ -1,0 +1,52 @@
+<div class="row">
+    <div class="col-md-12 col-sm-12 col-xs-12">
+        <div class="x_panel">
+            <div class="x_title">
+                <h2>Domain <small class="element"></small></h2>
+                    <ul class="nav navbar-right panel_toolbox">
+                      <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                      </li>
+                      <li><a class="close-link"><i class="fa fa-close"></i></a>
+                      </li>
+                    </ul>
+                    <div class="clearfix"></div>
+            </div>
+            <div class="x_content">
+                <table id="datatable" class="table table-striped table-bordered">
+                    <thead>
+                        <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Active</th>
+                <th>Domain</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                <td>
+                    <label id="iname"></label>
+                </td>
+                <td>
+                    <label id="type"></label>
+                </td>
+                <td>
+                    <label id="active"></label>
+                </td>
+                <td>
+                    <label id="domain"></label>
+                </td>
+                        </tr>
+                    </tbody>
+                </table>
+             </div>
+        </div>
+    </div>
+                </form>
+                    <!-- end form for validations -->
+                    <form role="form" id="deldomainform">
+                      <input type="hidden" class="form-control" name="name" id="delval" value="">
+                      <span id="submitdeldomain" class="btn btn-primary">Delete Domain</span>
+                    </form>
+</div>
+
+<script src="./components/domain/domain.js"></script>

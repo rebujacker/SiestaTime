@@ -1,0 +1,31 @@
+<div class="row">
+    <div class="col-md-12 col-sm-12 col-xs-12">
+      <div class="x_panel">
+        <div class="x_title">
+          <h2>Add VPS <small class="element"></small></h2>
+            <div class="clearfix"></div>
+            </div>
+              <div class="x_content">
+                <!-- start form for validation -->
+                <form id="createvpsform" data-parsley-validate>
+
+                  <div class="form-group">
+                    <label for="iname">VPS Name </label>
+                    <input type="text" class="form-control" name="name" placeholder="Name...">
+                  </div>
+
+                  <label for="heard"> VPS Type </label>
+                    <select class="form-control" id="vtype" name="vtype">
+                      <option value="aws_instance">Amazon EC</option>
+                      <option value="azure_instance">Azure</option>
+                    </select>
+                    <div id=params></div>
+                    <button type="button" class="btn btn-primary" id="submitcreationvps">Add VPS</button>
+                </form>
+                    <!-- end form for validations -->
+            </div>
+    </div>
+  </div>
+</div>
+
+<script src="./components/createforms/forms.js"></script>

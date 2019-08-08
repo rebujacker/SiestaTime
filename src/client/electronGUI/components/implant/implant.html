@@ -1,0 +1,97 @@
+<div class="row">
+    <div class="col-md-12 col-sm-12 col-xs-12">
+        <div class="x_panel">
+            <div class="x_title">
+                <h2>Implant <small class="element"></small></h2>
+                    <ul class="nav navbar-right panel_toolbox">
+                      <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                      </li>
+                      <li><a class="close-link"><i class="fa fa-close"></i></a>
+                      </li>
+                    </ul>
+                    <div class="clearfix"></div>
+            </div>
+            <div class="x_content">
+                <table id="datatable" class="table table-striped table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Network</th>
+                            <th>Persistence</th>
+                            <th>Domains/SaaS</th>
+                            <th>VPS</th>
+                            <th>Bichitos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <label id="network"></label>
+                            </td>
+                            <td>
+                                <label id="persistence"></label>
+                            </td>
+                            <td>
+                                <label id="ivps"></label>
+                            </td>
+                            <td>
+                                <label id="idomains"></label>
+                            </td>
+                            <td>
+                                <label id="ibichitos"></label>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+             </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="row">
+    <div class="col-md-12 col-sm-12 col-xs-12">
+      <div class="x_panel">
+        <div class="x_title">
+          <h2>Attacks <small class="element"></small></h2>
+            <div class="clearfix"></div>
+            </div>
+              <div class="x_content">
+                <!-- start form for validation -->
+                <form id="demo-form" data-parsley-validate>
+                  <label for="heard"> Attack </label>
+                    <select id="attacks" class="form-control" required>
+                      <option value="dropImplant">Drop Implant</option>
+                      <option value="hta">HTA Attack</option>
+                    </select>
+                    
+                    <div>
+                      <table class="table table-striped table-bordered">
+                        <thead>
+                          <tr>
+                            <th>Staging Server</th>
+                          </tr>
+                        </thead>
+                          <tr name="stagings">
+                            <td>
+                              <select id="stagingOpt" class="form-control" required>
+                              </select>
+                            </td>
+                          </tr>
+                        </table>
+                    </div>
+                    
+                    <div id=params></div>
+                    <span id="submitattack" class="btn btn-primary">Perform Attack</span>
+                    
+                </form>
+                    <!-- end form for validations -->
+                    <form role="form" id="delimplantform">
+                      <input type="hidden" class="form-control" name="name" id="delval" value="">
+                      <span id="submitdelimplant" class="btn btn-primary">Delete Implant</span>
+                    </form>
+            </div>
+    </div>
+  </div>
+</div>
+
+<script src="./components/implant/implant.js"></script>

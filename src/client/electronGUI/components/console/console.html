@@ -1,0 +1,118 @@
+<link rel="stylesheet" href="./node_modules/xterm/dist/xterm.css" />
+<script src="./node_modules/xterm/dist/xterm.js"></script>
+<script src="./static/js/local-echo.js"></script>
+
+
+    <div id ="terminal" class="row">
+    </div>
+
+    <script>
+    
+    var jids = [];
+    // Start an xterm.js instance
+		term = new Terminal();
+		term.open(document.getElementById('terminal'));
+
+		// Create a local echo controller
+		localEcho = new LocalEchoController(term);
+
+    /*
+		// Read a single line from the user
+		localEcho.read("[bichito]> ")
+    		.then(input => alert(`User entered: ${input}`))
+    		.catch(error => alert(`Error reading: ${error}`));
+        */
+
+
+    localEcho.read("[bichito]> ")
+        .then(input => processCommand(input))
+        .catch(error => alert(`Error reading: ${error}`));
+  
+
+    //function process command
+    function processCommand(input){
+      var id = $(".STmain").attr("id");
+      var jobEx = input.split(' ')[0].trim();
+      var args = input.split(' ').slice(1);
+    switch(jobEx) {
+      case "help":
+        help();
+        break;
+      case "clear":
+        clearConsole();
+        break;
+      case "exec":
+        sendBjob(id,jobEx,args);
+
+        break;       
+      default:
+        help();
+        break;
+
+    }
+
+    checkJobsOutput();
+
+    localEcho.read("[bichito]> ")
+        .then(input => processCommand(input))
+        .catch(error => alert(`Error reading: ${error}`));
+
+    }
+
+//clears the screen
+function clearConsole() {
+  term.clear();
+}
+
+function help(){
+  localEcho.println('Help: List of available commands: help,exec');
+}
+
+function checkJobsOutput(){
+
+  //Load jobs
+  getJobs();
+
+  for (i = 0; i < jobs.length; i++){
+    var index = jids.indexOf(jobs[i].jid);
+    if ((jobs[i].status == "Success") && (index != -1 )){
+      localEcho.println(jobs[i].result);
+      jids.splice(jids.indexOf(index,1));
+    }
+
+  }
+
+
+}
+
+
+function sendBjob(id,jobT,argums){
+    
+  //Create Job to send with two elements
+  var data = {cid:"",jid:"",pid:"",chid:id,job:jobT,time:"",status:"",result:"",parameters:argums.join(' ')};
+  //data.push();
+  $.ajax({
+        type: "POST",
+        url: "http://127.0.0.1:8000/job",
+        data:  JSON.stringify(data),
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function (response){
+          console.log("Response Job:"+response[0].jid);
+          if (response != null){
+            console.log("Response Job:"+response[0].jid);
+            localEcho.println("Job with id:"+response[0].jid+" sent...");
+            jids.push(response[0].jid);
+            return
+          }
+        }
+
+    });
+
+}
+
+    </script>
+    </body>
+  </html>
+
+

@@ -1,0 +1,51 @@
+<div class="row">
+    <div class="col-md-12 col-sm-12 col-xs-12">
+      <div class="x_panel">
+        <div class="x_title">
+          <h2>Generate Staging <small class="element"></small></h2>
+            <div class="clearfix"></div>
+            </div>
+              <div class="x_content">
+                <!-- start form for validation -->
+                <form id="createstagingform" data-parsley-validate>
+
+                  <div class="form-group">
+                    <label for="iname"> Staging Name  </label>
+                    <input type="text" class="form-control" name="name" placeholder="Name...">
+                  </div>
+                  <label for="heard"> Staging Type </label>
+                    <select class="form-control" id="stype" name="stype">
+                      <option value="https_droplet_letsencrypt">HTTPS (Let's Encrypt) Droplet</option>
+                        <option value="https_msft_letsencrypt">HTTPS(Let's Encrypt) MSFT Handler </option>
+                        <option value="https_empire_letsencrypt">HTTPS(Let's Encrypt) Empire Handler </option>
+                    </select>
+<div>
+  <table class="form-group" id="participantTable">
+        <thead>
+            <tr>
+                <th>VPS</th>
+                <th>Domain</th>
+            </tr>
+        </thead>
+        <tr class="participantRow" name="redirector">
+            <td>
+                <select id="vpsOpt" class="required-entry" name="vpsname">
+                </select>
+            </td>
+            <td>
+                <select id="domainOpt" class="required-entry" name="domainame">
+                </select>
+            </td>
+        </tr>
+  </table>
+</div>
+                    <div id=params></div>
+                    <button type="button" class="btn btn-primary" id="submitcreationstaging">Create Staging</button>
+                </form>
+                    <!-- end form for validations -->
+            </div>
+    </div>
+  </div>
+</div>
+
+<script src="./components/createforms/forms.js"></script>

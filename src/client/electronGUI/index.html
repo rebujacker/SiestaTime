@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+  <!-- Insert this line above script imports  -->
+  <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>  
+  <!-- Insert this line after script imports -->
+  <script>if (window.module) module = window.module;</script>
+  <script>require('./renderer.js')</script>
+    
+  <!-- jQuery -->
+  <script src="static/js/jquery-3.3.1.min.js"></script> 
+
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <!-- Meta, title, CSS, favicons, etc. -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <!-- Bootstrap -->
+    <link href="static/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link href="static/css/font-awesome-4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+    <!-- Custom Theme Style -->
+    <link href="static/css/custom.css" rel="stylesheet">
+
+
+
+    <title>Siesta Time</title>
+  </head>
+
+  <body class="nav-md">
+  
+    <div class="container body">
+      <div class="main_container">
+        <div class="col-md-3 left_col">
+          <div class="left_col scroll-view">
+            <div class="navbar nav_title" style="border: 0;">
+              <a class="site_title"><img src="static/icons/png/STiconM.png"></img> <span>Siesta Time</span></a>
+            </div>
+
+            <div class="clearfix"></div>
+            <!-- menu profile quick info -->
+            <div class="profile clearfix">
+              <div class="profile_info">
+                <h2>Username</h2>
+              </div>
+            </div>
+            <!-- /menu profile quick info -->
+            <br />
+
+            <!-- sidebar menu -->
+            <div id="sidebar-menu" class="main_menu_side hidden-print main_menu">
+              <div class="menu_section">
+                <h3>Operations Servers</h3>
+                  <ul class="nav side-menu">
+                  <li><a><i class="fa fa-forumbee"></i> Hive <span class="fa fa-chevron-down"></span></a>
+                    <ul class="nav child_menu">
+                      <li><a class="hivJobs">Jobs</a></li>
+                      <li><a class="hivLogs">Logs</a></li>
+                    </ul>
+                  </li>
+                </ul>
+              </div>
+              <div class="menu_section">
+                <h3>Implants</h3>
+                <ul class="nav side-menu">
+                  <li><a class="implantList"><i class="fa fa-eye"></i> List Implants <span class="fa fa-chevron-down"></span></a>
+                    <ul class="nav child_menu">
+                    </ul>
+                  </li>
+
+                  <li><a><i class="fa fa-cogs"></i> Generate <span class="fa fa-chevron-down"></span></a>
+                    <ul class="nav child_menu">
+                        <li><a class="createimplant">Create Implant</a>
+                    </ul>
+                  </li> 
+
+                </ul>
+              </div>
+              <div class="menu_section">
+                <h3>Registar Battery</h3>
+                <ul class="nav side-menu">
+
+                  <li><a><i class="fa fa-server"></i> VPS <span class="fa fa-chevron-down"></span></a>
+                    <ul class="nav child_menu">
+                        <li><a class="createvps">Add VPS</a>
+                        <li><a class="vpsList">List Registered VPS<span class="fa fa-chevron-down"></span></a>
+                          <ul class="nav child_menu">
+                          </ul>
+                        </li>
+                    </ul>
+                  </li>
+
+                  <li><a><i class="fa fa-cloud"></i> Domains <span class="fa fa-chevron-down"></span></a>
+                    <ul class="nav child_menu">
+                        <li><a class="createdomain">Add Domain</a>
+                        <li><a class="domainsList">List Registered Domains<span class="fa fa-chevron-down"></span></a>
+                          <ul class="nav child_menu">
+                          </ul>
+                        </li>
+                    </ul>
+                  </li> 
+
+                  <li><a><i class="fa fa-comment"></i> SaaS <span class="fa fa-chevron-down"></span></a>
+                    <ul class="nav child_menu">
+                        <li><a class="createdomain">Add SaaS </a>
+                        <li><a class="saasList">List Registered SaaS <span class="fa fa-chevron-down"></span></a>
+                          <ul class="nav child_menu">
+                          </ul>
+                        </li>
+                    </ul>
+                  </li>                    
+                </ul>
+              </div>
+              <div class="menu_section">
+                <h3>Staging Servers</h3>
+              
+                <ul class="nav side-menu">
+
+                  <li><a><i class="fa fa-archive"></i> Droplets <span class="fa fa-chevron-down"></span></a>
+                    <ul class="nav child_menu">
+                        <li><a class="createstaging">Create Droplet</a>
+                        <li><a class="dropletList">List Droplets<span class="fa fa-chevron-down"></span></a>
+                          <ul class="nav child_menu">
+                          </ul>
+                        </li>
+                    </ul>
+                  </li>  
+
+                  <li><a><i class="fa fa-bolt"></i> Handlers <span class="fa fa-chevron-down"></span></a>
+                    <ul class="nav child_menu">
+                        <li><a class="createstaging">Create Handler</a>
+                        <li><a class="hanlerList">List Handlers<span class="fa fa-chevron-down"></span></a>
+                          <ul class="nav child_menu">
+                          </ul>
+                        </li>
+                    </ul>
+                  </li> 
+
+                </ul>
+              </div>
+
+              <div class="menu_section">
+                <h3>Reporting</h3>
+              
+                <ul class="nav side-menu">
+                  <li><a><i class="fa fa-wpforms"></i> Basic Reports <span class="fa fa-chevron-down"></span></a>
+                    <ul class="nav child_menu">
+                        <li><a class="createreport">Create Report</a>
+                        <li><a class="reportsList">List Reports<span class="fa fa-chevron-down"></span></a>
+                          <ul class="nav child_menu">
+                          </ul>
+                        </li>
+                    </ul>
+                  </li> 
+
+                </ul>
+              </div>
+
+            </div>
+            <!-- /sidebar menu -->
+
+          </div>
+        </div>
+
+        <!-- page content -->
+        <div class="right_col" role="main">
+          <!-- top tiles -->
+
+            <!-- STime Header -->
+            <div class="STheader"></div>
+            <!-- /STime Header -->
+
+            <div class="clearfix"></div>
+
+            <!-- STime Main Page -->
+            <div class="STmain"></div>
+            <!-- /STime Main Page -->           
+      </div>
+    </div>	
+  </body>
+    
+  <!-- Bootstrap -->
+  <script src="static/js/popper.min.js"></script>
+  <script src="static/js/bootstrap.min.js"></script>
+  <!-- Custom Theme Scripts -->
+  <script src="static/js/custom.min.js"></script>
+  <script src="index.js"></script>
+
+</html>
