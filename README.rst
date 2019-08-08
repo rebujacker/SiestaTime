@@ -3,7 +3,7 @@ Siesta Time
 
 *siestatime: Red Team Automation Tool*
 
-.. image::  https://github.com/rebujacker/SiestaTime/src/client/electronGUI/static/icons/STicon.png
+.. image::  https://github.com/rebujacker/SiestaTime/blob/master/src/client/electronGUI/static/icons/png/STicon.png
     :height: 64px
     :width: 64px
     :alt: STime logo
