@@ -113,7 +113,10 @@ Documentation
 
 In Progress.
 
-Slides from: https://redteamvillage.io/
+Presented at DEfcon 27 Red Team Village.
+Slides from: https://redteamvillage.io/ --> https://www.slideshare.net/AlvaroFolgadoRueda1/siesta-time-defcon-27-red-team-village
+
+
 
 Contributing
 ============
