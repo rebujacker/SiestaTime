@@ -37,7 +37,7 @@ case "$1" in
 		exit 1
         ;;
 
-    "install" )
+    "installaws" )
 		file="./installConfig/hive.tf"		
 		if [ -f "$file" ]
 		then
@@ -45,8 +45,12 @@ case "$1" in
 			exit 1;
 		fi
 
+		sudo apt-get update
+		sudo apt-get install gcc apache2-utils sqlite3 libsqlite3-dev unzip git
+
+
 		VARS=()
-		file="./installConfig/config.txt"
+		file="./installConfig/configAWS.txt"
 		while IFS=':' read -r f1 f2
 		do
         	VARS+=("$f2")
@@ -61,12 +65,16 @@ case "$1" in
 		REGION=${VARS[5]}
 		KEYNAME=${VARS[6]}
 		AMI=${VARS[7]}
+		ITYPE=${VARS[8]}
 
+		#printf '%s\n' "${VARS[@]}"
+		
 		cp ./installConfig/hive_plan.txt ./installConfig/hive.tf
 
 		# Download GO and Compile Hive
 		wget https://dl.google.com/go/go1.10.3.linux-amd64.tar.gz -P ./installConfig/
 		tar xvf ./installConfig/go1.10.3.linux-amd64.tar.gz -C ./installConfig/
+		export GOROOT="$(pwd)/installConfig/go/"
 		export GOPATH="$(pwd)"
 		./installConfig/go/bin/go get "github.com/mattn/go-sqlite3"
 		./installConfig/go/bin/go get "github.com/gorilla/mux"
@@ -92,6 +100,7 @@ sed -i -e 's|@secret_key|'"$SKEY"'|g' ./installConfig/hive.tf
 sed -i -e "s/@region/${REGION}/g" ./installConfig/hive.tf
 sed -i -e "s/@keyname/${KEYNAME}/g" ./installConfig/hive.tf
 sed -i -e 's|@ami|'"$AMI"'|g' ./installConfig/hive.tf
+sed -i -e 's|@instancetype|'"$ITYPE"'|g' ./installConfig/hive.tf
 
 	sqlite3 ./installConfig/ST.db <<EOF
 	PRAGMA journal_mode = OFF;
@@ -104,7 +113,7 @@ sed -i -e 's|@ami|'"$AMI"'|g' ./installConfig/hive.tf
 	create table vps (vpsId INTEGER PRIMARY KEY,name TEXT,vtype TEXT,parameters TEXT);
 	create table domains (domainId INTEGER PRIMARY KEY,name TEXT,active TEXT,dtype TEXT,domain TEXT,parameters TEXT);
 	create table redirectors (redirectorId INTEGER PRIMARY KEY,rid TEXT,info TEXT,lastchecked TEXT,vpsId INTEGER,domainId INTEGER,implantId INTEGER,FOREIGN KEY(vpsId) REFERENCES vps(vpsId),FOREIGN KEY(domainId) REFERENCES domains(domainId),FOREIGN KEY(implantId) REFERENCES implants(implantId));
-	create table bichitos (bichitoId INTEGER PRIMARY KEY,bid TEXT,rid TEXT,info TEXT,lastchecked TEXT,redirectorId INTEGER,implantId INTEGER, FOREIGN KEY(redirectorId) REFERENCES redirectors(redirectorId),FOREIGN KEY(implantId) REFERENCES implants(implantId));
+	create table bichitos (bichitoId INTEGER PRIMARY KEY,bid TEXT,rid TEXT,info TEXT,lastchecked TEXT,ttl TEXT,resptime TEXT,status TEXT,redirectorId INTEGER,implantId INTEGER, FOREIGN KEY(redirectorId) REFERENCES redirectors(redirectorId),FOREIGN KEY(implantId) REFERENCES implants(implantId));
 	create table stagings (stagingId INTEGER PRIMARY KEY,name TEXT,stype TEXT,tunnelPort TEXT,parameters TEXT, vpsId INTEGER,domainId INTEGER,FOREIGN KEY(vpsId) REFERENCES vps(vpsId),FOREIGN KEY(domainId) REFERENCES domains(domainId));	
 	create table reports (reportId INTEGER PRIMARY KEY,name TEXT,body TEXT);	
 	INSERT into users (cid,username,hash) VALUES ('C-DEFAULT','${USERNAME}','${HASH}');
@@ -116,8 +125,6 @@ EOF
 
 cd installConfig
 #Download and unzip terraform
-sudo apt-get update
-sudo apt-get install unzip
 wget wget https://releases.hashicorp.com/terraform/0.11.13/terraform_0.11.13_linux_amd64.zip
 unzip terraform_0.11.13_linux_amd64.zip
 

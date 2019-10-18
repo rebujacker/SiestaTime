@@ -1,0 +1,9 @@
+USERNAME:<username>
+PASSWORD:<password>
+port:<port>
+accesskey:<AWSaccesskey>
+secretkey:<AWSsecretkey>
+region:<AWSRegion>
+keyname:<AWSkeyname>
+ami:<AWSAmi>
+itype:<AWSItype>

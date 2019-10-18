@@ -81,9 +81,12 @@ func main() {
 	//Decode Redirector Parameters
 	errDaws := json.Unmarshal([]byte(parameters),&biconfig)
 	if errDaws != nil {
+
+		//Debug: JSON params
 		fmt.Println("Parameters JSON Decoding error:"+errDaws.Error())
 		os.Exit(1)
 	}
+
 	ttl,_ = strconv.Atoi(biconfig.Ttl)
 	resptime,_ = strconv.Atoi(biconfig.Resptime)
 
@@ -121,10 +124,14 @@ func main() {
 		result = "Empty"
 		go func(){
 			result = connectOut()
-			fmt.Println("Weird:"+result)
 			if result == "Success"{
 				ttlC.Reset(time.Duration(ttl) * time.Second)
 				swapCount = 0
+				
+				//Debug: Jobs in queue, and jobs to Hive in queue
+				fmt.Println(jobsToProcess.Jobs)
+				fmt.Println(jobsToHive.Jobs)
+				
 				go jobProcessor()
 				contChannel <- "True"
 			}else{
@@ -147,8 +154,14 @@ func main() {
 		select{
 			case <- contChannel:
 				time.Sleep(time.Duration(resptime) * time.Second)
+
+				//Debug: Continue debug
+				fmt.Println("next round")
+				fmt.Println(result)				
 				
 			case <- ttlC.C:
+
+				//Debug: Reason to TTL
 				fmt.Println("ttl")
 				fmt.Println(result)
 				os.Exit(1)

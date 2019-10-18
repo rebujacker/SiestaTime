@@ -159,7 +159,7 @@ func CreateJob(w http.ResponseWriter, r *http.Request) {
     buf.ReadFrom(r.Body)
 
     jid := fmt.Sprintf("%s%s","J-",randomString(8))
-    time := time.Now().Format(time.RFC3339)
+    time := time.Now().Format("02/01/2006 15:04:05 MST")
     
     //DEcode JSOn Job, add Jid, time and status
     errDaws := json.Unmarshal([]byte(buf.String()),&job)
@@ -169,7 +169,6 @@ func CreateJob(w http.ResponseWriter, r *http.Request) {
 
     job.Jid = jid
     job.Time = time
-    fmt.Println(job.Job)
     jobsToSend = append(jobsToSend,&job)
     fmt.Fprint(w, "[{\"jid\":\""+jid+"\"}]")
 
@@ -239,7 +238,7 @@ func Interact(w http.ResponseWriter, r *http.Request) {
 
     }
 
-    fmt.Println("/bin/bash", "-c","gnome-terminal -- ssh -oStrictHostKeyChecking=no -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo printf \"\n\nInteractive Session started time,from:"+username+"\n\n\" >> "+interact.Handler+".log;sudo reptyr -s $(echo $(ps -ax | grep "+interact.Handler+" | head -n 1 |cut -d \" \" -f 1))|tee -a "+interact.Handler+".log'")
+    //fmt.Println("/bin/bash", "-c","gnome-terminal -- ssh -oStrictHostKeyChecking=no -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo printf \"\n\nInteractive Session started time,from:"+username+"\n\n\" >> "+interact.Handler+".log;sudo reptyr -s $(echo $(ps -ax | grep "+interact.Handler+" | head -n 1 |cut -d \" \" -f 1))|tee -a "+interact.Handler+".log'")
 
     var command string
 

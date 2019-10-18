@@ -40,9 +40,13 @@ HIVIP=$4
 HIVPORT=$5
 HIVTLSHASH=$6
 
+sudo apt-get update
+sudo apt-get install gcc apache2-utils sqlite3 libsqlite3-dev unzip git
+
 # Download GO and Compile Hive
 wget https://dl.google.com/go/go1.10.3.linux-amd64.tar.gz -P ./installConfig/
 tar xvf ./installConfig/go1.10.3.linux-amd64.tar.gz -C ./installConfig/
+export GOROOT="$(pwd)/installConfig/go/"
 export GOPATH="$(pwd)"
 ./installConfig/go/bin/go get "github.com/mattn/go-sqlite3"
 ./installConfig/go/bin/go get "github.com/gorilla/mux"
@@ -59,7 +63,7 @@ cd ./installConfig
 GOOS=linux GOARCH=amd64 ./go/bin/go build --ldflags "-X main.username=${USERNAME} -X main.password=${PASSWORD} -X main.roasterString=${HIVIP}:${HIVPORT} -X main.fingerPrint=${HIVTLSHASH}" -o stclient client
 cp -r ../src/client/electronGUI/ .
 cd electronGUI/
-sudo apt-get install -y nodejs
+sudo apt-get install -y npm
 npm install
 
 exit 1

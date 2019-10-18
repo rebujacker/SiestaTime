@@ -10,10 +10,10 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"database/sql"
 	"golang.org/x/crypto/bcrypt"
-    "bytes"
     "encoding/json"
     "errors"
     "strings"
+    "time"
 )
 
 var (
@@ -98,6 +98,9 @@ type Bichito struct {
     Rid string  `json:"rid"`
     Info string   `json:"info"`    
     LastChecked string  `json:"lastchecked"`
+    Ttl string  `json:"ttl"`
+    Resptime string  `json:"resptime"`
+    Status string  `json:"status"`
     ImplantName        string   `json:"implantname"`   
 }
 
@@ -193,6 +196,17 @@ func startDB(){
 
 }
 
+
+func dataSync(){
+
+    //Functions to sync data 
+    bichitoStatus()
+    
+    //Sleep and trugger the sync again
+    time.Sleep(60 * time.Second)
+    go dataSync()
+    return
+}
 
 
 //Get the GUI data with limit of 50 HiveLogs and 20 of each asset
@@ -1205,16 +1219,97 @@ func setRedHiveTDB(rid string,value int) error{
 
 //Bichito
 
+func bichitoStatus(){
+
+    var bichito *Bichito
+    var bidToOffline []string
+    //Query all bids, per bid get Bi object, make respTIme diff with lastchecked, update status
+    rows, err := db.Query("SELECT bid FROM bichitos")
+    if err != nil {
+            time := time.Now().Format("02/01/2006 15:04:05 MST")
+            elog := fmt.Sprintf("%s%s","DataSync(Error Querying Bichitos):",err.Error())
+            addLogDB("Hive",time,elog)
+    }
+    for rows.Next() {
+        var bid string
+        var timeNow,lastcheckedT time.Time
+        var  intresptime int
+        var tdiff time.Duration
+        err = rows.Scan(&bid)
+        if err != nil {
+            //ErrorLog
+            timeN := time.Now().Format("02/01/2006 15:04:05 MST")
+            elog := fmt.Sprintf("%s%s","DataSync(Error Querying Bichitos):",err.Error())
+            addLogDB("Hive",timeN,elog)
+        }
+
+        bichito = getBichitoDB(bid)
+
+        timeNowS := time.Now().Format("02/01/2006 15:04:05 MST")
+        timeNow, err := time.Parse("02/01/2006 15:04:05 MST", timeNowS)
+        if err != nil {
+            //ErrorLog
+            timeN := time.Now().Format("02/01/2006 15:04:05 MST")
+            elog := fmt.Sprintf("%s%s","DataSync(Error parsing time Now time):",err.Error())
+            addLogDB("Hive",timeN,elog)
+        }
+
+        lastcheckedT, err = time.Parse("02/01/2006 15:04:05 MST", bichito.LastChecked)
+        if err != nil {
+            //ErrorLog
+            timeN := time.Now().Format("02/01/2006 15:04:05 MST")
+            elog := fmt.Sprintf("%s%s","DataSync(Error parsing Bichito Lastchecked time):",err.Error())
+            addLogDB("Hive",timeN,elog)
+        }    
+
+        tdiff = timeNow.Sub(lastcheckedT)
+                
+        //String respTime tseconds o int
+        intresptime, err = strconv.Atoi(bichito.Resptime)
+
+        //Debug
+        //fmt.Println("Bichito:" + bid + "Time since last seen:")
+        //fmt.Println(tdiff.Seconds() - float64(5))
+        //fmt.Println((tdiff.Seconds() - float64(5)) > float64(intresptime))
+
+        //Let's give 5 second for close sharp errors
+        if ((tdiff.Seconds() - float64(5)) > float64(intresptime)){
+            //Debug
+            //fmt.Println("Chaning:"+bid+ " to offline")
+            bidToOffline = append(bidToOffline,bid)
+        } 
+
+    }
+    rows.Close()
+    err = rows.Err()
+    if err != nil {
+            time := time.Now().Format("02/01/2006 15:04:05 MST")
+            elog := fmt.Sprintf("%s%s","DataSync(Error Querying Bichitos):",err.Error())
+            addLogDB("Hive",time,elog)
+    }
+
+    //Loop out to avoid database lock
+    for _,bid := range bidToOffline{
+        setBichitoStatusDB(bid,"Offline")
+        if err != nil {
+            time := time.Now().Format("02/01/2006 15:04:05 MST")
+            elog := fmt.Sprintf("%s%s","DataSync(Error Changing Bichitos Status):",err.Error())
+            addLogDB("Hive",time,elog)
+        } 
+    }
+
+}
+
 func getBichitoDB(bid string) *Bichito{
 
     var implantId int
-    var rid,info,lastchecked string
+    var rid,info,lastchecked,ttl,resptime,status string
     var bichito Bichito
-    stmt := "Select rid,info,lastchecked,implantId from bichitos where bid=?"
-    db.QueryRow(stmt,bid).Scan(&rid,&info,&lastchecked,&implantId)
+    stmt := "Select rid,info,lastchecked,ttl,resptime,status,implantId from bichitos where bid=?"
+    db.QueryRow(stmt,bid).Scan(&rid,&info,&lastchecked,&ttl,&resptime,&status,&implantId)
 
     implantName,_ := getImplantNamebyIdDB(implantId)
-    bichito = Bichito{Bid:bid,Rid:rid,Info:info,LastChecked:lastchecked,ImplantName:implantName}
+    bichito = Bichito{Bid:bid,Rid:rid,Info:info,LastChecked:lastchecked,Ttl:ttl,Resptime:resptime,Status:status,ImplantName:implantName}
     return &bichito
 }
 
@@ -1232,14 +1327,14 @@ func existBiDB(bid string) (bool,error){
     return true,err
 }
 
-func addBiDB(bid string,rid string,info string,lastChecked string,redirectorId int,implantId int) error{
+func addBiDB(bid string,rid string,info string,lastChecked string,ttl string,resptime string,status string,redirectorId int,implantId int) error{
 
     ext,err := existBiDB(bid)
     if ext{
         return err
     }
-    stmt,_ := db.Prepare("INSERT INTO bichitos (bid,rid,info,lastchecked,redirectorId,implantId) VALUES (?,?,?,?,?,?)")
-    _,err = stmt.Exec(bid,rid,info,lastChecked,redirectorId,implantId)
+    stmt,_ := db.Prepare("INSERT INTO bichitos (bid,rid,info,lastchecked,ttl,resptime,status,redirectorId,implantId) VALUES (?,?,?,?,?,?,?,?,?)")
+    _,err = stmt.Exec(bid,rid,info,lastChecked,ttl,resptime,status,redirectorId,implantId)
     return err
 }
 
@@ -1372,6 +1467,19 @@ func setBiLastCheckedbyBidDB(bid string,value string) error{
 	return err
 
 }
+
+func setBichitoStatusDB(bid string,value string) error{
+    ext,err := existBiDB(bid)
+    if !ext{
+        return err
+    }
+
+    stmt,_ := db.Prepare("UPDATE bichitos SET status=? where bid=?")
+    _,err = stmt.Exec(value,bid)
+    return err
+
+}
+
 
 func setBiRidDB(bid string,pid string) error{
 

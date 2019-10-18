@@ -36,7 +36,7 @@ func addLog(error string){
 	if !strings.Contains(bid,"B-"){
 		return
 	}
-	time := time.Now().Format(time.RFC3339)
+	time := time.Now().Format("02/01/2006 15:04:05 MST")
 	log = Log{bid,time,error}
 
 	bufRP := new(bytes.Buffer)

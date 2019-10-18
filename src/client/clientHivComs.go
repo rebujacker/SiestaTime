@@ -20,7 +20,7 @@ import (
     "strings"
 	"encoding/hex"
 	"crypto/sha256"
-	"net/http/httputil"
+	//"net/http/httputil"
 	"net"
 	"time"
 )
@@ -103,11 +103,15 @@ type Redirector struct {
     ImplantName        string   `json:"implantname"`   
 }
 
+
 type Bichito struct {
     Bid string  `json:"bid"`
     Rid string  `json:"rid"`
     Info string   `json:"info"`    
     LastChecked string  `json:"lastchecked"`
+    Ttl string  `json:"ttl"`
+    Resptime string  `json:"resptime"`
+    Status string  `json:"status"`
     ImplantName        string   `json:"implantname"`   
 }
 
@@ -202,7 +206,9 @@ func connectHive(){
 
 
 func getHive(){
+	
 	checkTLSignature()
+	
 	//Bypass unsecure self-signed certificate
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	client := &http.Client{}
@@ -211,13 +217,20 @@ func getHive(){
 	res, err := client.Do(req)
 	if err != nil {
 		fmt.Println(err.Error())
+		return
 	}
+	
 	body, err2 := ioutil.ReadAll(res.Body)
 	if err2 != nil {
 		fmt.Println(err.Error())
+		return
 	}
 
+	//Debug Client Get Hive Data
+	/*
 	fmt.Println(string(body))
+	*/
+
 	updateData(string(body))
 
 }
@@ -231,9 +244,9 @@ func updateData(guidata string){
 
     if err != nil{
         fmt.Println(err.Error())
+        return
     }
 
-    //fmt.Println(guidataO)
 	jobs = guidataO.Jobs
 	logs = guidataO.Logs
 	implants = guidataO.Implants
@@ -246,6 +259,38 @@ func updateData(guidata string){
 
 }
 
+func postHive(job *Job){
+
+	checkTLSignature()
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	
+	//Serialize Job, and send it to Hive
+	bytesRepresentation, err := json.Marshal(job)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	client := &http.Client{}
+	req, _ := http.NewRequest("POST", "https://"+roasterString+"/client",bytes.NewBuffer(bytesRepresentation))
+	req.Header.Set("Authorization", authbearer)
+	_, err = client.Do(req)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+
+	//Debug Post to Hive
+	/*
+	requestDump, err2 := httputil.DumpRequest(req, true)
+	if err2 != nil {
+  		fmt.Println(err)
+	}
+	fmt.Println(string(requestDump))
+	*/
+
+}
 
 func getKey(vpsName string) string{
 	
@@ -263,19 +308,24 @@ func getKey(vpsName string) string{
 	res, err := client.Do(req)
 	if err != nil {
 		fmt.Println(err.Error())
+		return ""
 	}
 	body, err2 := ioutil.ReadAll(res.Body)
 	if err2 != nil {
 		fmt.Println(err.Error())
+		return ""
 	}
 
-    //Debug
+    //Debug GetKey
+    /*
     requestDump, err2 := httputil.DumpRequest(req, true)
     if err2 != nil {
         fmt.Println(err2)
     }
     fmt.Println(string(requestDump))
 	fmt.Println(string(body))
+	*/
+
 	return string(body)
 
 }
@@ -283,6 +333,7 @@ func getKey(vpsName string) string{
 func getReport(reportName string) string{
 	
 	checkTLSignature()
+	
 	//Bypass unsecure self-signed certificate
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	client := &http.Client{}
@@ -295,20 +346,23 @@ func getReport(reportName string) string{
 	
 	res, err := client.Do(req)
 	if err != nil {
-		fmt.Println(err.Error())
-	}
-	body, err2 := ioutil.ReadAll(res.Body)
-	if err2 != nil {
-		fmt.Println(err.Error())
+		return "CreateReport:" + err.Error()
 	}
 
-    //Debug
+	body, err2 := ioutil.ReadAll(res.Body)
+	if err2 != nil {
+		return "CreateReport:" + err2.Error()
+	}
+
+    //Debug Get Report
+    /*
     requestDump, err2 := httputil.DumpRequest(req, true)
     if err2 != nil {
         fmt.Println(err2)
     }
     fmt.Println(string(requestDump))
 	fmt.Println(string(body))
+	*/
 
 	report, err := os.Create("./reports/"+reportName+".txt")
 	if err != nil {
@@ -325,62 +379,36 @@ func getReport(reportName string) string{
 
 }
 
-func postHive(job *Job){
-
-	checkTLSignature()
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	
-	//Serialize Job, and send it to Hive
-	bytesRepresentation, err := json.Marshal(job)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-
-	client := &http.Client{}
-	req, _ := http.NewRequest("POST", "https://"+roasterString+"/client",bytes.NewBuffer(bytesRepresentation))
-	req.Header.Set("Authorization", authbearer)
-	_, err = client.Do(req)
-	if err != nil {
-		//log.Fatalln(err)
-		fmt.Println(err.Error())
-	}
-
-
-	//Debug
-	requestDump, err2 := httputil.DumpRequest(req, true)
-	if err2 != nil {
-  		fmt.Println(err)
-	}
-	fmt.Println(string(requestDump))
-
-}
-
-
 
 //This two functions check the Hive Certificate signature to make sure it is the Hive we have installed
 func checkTLSignature(){
+
 
 	var conn net.Conn
 	fprint := strings.Replace(fingerPrint, ":", "", -1)
 	bytesFingerprint, err := hex.DecodeString(fprint)
 	if err != nil {
 		fmt.Println("Hive TLS Error,Fingenrpint Decoding"+err.Error())
-		//os.Exit(1)
+		return
 	}
 	
 	config := &tls.Config{InsecureSkipVerify: true}
 	
 	if conn,err = net.DialTimeout("tcp", roasterString,1 * time.Second); err != nil{
 		fmt.Println("Hive TLS Error,Hive not reachable"+err.Error())
-		//os.Exit(1)
+		return
 	}	
 	
 	tls := tls.Client(conn,config)
-	tls.Handshake()
+
+	if err := tls.Handshake(); err != nil {
+			fmt.Println("http: TLS handshake to Hive, possible incorrect TLS Signature")
+			return
+		}
 
 	if ok,err := CheckKeyPin(tls, bytesFingerprint); err != nil || !ok {
 		fmt.Println("Hive TLS Error,Hive suplantation?"+err.Error())
-		//os.Exit(1)
+		return
 	}
 
 }

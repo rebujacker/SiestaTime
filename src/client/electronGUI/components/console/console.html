@@ -43,8 +43,13 @@
         break;
       case "exec":
         sendBjob(id,jobEx,args);
-
-        break;       
+        break; 
+      case "respTime":
+        sendBjob(id,jobEx,args);
+        break;
+      case "ttl":
+        sendBjob(id,jobEx,args);
+        break;                 
       default:
         help();
         break;
@@ -65,7 +70,7 @@ function clearConsole() {
 }
 
 function help(){
-  localEcho.println('Help: List of available commands: help,exec');
+  localEcho.println('Help: List of available commands: help,clear,exec,respTime,ttl');
 }
 
 function checkJobsOutput(){

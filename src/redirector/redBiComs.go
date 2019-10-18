@@ -41,9 +41,9 @@ func processJobs(jobs []*Job){
 
 	//Lock shared Slice
 	jobsToHive.mux.Lock()
-	defer jobsToHive.mux.Unlock()
-
 	jobsToHive.Jobs = append(jobsToHive.Jobs,jobs...)
+	jobsToHive.mux.Unlock()
+
 	go connectHive()
 }
 

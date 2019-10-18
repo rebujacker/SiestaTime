@@ -371,19 +371,18 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 	bichitoOx64.Stderr = &comperrOx64
 
 	redgen.Start()
-	bichitoLx32.Start()
-	bichitoLx64.Start()
-	bichitoWx32.Start()
-	bichitoWx64.Start()
-	bichitoOx32.Start()
-	bichitoOx64.Start()
-	
 	redgen.Wait()
+	bichitoLx32.Start()
 	bichitoLx32.Wait()
+	bichitoLx64.Start()
 	bichitoLx64.Wait()
+	bichitoWx32.Start()
 	bichitoWx32.Wait()
+	bichitoWx64.Start()
 	bichitoWx64.Wait()
+	bichitoOx32.Start()
 	bichitoOx32.Wait()
+	bichitoOx64.Start()
 	bichitoOx64.Wait()
 
 	implantCompillingError := comperrRed.String()+comperrRed.String()+comperrRed.String()+comperrRed.String()+comperrRed.String()+comperrRed.String()+comperrRed.String()

@@ -102,7 +102,6 @@ func main() {
 		time.Sleep(5 * time.Second)
 	}
 
-	fmt.Println(rid)
 	//Once hive cheking is performed, start listening for bichito's connections and Jobs
 	bichitoHandler()
 }

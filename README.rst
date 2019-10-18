@@ -47,11 +47,21 @@ Hive:
 *Minimum Requirements*: Active EC/AWS Account
 
     A. Drop <keyname>.pem into "installConfig"
-    B. Complete "config.txt" with desired/required elements
+    B. Complete "configAWS.txt" with desired/required elements
+
+        USERNAME:<username>
+        PASSWORD:<pwd>
+        port:<Hive Port>
+        accesskey:<AWS AccessKey>
+        secretkey:<AWS SecretKey>
+        region:<AWS Region>
+        keyname:<aws key filename,remember same filename as AWS selected keyname,without .pem>
+        ami:<AWS AMI>
+        itype:<AWS Instance type>
 
 .. code-block:: bash
 
-    > hive.sh install
+    > hive.sh installaws
 
 
 Client/Operator:
@@ -113,7 +123,7 @@ Documentation
 
 In Progress.
 
-Presented at DEfcon 27 Red Team Village.
+Presented at Defcon 27 Red Team Village.
 Slides from: https://redteamvillage.io/ --> https://www.slideshare.net/AlvaroFolgadoRueda1/siestatime-defcon27-red-team-village
 
 

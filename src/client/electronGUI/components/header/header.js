@@ -3,7 +3,9 @@ $(document).ready(function() {
 
   var binumber = 0;
   for (i = 0; i < bichitos.length; i++){
-      binumber++;
+      if (bichitos[i].status == "Online"){
+        binumber++;
+      }
   }
 
   var rednumber = 0;

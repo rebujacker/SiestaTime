@@ -29,7 +29,7 @@
 		  provider = "aws.hiveaws"
 		  depends_on = ["aws_security_group.hive_sec_group"]
 		  ami           = "@ami"
-		  instance_type = "t2.micro"
+		  instance_type = "@instancetype"
 		  key_name = "@keyname"
 		  security_groups = ["hive_sec_group"]
 
@@ -177,7 +177,7 @@
 		    connection {
 		      type     = "ssh"
 		      user     = "ubuntu"
-		      private_key = "${file("remotetest.pem")}"
+		      private_key = "${file("@keyname.pem")}"
 		    }
 		  }		  
 
@@ -193,7 +193,7 @@
 		    connection {
 		      type     = "ssh"
 		      user     = "ubuntu"
-		      private_key = "${file("remotetest.pem")}"
+		      private_key = "${file("@keyname.pem")}"
 		    }
 		  }
 		}

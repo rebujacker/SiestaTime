@@ -78,7 +78,7 @@ func startRoaster(){
     err := srv.ListenAndServeTLS("./certs/hive.pem","./certs/hive.key")
     if err != nil {
     	//ErrorLog
-        time := time.Now().Format(time.RFC3339)
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
 		elog := fmt.Sprintf("%s%s","Network(Roaster Starting Error):",err.Error())
 		addLogDB("Hive",time,elog)
     }
@@ -106,7 +106,7 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 
     err,db := getGUIDataDB()
     if err != nil {
-        time := time.Now().Format(time.RFC3339)
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
 		elog := fmt.Sprintf("%s%s","Error Extracting GUI DB:",err.Error())
 		addLogDB("Hive",time,elog)
 		return
@@ -130,7 +130,7 @@ func GetVpsKey(w http.ResponseWriter, r *http.Request) {
     
     if !ok || len(keys[0]) < 1 {
         //ErrorLog
-        time := time.Now().Format(time.RFC3339)
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
         addLogDB("Hive",time,"Bad GetKey Get Query from:"+cid)
         return
     }
@@ -139,7 +139,7 @@ func GetVpsKey(w http.ResponseWriter, r *http.Request) {
     key,err := getVpsPemDB(keys[0])
     if err != nil {
         //ErrorLog
-        time := time.Now().Format(time.RFC3339)
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
         addLogDB("Hive",time,"Bad GetKey Get Query from:"+cid)
         return
     }
@@ -163,7 +163,7 @@ func GetReport(w http.ResponseWriter, r *http.Request) {
     
     if !ok || len(keys[0]) < 1 {
         //ErrorLog
-        time := time.Now().Format(time.RFC3339)
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
         addLogDB("Hive",time,"Bad GetKey Get Query from:"+cid)
         return
     }
@@ -172,7 +172,7 @@ func GetReport(w http.ResponseWriter, r *http.Request) {
     err,rbody := getReportBodyDB(keys[0])
     if err != nil {
         //ErrorLog
-        time := time.Now().Format(time.RFC3339)
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
         addLogDB("Hive",time,"Bad GetKey Get Query from:"+cid)
         return
     }
@@ -197,7 +197,7 @@ func PostUser(w http.ResponseWriter, r *http.Request) {
     err := decoder.Decode(&job)
     if err != nil {
     	//ErrorLog
-        time := time.Now().Format(time.RFC3339)
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
 		elog := fmt.Sprintf("%s%s","Jobs(Error Decoding User Job):",err.Error())
 		addLogDB("Hive",time,elog)
 		return
@@ -213,7 +213,7 @@ func PostUser(w http.ResponseWriter, r *http.Request) {
     errJ := addJobDB(job)
     if errJ != nil {
     	//ErrorLog
-        time := time.Now().Format(time.RFC3339)
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
 		elog := fmt.Sprintf("%s%s","Jobs(Job Already Processed):",err.Error())
 		addLogDB("Hive",time,elog)
 		return
@@ -240,7 +240,7 @@ func userAuth(authbearer string) string{
     decoder := json.NewDecoder(bytes.NewBufferString(authbearer))
     errD := decoder.Decode(&userauth)
     if errD != nil{
-        time := time.Now().Format(time.RFC3339)
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
         elog := fmt.Sprintf("%s%s","User Auth(Bad Encoding):",errD.Error())
         addLogDB("Hive",time,elog)     
         return "Bad"
@@ -248,7 +248,7 @@ func userAuth(authbearer string) string{
     //Check DB username/hash,generate token, and on memory user data
     cid,err := getCidbyAuthDB(userauth.Username,userauth.Password)
     if err != nil{
-        time := time.Now().Format(time.RFC3339)
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
         elog := fmt.Sprintf("%s%s","User Auth(Bad Username/pwd):",err.Error())
         addLogDB("Hive",time,elog)     
         return "Bad"
@@ -327,7 +327,7 @@ func PostRed(w http.ResponseWriter, r *http.Request) {
     err := decoder.Decode(&job)
     if err != nil {
     	//ErrorLog
-        time := time.Now().Format(time.RFC3339)
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
 		elog := fmt.Sprintf("%s%s","Jobs(Error Decoding Redirector Job):",err.Error())
 		addLogDB("Hive",time,elog)
 		return
@@ -360,14 +360,14 @@ func PostRed(w http.ResponseWriter, r *http.Request) {
     err2 := updateJobDB(job)
     if err2 != nil {
     	//ErrorLog
-        time := time.Now().Format(time.RFC3339)
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
 		elog := fmt.Sprintf("Job "+job.Jid+"(Not existent or already Finished,Possible Replay attack/Problem):"+err2.Error())
 		addLogDB("Hive",time,elog)
 		return
     }
 
     //Update Last Actives and Redirectors/Bichitos if PiggyBAcking Job is correct
-    time := time.Now().Format(time.RFC3339)
+    time := time.Now().Format("02/01/2006 15:04:05 MST")
     setRedLastCheckedDB(job.Pid,time)
     setBiLastCheckedbyBidDB(job.Chid,time)
     setBiRidDB(job.Chid,job.Pid)
@@ -386,7 +386,7 @@ func CheckingRed(w http.ResponseWriter, r *http.Request) {
     rid,err := getRedRidbyDomain(domain)
     if err != nil {
         //ErrorLog
-        time := time.Now().Format(time.RFC3339)
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
         elog := fmt.Sprintf("%s%s","Error Getting Rid of domain:"+domain,err.Error())
         addLogDB("Hive",time,elog)
         return
@@ -408,7 +408,7 @@ func redAuth(authbearer string) string{
 
     err,token := getDomainTokenDB(redauth.Domain)
     if err != nil{
-        time := time.Now().Format(time.RFC3339)
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
         elog := fmt.Sprintf("%s%s","Red Auth(Bad domain):",err.Error())
         addLogDB("Hive",time,elog)
         return "Bad"
@@ -418,7 +418,7 @@ func redAuth(authbearer string) string{
         return redauth.Domain
     }
 
-    time := time.Now().Format(time.RFC3339)
+    time := time.Now().Format("02/01/2006 15:04:05 MST")
     elog := fmt.Sprintf("%s%s","Red Auth(Bad token):",err.Error())
     addLogDB("Hive",time,elog)
     return "Bad"

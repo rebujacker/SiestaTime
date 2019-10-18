@@ -21,6 +21,7 @@ func main() {
 	}
 
 	startDB()
+	go dataSync()
 
 	startRoaster()
 }

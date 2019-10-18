@@ -402,7 +402,7 @@ func jobProcessor(jobO *Job){
    				errD := decoder.Decode(&jsconcommanA)
    				// Error Log
     			if errD != nil {
-    				time := time.Now().Format(time.RFC3339)
+    				time := time.Now().Format("02/01/2006 15:04:05 MST")
 					elog := fmt.Sprintf("Job by "+pid+":Redirector Log(JSON Decoding Error)"+errD.Error())
 					addLogDB("Hive",time,elog)
 					return
@@ -411,7 +411,7 @@ func jobProcessor(jobO *Job){
 				addLogDB(pid,commandO.Time,commandO.Error)
 				return
 			default:
-				time := time.Now().Format(time.RFC3339)
+				time := time.Now().Format("02/01/2006 15:04:05 MST")
 				elog := fmt.Sprintf("Job by "+cid+":Redirector(Job not implemented)")
 				addLogDB(pid,time,elog)
 		}
@@ -433,7 +433,7 @@ func jobProcessor(jobO *Job){
 					biChecking(chid,pid,parameters)
 				}
 
-   				time := time.Now().Format(time.RFC3339)
+   				time := time.Now().Format("02/01/2006 15:04:05 MST")
    				setRedLastCheckedDB(pid,time)
    				setBiLastCheckedbyBidDB(chid,time)
    				setBiRidDB(chid,pid)
@@ -445,14 +445,12 @@ func jobProcessor(jobO *Job){
 					biChecking(chid,pid,parameters)
 				}
 
-				fmt.Println("LOggy doggy:"+parameters)
-
    				jsconcommanA := make([]Log, 0)
    				decoder := json.NewDecoder(bytes.NewBufferString(parameters))
    				errD := decoder.Decode(&jsconcommanA)
    				// Error Log
     			if errD != nil {
-    				time := time.Now().Format(time.RFC3339)
+    				time := time.Now().Format("02/01/2006 15:04:05 MST")
 					elog := fmt.Sprintf("Job by "+chid+":Bichito Log(Log JSON Decoding Error)"+errD.Error())
 					addLogDB("Hive",time,elog)
 					return
@@ -460,7 +458,7 @@ func jobProcessor(jobO *Job){
    				commandO := jsconcommanA[0]
 				addLogDB(chid,commandO.Time,commandO.Error)
 
-				time := time.Now().Format(time.RFC3339)
+				time := time.Now().Format("02/01/2006 15:04:05 MST")
    				setRedLastCheckedDB(pid,time)
    				setBiLastCheckedbyBidDB(chid,time)
    				setBiRidDB(chid,pid)
@@ -476,6 +474,14 @@ func jobProcessor(jobO *Job){
 				return
 
 			case "respTime":
+				//Lock shared Slice
+    			jobsToProcess.mux.Lock()
+    			defer jobsToProcess.mux.Unlock()
+
+				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+				return
+
+			case "ttl":
 				//Lock shared Slice
     			jobsToProcess.mux.Lock()
     			defer jobsToProcess.mux.Unlock()
@@ -522,7 +528,7 @@ func jobProcessor(jobO *Job){
 				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
 				return
 			default:
-				time := time.Now().Format(time.RFC3339)
+				time := time.Now().Format("02/01/2006 15:04:05 MST")
 				elog := fmt.Sprintf("Job by "+cid+":Bichito(Job not implemented)")
 				addLogDB(pid,time,elog)
 		}
@@ -571,9 +577,11 @@ func biChecking(chid string,pid string,parameters string){
 
 	redirectorId,_ := getRedIdbyRidDB(pid)
 	implantId,_ := getImplantIdbyRidDB(pid)
-	time := time.Now().Format(time.RFC3339)
-	addBiDB(chid,pid,parameters,time,redirectorId,implantId)
-	setRedLastCheckedDB(pid,time)	
+	timeNow := time.Now().Format("02/01/2006 15:04:05 MST")
+	implantName,_ := getImplantNamebyIdDB(implantId)
+	_,implant := getImplantDB(implantName)
+	addBiDB(chid,pid,parameters,timeNow,implant.Ttl,implant.Resptime,"Online",redirectorId,implantId)
+	setRedLastCheckedDB(pid,timeNow)	
 
 }
 
@@ -676,7 +684,7 @@ func createReport(reportName string) string{
 		`,reportName)
 
 	//Set a timestamp
-	time := time.Now().Format(time.RFC3339)
+	time := time.Now().Format("02/01/2006 15:04:05 MST")
 	timeS :=
 		fmt.Sprintf(
 		`

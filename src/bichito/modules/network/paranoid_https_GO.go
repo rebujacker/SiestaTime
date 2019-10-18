@@ -81,7 +81,7 @@ func RetrieveJobs(redirector string,authentication string) ([]byte,string){
 		return newJobs,error
 	}
 
-	//Debug
+	//Debug: Get request
 	requestDump, err2 := httputil.DumpResponse(res, true)
 	if err2 != nil {
   		fmt.Println(err2)
@@ -111,12 +111,12 @@ func SendJobs(redirector string,authentication string,encodedJob []byte) string{
 	fmt.Println("trying to connect POST...")
 	_, err := client.Do(req)
 	if err != nil {
-		error = "Connection errir with redirector "+redirector+":"+err.Error()
+		error = "Connection error with redirector "+redirector+":"+err.Error()
 		return error
 	}
 
 
-	//Debug
+	//Debug: Post Request
 	requestDump, err2 := httputil.DumpRequest(req, true)
 	if err2 != nil {
   		fmt.Println(err2)
@@ -141,7 +141,6 @@ func checkTLSignature(redirector string) string{
 	config := &tls.Config{InsecureSkipVerify: true}
 	
 	if conn,err = net.DialTimeout("tcp", redirector,1 * time.Second); err != nil{
-		fmt.Println("Dial error")
 		return "Redirector TLS Error,Red not reachable"+err.Error()
 	}	
 	

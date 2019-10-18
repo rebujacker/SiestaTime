@@ -45,6 +45,7 @@ $(document).ready(function() {
   $("#buser").text(infoJson.user.replace(/\n/g, ''));
   $("#privileges").text(infoJson.privileges.replace(/\n/g, ''));
   $("#lastonline").text(bichito.lastchecked);
+  $("#status").text(bichito.status);
 
 
   $("#lastdomain").text(domain);
