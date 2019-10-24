@@ -5,7 +5,7 @@ function loadFormData(button) {
   if (stagings != null){
     for (i = 0; i < stagings.length; i++){
       var row = stagings[i];
-      $("#stagingOpt").append("<option>"+row.name+"</option>");
+      $("#stagingOpt").append("<option>"+htmlencode.htmlEncode(row.name)+"</option>");
     }
   }
 
@@ -21,8 +21,8 @@ getStagings();
 loadFormData();
 //// Staging Creation Form: Parameters and function
   var name = $(".STmain").attr("id");
-  $(".STmain").find(".element").text(name);
-  $("#delval").attr("value",name);
+  $(".STmain").find(".element").text(htmlencode.htmlEncode(name));
+  $("#delval").attr("value",htmlencode.htmlEncode(name));
 
   
   for (i = 0; i < implants.length; i++){
@@ -42,8 +42,8 @@ loadFormData();
   var ivps = [];
   for (i = 0; i < redirectors.length; i++){
     if (redirectors[i].implantname == name){
-      ivps.push(redirectors[i].vpsname);
-      idomains.push(redirectors[i].domainame);
+      ivps.push(htmlencode.htmlEncode(redirectors[i].vpsname));
+      idomains.push(htmlencode.htmlEncode(redirectors[i].domainame));
     }
   }
 
@@ -51,9 +51,9 @@ loadFormData();
   console.log(binumber);
   console.log(idomains);
   console.log(ivps);
-  $("#network").text(infoJson.coms.replace(/\n/g, ''));
-  $("#persistence").text(infoJson.persistence.replace(/\n/g, ''));
-  $("#ivps").text(ivps);
+  $("#network").text(htmlencode.htmlEncode(infoJson.coms.replace(/\n/g, '')));
+  $("#persistence").text(htmlencode.htmlEncode(infoJson.persistence.replace(/\n/g, '')));
+  $("#ivps").text(htmlencode.htmlEncode(ivps));
   $("#idomains").text(idomains);
   $("#ibichitos").text(binumber);
 
@@ -125,7 +125,7 @@ $('#attacks').change(function(){
 
   //Determine if elog is for hive,red or bichito, then load the logs for each case
   var name = $(".STmain").attr("id");
-  $(".element").text(name)
+  $(".element").text(htmlencode.htmlEncode(name));
   
   //$(".STmain").find(".jobs").attr("id",name);
   //$(".STmain").find(".logs").attr("id",name);
@@ -133,7 +133,7 @@ $('#attacks').change(function(){
   //$(".STmain").find('.jobs').load("./components/jobs/jobs.html");
   //$(".STmain").find('.logs').load("./components/logs/logs.html");
   
-  $("#delval").attr("value",name);
+  $("#delval").attr("value",htmlencode.htmlEncode(name));
 
 })
 

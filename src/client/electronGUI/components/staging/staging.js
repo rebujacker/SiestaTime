@@ -4,9 +4,9 @@ $(document).ready(function() {
   //Determine if elog is for hive,red or bichito, then load the logs for each case
   var name = $(".STmain").attr("id");
   console.log(name)
-  $("#iname").text(name);
+  $("#iname").text(htmlencode.htmlEncode(name));
   //$("#delval").value = name
-  $("#delval").attr("value",name);
+  $("#delval").attr("value",htmlencode.htmlEncode(name));
 
   for (i = 0; i < stagings.length; i++){
     if (stagings[i].name == name){
@@ -14,9 +14,9 @@ $(document).ready(function() {
     }
   }
 
-  $("#type").text(staging.stype);
-  $("#vps").text(staging.vpsname);
-  $("#domain").text(staging.domainame);
+  $("#type").text(htmlencode.htmlEncode(staging.stype));
+  $("#vps").text(htmlencode.htmlEncode(staging.vpsname));
+  $("#domain").text(htmlencode.htmlEncode(staging.domainame));
 
 })
 

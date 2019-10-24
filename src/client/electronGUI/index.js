@@ -1,5 +1,7 @@
-  
 //// Index.JS will hold support client side functions
+
+//Encode every received input to avoid Script Injections
+var htmlencode = require('htmlencode');
 
 //Refresh every buffer of data in first opening,a nd then keep refreshing on key clicks
   var jobs = "";
@@ -225,7 +227,7 @@ $(document).ready(function() {
             for (i = 0; i < implants.length; i++){
               //console.log("Adding implat");
               var row = implants[i];
-              lower_ul.append("<li class=\"implantli\"><a href=\"#\" class=\"implant\" id=\""+row.name+"\">"+row.name+"<span class=\"fa fa-chevron-down\"></span></a><ul class=\"nav child_menu\" style=\"display: block;\"></ul></li>");
+              lower_ul.append("<li class=\"implantli\"><a href=\"#\" class=\"implant\" id=\""+htmlencode.htmlEncode(row.name)+"\">"+htmlencode.htmlEncode(row.name)+"<span class=\"fa fa-chevron-down\"></span></a><ul class=\"nav child_menu\" style=\"display: block;\"></ul></li>");
             }
             break;
           case "implant":
@@ -251,7 +253,7 @@ $(document).ready(function() {
                   continue;
                 }
                 bidentities.push(bidentity);
-                lower_ul.append("<li class=\"sub_menu\"><a href=\"#\" class=\"host\" id=\""+bidentity+"\">"+infoJson.hostname.replace(/\n/g, '')+"<span class=\"fa fa-chevron-down\"></span></a><ul class=\"nav child_menu\" style=\"display: block;\"></ul></li>");
+                lower_ul.append("<li class=\"sub_menu\"><a href=\"#\" class=\"host\" id=\""+htmlencode.htmlEncode(bidentity)+"\">"+htmlencode.htmlEncode(infoJson.hostname.replace(/\n/g, ''))+"<span class=\"fa fa-chevron-down\"></span></a><ul class=\"nav child_menu\" style=\"display: block;\"></ul></li>");
               }
             }
             break;
@@ -273,7 +275,7 @@ $(document).ready(function() {
               //console.log(link.attr("id"));
               //Client side redirector organization
               if ((row.implantname == link.closest('.implantli').find('.implant').attr("id")) && (bidentity == link.attr("id"))){
-                lower_ul.append("<li class=\"sub_menu\"><a href=\"#\" class=\"bichito\" id=\""+row.bid+"\">"+row.bid+"</a></li>");
+                lower_ul.append("<li class=\"sub_menu\"><a href=\"#\" class=\"bichito\" id=\""+htmlencode.htmlEncode(row.bid)+"\">"+htmlencode.htmlEncode(row.bid)+"</a></li>");
               }
             }
             break;
@@ -290,7 +292,7 @@ $(document).ready(function() {
             lower_ul.empty();
             for (i = 0; i < vps.length; i++){
               var row = vps[i];
-              lower_ul.append("<li class=\"sub_menu\"><a href=\"#\" class=\"vps\" id=\""+row.name+"\">"+row.name+"</a></li>");
+              lower_ul.append("<li class=\"sub_menu\"><a href=\"#\" class=\"vps\" id=\""+htmlencode.htmlEncode(row.name)+"\">"+htmlencode.htmlEncode(row.name)+"</a></li>");
             }
             break;
           case "vps":
@@ -302,7 +304,7 @@ $(document).ready(function() {
             for (i = 0; i < domains.length; i++){
               var row = domains[i];
               if (row.dtype != "gmail"){
-                lower_ul.append("<li class=\"sub_menu\"><a href=\"#\" class=\"domain\" id=\""+row.name+"\">"+row.name+"</a></li>");
+                lower_ul.append("<li class=\"sub_menu\"><a href=\"#\" class=\"domain\" id=\""+htmlencode.htmlEncode(row.name)+"\">"+htmlencode.htmlEncode(row.name)+"</a></li>");
               }
             }
             break;
@@ -311,7 +313,7 @@ $(document).ready(function() {
             for (i = 0; i < domains.length; i++){
               var row = domains[i];
               if (row.dtype == "gmail"){
-                lower_ul.append("<li class=\"sub_menu\"><a href=\"#\" class=\"domain\" id=\""+row.name+"\">"+row.name+"</a></li>");
+                lower_ul.append("<li class=\"sub_menu\"><a href=\"#\" class=\"domain\" id=\""+htmlencode.htmlEncode(row.name)+"\">"+htmlencode.htmlEncode(row.name)+"</a></li>");
               }            }
             break;
           case "domain":
@@ -323,7 +325,7 @@ $(document).ready(function() {
             for (i = 0; i < stagings.length; i++){
               var row = stagings[i];
               if (row.stype == "https_droplet_letsencrypt"){
-                lower_ul.append("<li class=\"sub_menu\"><a href=\"#\" class=\"staging\" id=\""+row.name+"\">"+row.name+"</a></li>");
+                lower_ul.append("<li class=\"sub_menu\"><a href=\"#\" class=\"staging\" id=\""+htmlencode.htmlEncode(row.name)+"\">"+htmlencode.htmlEncode(row.name)+"</a></li>");
               }
             }
             break;
@@ -332,7 +334,7 @@ $(document).ready(function() {
             for (i = 0; i < stagings.length; i++){
               var row = stagings[i];
               if (row.stype != "https_droplet_letsencrypt"){
-                lower_ul.append("<li class=\"sub_menu\"><a href=\"#\" class=\"staging\" id=\""+row.name+"\">"+row.name+"</a></li>");
+                lower_ul.append("<li class=\"sub_menu\"><a href=\"#\" class=\"staging\" id=\""+htmlencode.htmlEncode(row.name)+"\">"+htmlencode.htmlEncode(row.name)+"</a></li>");
               }
             }
             break;
@@ -344,7 +346,7 @@ $(document).ready(function() {
             lower_ul.empty();
             for (i = 0; i < reports.length; i++){
               var row = reports[i];
-              lower_ul.append("<li class=\"sub_menu\"><a href=\"#\" class=\"report\" id=\""+row.name+"\">"+row.name+"</a></li>");
+              lower_ul.append("<li class=\"sub_menu\"><a href=\"#\" class=\"report\" id=\""+htmlencode.htmlEncode(row.name)+"\">"+htmlencode.htmlEncode(row.name)+"</a></li>");
             }
             break;
           case "report":

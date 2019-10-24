@@ -20,6 +20,7 @@
     "electron": "^3.0.7"
   },
   "dependencies": {
-    "xterm": "^3.14.4"
+    "xterm": "^3.14.4",
+    "htmlencode": "^0.0.4"
   }
 }

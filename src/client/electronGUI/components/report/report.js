@@ -5,9 +5,9 @@ $(document).ready(function() {
   //Determine if elog is for hive,red or bichito, then load the logs for each case
   var name = $(".STmain").attr("id");
   console.log(name)
-  $(".element").text(name)
+  $(".element").text(htmlencode.htmlEncode(name))
   //$("#delval").value = name
-  $(".element").attr("value",name);
+  $(".element").attr("value",htmlencode.htmlEncode(name));
 
 })
 

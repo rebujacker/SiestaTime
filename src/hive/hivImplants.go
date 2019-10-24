@@ -6,6 +6,7 @@ package main
 import (
 
 	"os/exec"
+	"os"
 	"fmt"
 	"bytes"
 	"encoding/json"
@@ -130,7 +131,8 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 	
 	implantFolder := "/usr/local/STHive/implants/"+name
 
-	mkdir := exec.Command("/bin/sh","-c","mkdir "+implantFolder)
+	//mkdir := exec.Command("/bin/sh","-c","mkdir "+implantFolder)
+	mkdir := exec.Command("/bin/mkdir",implantFolder)
 	mkdir.Stderr = &errbuf
 	mkdir.Start()
 	mkdir.Wait()
@@ -161,6 +163,7 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 				redparanoidhttps RedParanoidhttps
 				biparanoidhttps BiParanoidhttps
 			)
+
 
 			redparanoidhttps = RedParanoidhttps{comsparams}
 			biparanoidhttps = BiParanoidhttps{comsparams,"",[]string{}}
@@ -199,7 +202,7 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 			biparanoidhttps.RedFingenPrint = strings.Split(outbuf.String(),"\n")[0]
 			outbuf.Reset()
 
-			fmt.Println(redirectors)
+			//fmt.Println(redirectors)
 
 			//Go over selected redirectos, add them to DB and update Implant Configuration Data
 			for _,redirector := range redirectors{
@@ -348,20 +351,77 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 	rModules := coms
 	bModules := coms //+ "," + persistence
 
-	fmt.Println("GOOS=linux GOARCH=amd64 /usr/local/STHive/sources/go/bin/go build --ldflags '-X main.parameters="+ redCompilParams +"' -tags " + rModules + " -o "+ implantFolder +"/redirector redirector")
-	fmt.Println("/bin/sh","-c", "export GOPATH=/usr/local/STHive/sources/; GOOS=windows GOARCH=amd64 /usr/local/STHive/sources/go/bin/go build --ldflags '-X main.parameters="+ biCompilParams +" -H=windowsgui' -tags "+ bModules +" -o "+ implantFolder +"/bichitoW bichito")
 
-	redgen := exec.Command("/bin/sh","-c", "export GOPATH=/usr/local/STHive/sources/; GOOS=linux GOARCH=amd64 /usr/local/STHive/sources/go/bin/go build --ldflags '-X main.parameters="+ redCompilParams +"' -tags " + rModules + " -o "+ implantFolder +"/redirector redirector")
+
+	fmt.Println("GOOS=linux GOARCH=amd64 /usr/local/STHive/sources/go/bin/go build --ldflags '-X main.parameters="+ redCompilParams +"' -tags " + rModules + " -o "+ implantFolder +"/redirector redirector")
+	fmt.Println("GOOS=windows GOARCH=amd64 /usr/local/STHive/sources/go/bin/go build --ldflags '-X main.parameters="+ biCompilParams +" -H=windowsgui' -tags "+ bModules +" -o "+ implantFolder +"/bichitoW bichito")
+
 	
-	bichitoLx32 := exec.Command("/bin/sh","-c", "export GOPATH=/usr/local/STHive/sources/; GOOS=linux GOARCH=386 /usr/local/STHive/sources/go/bin/go build --ldflags '-X main.parameters="+ biCompilParams +"' -tags "+ bModules +" -o "+ implantFolder +"/bichitoLinuxx32 bichito")
-	bichitoLx64 := exec.Command("/bin/sh","-c", "export GOPATH=/usr/local/STHive/sources/; GOOS=linux GOARCH=amd64 /usr/local/STHive/sources/go/bin/go build --ldflags '-X main.parameters="+ biCompilParams +"' -tags "+ bModules +" -o "+ implantFolder +"/bichitoLinuxx64 bichito")
-	bichitoWx32 := exec.Command("/bin/sh","-c", "export GOPATH=/usr/local/STHive/sources/; GOOS=windows GOARCH=386 /usr/local/STHive/sources/go/bin/go build --ldflags '-X main.parameters="+ biCompilParams +" -H=windowsgui' -tags "+ bModules +" -o "+ implantFolder +"/bichitoWindowsx32 bichito")
-	bichitoWx64 := exec.Command("/bin/sh","-c", "export GOPATH=/usr/local/STHive/sources/; GOOS=windows GOARCH=amd64 /usr/local/STHive/sources/go/bin/go build --ldflags '-X main.parameters="+ biCompilParams +" -H=windowsgui' -tags "+ bModules +" -o "+ implantFolder +"/bichitoWindowsx64 bichito")
-	bichitoOx32 := exec.Command("/bin/sh","-c", "export GOPATH=/usr/local/STHive/sources/; GOOS=darwin GOARCH=386 /usr/local/STHive/sources/go/bin/go build --ldflags '-X main.parameters="+ biCompilParams +"' -tags "+ bModules +" -o "+ implantFolder +"/bichitoOSXx32 bichito")
-	bichitoOx64 := exec.Command("/bin/sh","-c", "export GOPATH=/usr/local/STHive/sources/; GOOS=darwin GOARCH=amd64 /usr/local/STHive/sources/go/bin/go build --ldflags '-X main.parameters="+ biCompilParams +"' -tags "+ bModules +" -o "+ implantFolder +"/bichitoOSXx64 bichito")
+	//redgen := exec.Command("/bin/sh","-c", "export GOPATH=/usr/local/STHive/sources/; GOOS=linux GOARCH=amd64 /usr/local/STHive/sources/go/bin/go build --ldflags '-X main.parameters="+ redCompilParams +"' -tags " + rModules + " -o "+ implantFolder +"/redirector redirector")
+
+	//bichitoLx32 := exec.Command("/bin/sh","-c", "export GOPATH=/usr/local/STHive/sources/; GOOS=linux GOARCH=386 /usr/local/STHive/sources/go/bin/go build --ldflags '-X main.parameters="+ biCompilParams +"' -tags "+ bModules +" -o "+ implantFolder +"/bichitoLinuxx32 bichito")
+	//bichitoLx64 := exec.Command("/bin/sh","-c", "export GOPATH=/usr/local/STHive/sources/; GOOS=linux GOARCH=amd64 /usr/local/STHive/sources/go/bin/go build --ldflags '-X main.parameters="+ biCompilParams +"' -tags "+ bModules +" -o "+ implantFolder +"/bichitoLinuxx64 bichito")
+	//bichitoWx32 := exec.Command("/bin/sh","-c", "export GOPATH=/usr/local/STHive/sources/; GOOS=windows GOARCH=386 /usr/local/STHive/sources/go/bin/go build --ldflags '-X main.parameters="+ biCompilParams +" -H=windowsgui' -tags "+ bModules +" -o "+ implantFolder +"/bichitoWindowsx32 bichito")
+	//bichitoWx64 := exec.Command("/bin/sh","-c", "export GOPATH=/usr/local/STHive/sources/; GOOS=windows GOARCH=amd64 /usr/local/STHive/sources/go/bin/go build --ldflags '-X main.parameters="+ biCompilParams +" -H=windowsgui' -tags "+ bModules +" -o "+ implantFolder +"/bichitoWindowsx64 bichito")
+	//bichitoOx32 := exec.Command("/bin/sh","-c", "export GOPATH=/usr/local/STHive/sources/; GOOS=darwin GOARCH=386 /usr/local/STHive/sources/go/bin/go build --ldflags '-X main.parameters="+ biCompilParams +"' -tags "+ bModules +" -o "+ implantFolder +"/bichitoOSXx32 bichito")
+	//bichitoOx64 := exec.Command("/bin/sh","-c", "export GOPATH=/usr/local/STHive/sources/; GOOS=darwin GOARCH=amd64 /usr/local/STHive/sources/go/bin/go build --ldflags '-X main.parameters="+ biCompilParams +"' -tags "+ bModules +" -o "+ implantFolder +"/bichitoOSXx64 bichito")
+
+	redgen := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+redCompilParams,"-tags",rModules,"-o",implantFolder+"/redirector","redirector")
+	redgen.Env = os.Environ()
+	redgen.Env = append(redgen.Env,"GOPATH=/usr/local/STHive/sources/")
+	redgen.Env = append(redgen.Env,"GOOS=linux")
+	redgen.Env = append(redgen.Env,"GOARCH=amd64")
+	redgen.Env = append(redgen.Env,"GOCACHE=/tmp/.cache")	
+
+
+	bichitoLx32 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+biCompilParams,"-tags",bModules,"-o",implantFolder+"/bichitoLinuxx32","bichito")
+	bichitoLx32.Env = os.Environ()
+	bichitoLx32.Env = append(bichitoLx32.Env,"GOPATH=/usr/local/STHive/sources/")
+	bichitoLx32.Env = append(bichitoLx32.Env,"GOOS=linux")
+	bichitoLx32.Env = append(bichitoLx32.Env,"GOARCH=386")
+	bichitoLx32.Env = append(bichitoLx32.Env,"GOCACHE=/tmp/.cache")
+
+	bichitoLx64 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+biCompilParams,"-tags",bModules,"-o",implantFolder+"/bichitoLinuxx64","bichito")
+	bichitoLx64.Env = os.Environ()
+	bichitoLx64.Env = append(bichitoLx64.Env,"GOPATH=/usr/local/STHive/sources/")
+	bichitoLx64.Env = append(bichitoLx64.Env,"GOOS=linux")
+	bichitoLx64.Env = append(bichitoLx64.Env,"GOARCH=amd64")
+	bichitoLx64.Env = append(bichitoLx64.Env,"GOCACHE=/tmp/.cache")
+
+
+	bichitoWx32 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+biCompilParams,"-tags",bModules,"-o",implantFolder+"/bichitoWindowsx32","bichito")
+	bichitoWx32.Env = os.Environ()
+	bichitoWx32.Env = append(bichitoWx32.Env,"GOPATH=/usr/local/STHive/sources/")
+	bichitoWx32.Env = append(bichitoWx32.Env,"GOOS=windows")
+	bichitoWx32.Env = append(bichitoWx32.Env,"GOARCH=386")
+	bichitoWx32.Env = append(bichitoWx32.Env,"GOCACHE=/tmp/.cache")
+
+	bichitoWx64 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+biCompilParams,"-tags",bModules,"-o",implantFolder+"/bichitoWindowsx64","bichito")
+	bichitoWx64.Env = os.Environ()
+	bichitoWx64.Env = append(bichitoWx64.Env,"GOPATH=/usr/local/STHive/sources/")
+	bichitoWx64.Env = append(bichitoWx64.Env,"GOOS=windows")
+	bichitoWx64.Env = append(bichitoWx64.Env,"GOARCH=amd64")
+	bichitoWx64.Env = append(bichitoWx64.Env,"GOCACHE=/tmp/.cache")
+
+	bichitoOx32 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+biCompilParams,"-tags",bModules,"-o",implantFolder+"/bichitoDarwinx32","bichito")
+	bichitoOx32.Env = os.Environ()
+	bichitoOx32.Env = append(bichitoOx32.Env,"GOPATH=/usr/local/STHive/sources/")
+	bichitoOx32.Env = append(bichitoOx32.Env,"GOOS=darwin")
+	bichitoOx32.Env = append(bichitoOx32.Env,"GOARCH=386")
+	bichitoOx32.Env = append(bichitoOx32.Env,"GOCACHE=/tmp/.cache")
+
+	bichitoOx64 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+biCompilParams,"-tags",bModules,"-o",implantFolder+"/bichitoDarwinx64","bichito")
+	bichitoOx64.Env = os.Environ()
+	bichitoOx64.Env = append(bichitoOx64.Env,"GOPATH=/usr/local/STHive/sources/")
+	bichitoOx64.Env = append(bichitoOx64.Env,"GOOS=darwin")
+	bichitoOx64.Env = append(bichitoOx64.Env,"GOARCH=amd64")
+	bichitoOx64.Env = append(bichitoOx64.Env,"GOCACHE=/tmp/.cache")
+
 
 
 	var comperrRed,comperrLx32,comperrLx64,comperrWx32,comperrWx64,comperrOx32,comperrOx64 bytes.Buffer
+	var compoutRed,compoutLx32,compoutLx64,compoutWx32,compoutWx64,compoutOx32,compoutOx64 bytes.Buffer
+
 	redgen.Stderr = &comperrRed
 	bichitoLx32.Stderr = &comperrLx32
 	bichitoLx64.Stderr = &comperrLx64
@@ -369,6 +429,15 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 	bichitoWx64.Stderr = &comperrWx64
 	bichitoOx32.Stderr = &comperrOx32
 	bichitoOx64.Stderr = &comperrOx64
+
+	redgen.Stdout = &compoutRed
+	bichitoLx32.Stdout = &compoutLx32
+	bichitoLx64.Stdout = &compoutLx64
+	bichitoWx32.Stdout = &compoutWx32
+	bichitoWx64.Stdout = &compoutWx64
+	bichitoOx32.Stdout = &compoutOx32
+	bichitoOx64.Stdout = &compoutOx64
+
 
 	redgen.Start()
 	redgen.Wait()
@@ -385,7 +454,13 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 	bichitoOx64.Start()
 	bichitoOx64.Wait()
 
-	implantCompillingError := comperrRed.String()+comperrRed.String()+comperrRed.String()+comperrRed.String()+comperrRed.String()+comperrRed.String()+comperrRed.String()
+
+	implantCompillingError := comperrRed.String()+comperrLx32.String()+comperrLx64.String()+compoutWx32.String()+compoutWx64.String()+compoutOx32.String()+compoutOx64.String()
+
+	//Debug:
+	//implantCompillingOut := compoutRed.String()+compoutLx32.String()+compoutLx64.String()+compoutWx32.String()+compoutWx64.String()+compoutOx32.String()+compoutOx64.String()
+	//fmt.Println("Implant CompErr Debug: "+implantCompillingError)
+	//fmt.Println("Implant CompOut Debug: "+implantCompillingOut)
 
 	// Record the error when generating a new Implant Set
 	if (implantCompillingError != ""){
@@ -434,7 +509,8 @@ func removeImplant(name string) string{
 	}
 
 	rmImplantDB(name)
-	rmdir := exec.Command("/bin/sh","-c","rm -rf "+implantFolder)
+	//rmdir := exec.Command("/bin/sh","-c","rm -rf "+implantFolder)
+	rmdir := exec.Command("/bin/rm","-rf",implantFolder)
 	rmdir.Start()
 	rmdir.Wait()
 	return "Done"

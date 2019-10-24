@@ -12,14 +12,14 @@ function loadFormDataDomains(button) {
   if (implants != null){
     for (i = 0; i < implants.length; i++){
       var row = implants[i];
-      $("#implantOpt").append("<option>"+row.name+"</option>");
+      $("#implantOpt").append("<option>"+htmlencode.htmlEncode(row.name)+"</option>");
     }
   }
 
   if (vps != null){
     for (i = 0; i < vps.length; i++){
       var row = vps[i];
-      $("#vpsOpt").append("<option>"+row.name+"</option>");
+      $("#vpsOpt").append("<option>"+htmlencode.htmlEncode(row.name)+"</option>");
     }
   }
 
@@ -27,7 +27,7 @@ function loadFormDataDomains(button) {
     for (i = 0; i < domains.length; i++){
       var row = domains[i];
       if ((row.active == "No") && (row.dtype != 'gmail')){
-        $("#domainOpt").append("<option>"+row.name+"</option>");
+        $("#domainOpt").append("<option>"+htmlencode.htmlEncode(row.name)+"</option>");
       }
     }
   }
@@ -39,14 +39,14 @@ function loadFormDataSaaS(button) {
   if (implants != null){
     for (i = 0; i < implants.length; i++){
       var row = implants[i];
-      $("#implantOpt").append("<option>"+row.name+"</option>");
+      $("#implantOpt").append("<option>"+htmlencode.htmlEncode(row.name)+"</option>");
     }
   }
 
   if (vps != null){
     for (i = 0; i < vps.length; i++){
       var row = vps[i];
-      $("#vpsOpt").append("<option>"+row.name+"</option>");
+      $("#vpsOpt").append("<option>"+htmlencode.htmlEncode(row.name)+"</option>");
     }
   }
 
@@ -54,7 +54,7 @@ function loadFormDataSaaS(button) {
     for (i = 0; i < domains.length; i++){
       var row = domains[i];
       if ((row.active == "No") && (row.dtype == 'gmail')){
-        $("#domainOpt").append("<option>"+row.name+"</option>");
+        $("#domainOpt").append("<option>"+htmlencode.htmlEncode(row.name)+"</option>");
       }
     }
   }

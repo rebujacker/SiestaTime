@@ -109,6 +109,32 @@ func jobProcessor(jobO *Job){
 					return
     			}
 
+    			//Server Side white-list for Hive Commands
+    			if !(namesInputWhite(commandO.Name) && numbersInputWhite(commandO.Ttl) && numbersInputWhite(commandO.Resptime) && 
+    				 namesInputWhite(commandO.Coms) && namesInputWhite(commandO.Persistence)){
+
+					setJobStatusDB(jid,"Error")
+					setJobResultDB(jid,"Hive-createImplant(Implant "+commandO.Name+" Incorrect Param. Formatting)")
+					return
+    			}
+
+    			//Decode VPC by type and do formatting check
+				switch commandO.Coms{
+
+					case "paranoidhttpsgo":
+						//Check Network Module Parameters formatting
+						if !tcpPortInputWhite(commandO.ComsParams) {
+							setJobStatusDB(jid,"Error")
+							setJobResultDB(jid,"Hive-Create Implant(Paranoid Https TCP Port incorrect)")
+							return
+							}
+
+					default:
+						setJobStatusDB(jid,"Error")
+						setJobResultDB(jid,"Hive-Create Implant(Netowrk Module yet not Implemented)")
+						return
+				}
+
 				existV,_ := existImplantDB(commandO.Name)
 				if existV{
 					setJobStatusDB(jid,"Error")
@@ -138,6 +164,14 @@ func jobProcessor(jobO *Job){
 					setJobResultDB(jid,"Hive-createImplant("+commandO.Name+" created)")
 					return
     			}
+
+    			//Server Side white-list for Hive Commands
+    			if !namesInputWhite(commandO.Name){
+					setJobStatusDB(jid,"Error")
+					setJobResultDB(jid,"Hive-deleteImplant(Implant "+commandO.Name+" Incorrect Param. Formatting)")
+					return
+    			}
+
 				existI,_ := existImplantDB(commandO.Name)
 				if !existI{
 					setJobStatusDB(jid,"Error:Hive-deleteImplant(Implant Not in DB)")
@@ -146,7 +180,8 @@ func jobProcessor(jobO *Job){
 				fmt.Println("asdhjasdbjh32")
 				err := removeImplant(commandO.Name)
 				if err != "Done"{
-					setJobStatusDB(jid,"Error:Hive-deleteImplant("+err+")")
+					setJobStatusDB(jid,"Error")
+					setJobResultDB(jid,"Error:Hive-deleteImplant("+err+")")
 					return
 				}
 				setJobStatusDB(jid,"Success")
@@ -165,9 +200,39 @@ func jobProcessor(jobO *Job){
 					return
     			}
 
+
+    			//Decode VPC by type and do formatting check
+				switch result.Vtype{
+
+					case "aws_instance":
+						var amazon *Amazon
+						errDaws := json.Unmarshal([]byte(result.Parameters), &amazon)
+						if errDaws != nil {
+							setJobStatusDB(jid,"Error")
+							setJobResultDB(jid,"VPC Add(Amazon Parameters Decoding Error):"+errDaws.Error())
+							return
+						}
+
+    					if !(accessKeysInputWhite(result.Name) && accessKeysInputWhite(amazon.Accesskey) && 
+    						accessKeysInputWhite(amazon.Secretkey) && accessKeysInputWhite(amazon.Region) && 
+    						namesInputWhite(amazon.Sshkeyname) && accessKeysInputWhite(amazon.Ami) && rsaKeysInputWhite(amazon.Sshkey)){
+							
+							setJobStatusDB(jid,"Error")
+							setJobResultDB(jid,"Hive-VPC Add(VPC Amazon Incorrect Param. Formatting)")
+							return
+    					}
+
+					default:
+						setJobStatusDB(jid,"Error")
+						setJobResultDB(jid,"Hive-VPC Add(VPC Type not yet Implemented)")
+						return
+				}
+
+
 				existV,_ := existVpsDB(result.Name)
 				if existV{
-					setJobStatusDB(jid,"Error:createVPS(VPS "+result.Name+" Already exists)")
+					setJobStatusDB(jid,"Error")
+					setJobResultDB(jid,"Error:createVPS(VPS "+result.Name+" Already exists)")
 					return
 				}
 
@@ -185,6 +250,13 @@ func jobProcessor(jobO *Job){
     			if errD != nil {
 					setJobStatusDB(jid,"Error")
 					setJobResultDB(jid,"Hive-deleteVPS(Command JSON Decoding Error))")
+					return
+    			}
+
+    			//Server Side white-list for Hive Commands
+    			if !namesInputWhite(commandO.Name){
+					setJobStatusDB(jid,"Error")
+					setJobResultDB(jid,"Hive-deleteVPC(VPC "+commandO.Name+" Incorrect Param. Formatting)")
 					return
     			}
 
@@ -213,6 +285,48 @@ func jobProcessor(jobO *Job){
 					return
     			}
 
+    			//Decode Domain by type and do formatting check
+				switch commandO.Dtype{
+
+					case "godaddy":
+						var godaddy *Godaddy
+						errDaws := json.Unmarshal([]byte(commandO.Parameters), &godaddy)
+						if errDaws != nil {
+							setJobStatusDB(jid,"Error")
+							setJobResultDB(jid,"Domain Add(Godaddy Parameters Decoding Error):"+errDaws.Error())
+							return
+						}
+
+    					if !(namesInputWhite(commandO.Name) && domainsInputWhite(commandO.Domain) && 
+    						accessKeysInputWhite(godaddy.Domainkey) && accessKeysInputWhite(godaddy.Domainsecret)){
+							
+							setJobStatusDB(jid,"Error")
+							setJobResultDB(jid,"Hive-Domain Add(Domain GoDaddy Incorrect Param. Formatting)")
+							return
+    					}
+
+    				case "gmail":
+						var gmail *Gmail
+						errDaws := json.Unmarshal([]byte(commandO.Parameters), &gmail)
+						if errDaws != nil {
+							setJobStatusDB(jid,"Error")
+							setJobResultDB(jid,"Domain Add(GoogleParameters Decoding Error):"+errDaws.Error())
+							return
+						}
+
+    					if !(namesInputWhite(commandO.Name) && domainsInputWhite(commandO.Domain) && accessKeysInputWhite(gmail.Creds) && 
+    						accessKeysInputWhite(gmail.Token)){
+
+							setJobStatusDB(jid,"Error")
+							setJobResultDB(jid,"Hive-Domain Add(Google GoDaddy Incorrect Param. Formatting)")
+							return
+    					}
+					default:
+						setJobStatusDB(jid,"Error")
+						setJobResultDB(jid,"Hive-Domain Add(Domain Type not yet Implemented)")
+						return
+				}
+
 				existV,_ := existDomainDB(commandO.Name)
 				if existV{
 					setJobStatusDB(jid,"Error")
@@ -235,6 +349,13 @@ func jobProcessor(jobO *Job){
     			if errD != nil {
 					setJobStatusDB(jid,"Error")
 					setJobResultDB(jid,"Hive-deleteDomain(Command JSON Decoding Error)")
+					return
+    			}
+
+    			//Server Side white-list for Hive Commands
+    			if !namesInputWhite(commandO.Name){
+					setJobStatusDB(jid,"Error")
+					setJobResultDB(jid,"Hive-deleteDomain(Domain "+commandO.Name+" Incorrect Param. Formatting)")
 					return
     			}
 
@@ -262,6 +383,69 @@ func jobProcessor(jobO *Job){
 					setJobResultDB(jid,"Hive-createStaging(Command JSON Decoding Error)")
 					return
    				}
+
+
+    			//Decode Staging by type and do formatting check
+				switch commandO.Stype{
+
+					case "https_droplet_letsencrypt":
+						var droplet *Droplet
+						errDaws := json.Unmarshal([]byte(commandO.Parameters), &droplet)
+						if errDaws != nil {
+							setJobStatusDB(jid,"Error")
+							setJobResultDB(jid,"Staging Add(Droplet Parameters Decoding Error):"+errDaws.Error())
+							return
+						}
+
+    					if !(namesInputWhite(commandO.Name) && namesInputWhite(commandO.VpsName) && 
+    						namesInputWhite(commandO.DomainName) && tcpPortInputWhite(droplet.HttpsPort) && 
+    						namesInputWhite(droplet.Path)){
+
+							setJobStatusDB(jid,"Error")
+							setJobResultDB(jid,"Staging Add(Droplet Incorrect Param. Formatting)")
+							return
+    					}
+
+    				case "https_msft_letsencrypt":
+						var msf *Msf
+						errDaws := json.Unmarshal([]byte(commandO.Parameters), &msf)
+						if errDaws != nil {
+							setJobStatusDB(jid,"Error")
+							setJobResultDB(jid,"Staging Add(MSFT Parameters Decoding Error):"+errDaws.Error())
+							return
+						}
+
+    					if !(namesInputWhite(commandO.Name) && namesInputWhite(commandO.VpsName) && 
+    						namesInputWhite(commandO.DomainName) && tcpPortInputWhite(msf.HttpsPort)){
+
+							setJobStatusDB(jid,"Error")
+							setJobResultDB(jid,"Staging Add(MSFT Incorrect Param. Formatting)")
+							return
+    					}
+
+    				case "https_empire_letsencrypt":
+						var empire *Empire
+						errDaws := json.Unmarshal([]byte(commandO.Parameters), &empire)
+						if errDaws != nil {
+							setJobStatusDB(jid,"Error")
+							setJobResultDB(jid,"Staging Add(MSFT Parameters Decoding Error):"+errDaws.Error())
+							return
+						}
+
+    					if !(namesInputWhite(commandO.Name) && namesInputWhite(commandO.VpsName) && 
+    						namesInputWhite(commandO.DomainName) && tcpPortInputWhite(empire.HttpsPort)){
+
+							setJobStatusDB(jid,"Error")
+							setJobResultDB(jid,"Staging Add(MSFT Incorrect Param. Formatting)")
+							return
+    					}
+
+					default:
+						setJobStatusDB(jid,"Error")
+						setJobResultDB(jid,"Staging Add(Staging Type not yet Implemented)")
+						return
+				}	
+
 
 				existV,_ := existStagingDB(commandO.Name)
 				if existV{
@@ -293,6 +477,14 @@ func jobProcessor(jobO *Job){
     			if errD != nil {
 					setJobStatusDB(jid,"Error")
 					setJobResultDB(jid,"Hive-deleteStaging(Command JSON Decoding Error)")
+					return
+    			}
+
+
+    			//Server Side white-list for Hive Commands
+    			if !namesInputWhite(commandO.Name){
+					setJobStatusDB(jid,"Error")
+					setJobResultDB(jid,"Hive-deleteStaging(Staging "+commandO.Name+" Incorrect Param. Formatting)")
 					return
     			}
 
@@ -343,6 +535,16 @@ func jobProcessor(jobO *Job){
    	 				return
 				}
 				
+    			//Server Side white-list for Hive Commands
+    			if !(namesInputWhite(commandO.Implant) && namesInputWhite(commandO.Staging) && namesInputWhite(stagingO.DomainName) && 
+    				namesInputWhite(droplet.Path) && namesInputWhite(commandO.Os) && namesInputWhite(commandO.Arch) && 
+    				namesInputWhite(commandO.Filename)){
+
+					setJobStatusDB(jid,"Error")
+					setJobResultDB(jid,"Hive-dropImplant(Drop "+commandO.Implant+" Incorrect Param. Formatting)")
+					return
+    			}
+
 				errI := dropImplant(commandO.Implant,commandO.Staging,stagingO.DomainName,droplet.Path,commandO.Os,commandO.Arch,commandO.Filename)
 				if errI != ""{
 					setJobStatusDB(jid,"Error")
@@ -365,6 +567,13 @@ func jobProcessor(jobO *Job){
 					setJobResultDB(jid,"Hive-createReport(Command JSON Decoding Error)")
 					return
    				}
+
+    			//Server Side white-list for Hive Commands
+    			if !namesInputWhite(commandO.Name){
+					setJobStatusDB(jid,"Error")
+					setJobResultDB(jid,"Hive-createReport(Report "+commandO.Name+" Incorrect Param. Formatting)")
+					return
+    			}   				
 
 				existV,_ := existReportDB(commandO.Name)
 				if existV{
@@ -504,7 +713,7 @@ func jobProcessor(jobO *Job){
 					return
     			}
 
-    			fmt.Println("Getting Launcher")
+    			//fmt.Println("Getting Launcher")
 				//Generate target shellcode
 				error,launcher := getEmpireLauncher(commandO.Staging,chid)
     			if error != "" {

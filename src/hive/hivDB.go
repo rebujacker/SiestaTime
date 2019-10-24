@@ -802,6 +802,8 @@ func existVpsDB(name string) (bool,error){
 
 func addVpsDB(vps *Vps) error{
 
+    //Server Side Checks for VPS formatting
+
 	ext,err := existVpsDB(vps.Name)
 	if ext {
 		return err

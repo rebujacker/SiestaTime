@@ -5,7 +5,7 @@ function loadFormData(button) {
   if (stagings != null){
     for (i = 0; i < stagings.length; i++){
       var row = stagings[i];
-      $("#stagingOpt").append("<option>"+row.name+"</option>");
+      $("#stagingOpt").append("<option>"+htmlencode.htmlEncode(row.name)+"</option>");
     }
   }
 
@@ -20,7 +20,7 @@ $(document).ready(function() {
 
   //Determine if elog is for hive,red or bichito, then load the logs for each case
   var name = $(".STmain").attr("id");
-  $(".STmain").find(".element").text(name);
+  $(".STmain").find(".element").text(htmlencode.htmlEncode(name));
 
   for (i = 0; i < bichitos.length; i++){
     if (bichitos[i].bid == name){
@@ -36,16 +36,16 @@ $(document).ready(function() {
  
   var infoJson = JSON.parse(bichito.info)
 
-  $("#pid").text(infoJson.pid.replace(/\n/g, ''));
-  $("#arch").text(infoJson.arch.replace(/\n/g, ''));
-  $("#os").text(infoJson.os.replace(/\n/g, ''));
-  $("#osv").text(infoJson.osv.replace(/\n/g, ''));
-  $("#hostname").text(infoJson.hostname.replace(/\n/g, ''));
-  $("#mac").text(infoJson.mac.replace(/\n/g, ''));
-  $("#buser").text(infoJson.user.replace(/\n/g, ''));
-  $("#privileges").text(infoJson.privileges.replace(/\n/g, ''));
-  $("#lastonline").text(bichito.lastchecked);
-  $("#status").text(bichito.status);
+  $("#pid").text(htmlencode.htmlEncode(infoJson.pid.replace(/\n/g, '')));
+  $("#arch").text(htmlencode.htmlEncode(infoJson.arch.replace(/\n/g, '')));
+  $("#os").text(htmlencode.htmlEncode(infoJson.os.replace(/\n/g, '')));
+  $("#osv").text(htmlencode.htmlEncode(infoJson.osv.replace(/\n/g, '')));
+  $("#hostname").text(htmlencode.htmlEncode(infoJson.hostname.replace(/\n/g, '')));
+  $("#mac").text(htmlencode.htmlEncode(infoJson.mac.replace(/\n/g, '')));
+  $("#buser").text(htmlencode.htmlEncode(infoJson.user.replace(/\n/g, '')));
+  $("#privileges").text(htmlencode.htmlEncode(infoJson.privileges.replace(/\n/g, '')));
+  $("#lastonline").text(htmlencode.htmlEncode(bichito.lastchecked));
+  $("#status").text(htmlencode.htmlEncode(bichito.status));
 
 
   $("#lastdomain").text(domain);

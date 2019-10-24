@@ -81,7 +81,7 @@ function checkJobsOutput(){
   for (i = 0; i < jobs.length; i++){
     var index = jids.indexOf(jobs[i].jid);
     if ((jobs[i].status == "Success") && (index != -1 )){
-      localEcho.println(jobs[i].result);
+      localEcho.println(htmlencode.htmlEncode(jobs[i].result));
       jids.splice(jids.indexOf(index,1));
     }
 
@@ -106,7 +106,7 @@ function sendBjob(id,jobT,argums){
           console.log("Response Job:"+response[0].jid);
           if (response != null){
             console.log("Response Job:"+response[0].jid);
-            localEcho.println("Job with id:"+response[0].jid+" sent...");
+            localEcho.println("Job with id:"+htmlencode.htmlEncode(response[0].jid)+" sent...");
             jids.push(response[0].jid);
             return
           }

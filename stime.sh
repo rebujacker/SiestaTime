@@ -44,8 +44,8 @@ sudo apt-get update
 sudo apt-get install gcc apache2-utils sqlite3 libsqlite3-dev unzip git
 
 # Download GO and Compile Hive
-wget https://dl.google.com/go/go1.10.3.linux-amd64.tar.gz -P ./installConfig/
-tar xvf ./installConfig/go1.10.3.linux-amd64.tar.gz -C ./installConfig/
+wget https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz -P ./installConfig/
+tar xvf ./installConfig/go1.13.3.linux-amd64.tar.gz -C ./installConfig/
 export GOROOT="$(pwd)/installConfig/go/"
 export GOPATH="$(pwd)"
 ./installConfig/go/bin/go get "github.com/mattn/go-sqlite3"

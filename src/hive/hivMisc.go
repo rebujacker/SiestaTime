@@ -10,7 +10,50 @@ import (
 	"time"
 	"math/rand"
 	"strconv"
+    "regexp"
 )
+
+// User Inputs White Listing to avoid the crazy number of Dangerous Ops in Hive ¯\_(ツ)_/¯
+// TL;DR; Fixing all possible Injections in a such op-based server like hive is a pain on the arse (feeling like a dev. now (ﾾ︹ﾾ))
+
+
+func accessKeysInputWhite(input string) bool{
+    var white = regexp.MustCompile(`^[a-zA-Z0-9\-\.\+_/=]{0,200}$`).MatchString
+    return white(input)
+
+}
+
+func rsaKeysInputWhite(input string) bool{
+
+    //var white = regexp.MustCompile(`^[a-zA-Z0-9\-\.\+_/=\s]$`).MatchString
+    if (len(input) > 5000){
+        return false
+    }
+    return true
+}
+
+
+func namesInputWhite(input string) bool{
+    var white = regexp.MustCompile(`^[a-zA-Z0-9]{0,200}$`).MatchString
+    return white(input)
+}
+
+func numbersInputWhite(input string) bool{
+    var white = regexp.MustCompile(`^[0-9]{0,200}$`).MatchString
+    return white(input)
+}
+
+func domainsInputWhite(input string) bool{
+    var white = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$`).MatchString
+    return white(input)
+}
+
+func tcpPortInputWhite(input string) bool{
+    var white = regexp.MustCompile(`^()([1-9]|[1-5]?[0-9]{2,4}|6[1-4][0-9]{3}|65[1-4][0-9]{2}|655[1-2][0-9]|6553[1-5])$`).MatchString
+    return white(input)
+
+}
+
 
 
 func randomString(length int) string{
