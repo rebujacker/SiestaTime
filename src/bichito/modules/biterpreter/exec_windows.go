@@ -27,4 +27,3 @@ func Exec(commands string) (bool,string){
 
 	return false,outbuf.String()+errbuf.String()
 }
-

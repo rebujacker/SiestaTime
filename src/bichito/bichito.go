@@ -14,7 +14,8 @@ import (
 	"time"
 	"os"
 	"strings"
-	"fmt"
+	//Debug
+	//"fmt"
 	"sync"
 )
 
@@ -83,7 +84,7 @@ func main() {
 	if errDaws != nil {
 
 		//Debug: JSON params
-		fmt.Println("Parameters JSON Decoding error:"+errDaws.Error())
+		//fmt.Println("Parameters JSON Decoding error:"+errDaws.Error())
 		os.Exit(1)
 	}
 
@@ -129,8 +130,8 @@ func main() {
 				swapCount = 0
 				
 				//Debug: Jobs in queue, and jobs to Hive in queue
-				fmt.Println(jobsToProcess.Jobs)
-				fmt.Println(jobsToHive.Jobs)
+				//fmt.Println(jobsToProcess.Jobs)
+				//fmt.Println(jobsToHive.Jobs)
 				
 				go jobProcessor()
 				contChannel <- "True"
@@ -156,14 +157,15 @@ func main() {
 				time.Sleep(time.Duration(resptime) * time.Second)
 
 				//Debug: Continue debug
-				fmt.Println("next round")
-				fmt.Println(result)				
+				//fmt.Println("next round")
+				//fmt.Println(result)				
 				
 			case <- ttlC.C:
 
 				//Debug: Reason to TTL
-				fmt.Println("ttl")
-				fmt.Println(result)
+				//fmt.Println("ttl")
+				//fmt.Println(result)
+				//TO-DO:RemoveInfection()
 				os.Exit(1)
 		}
 	}

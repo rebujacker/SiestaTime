@@ -47,8 +47,6 @@ func connectOut() string{
 		//Checking(redirector,authentication,bid,[]byte(resultRP))
 		return "Success"
 	}
-
-	//fmt.Println("Bid Outside network:"+bid)
 	
 	if sysinfo != true {
 		
@@ -96,8 +94,6 @@ func connectOut() string{
 
 
 	errD := json.Unmarshal(encodedJobs,&newJobs)
-	//decoder := json.NewDecoder(encodedJobs)
-    //errD = decoder.Decode(&newJobs)
 	if errD != nil{
 		return "Error Decoding Jobs from Hive"+errD.Error()
 	}

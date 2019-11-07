@@ -53,7 +53,7 @@ loadFormData();
   console.log(ivps);
   $("#network").text(htmlencode.htmlEncode(infoJson.coms.replace(/\n/g, '')));
   $("#persistence").text(htmlencode.htmlEncode(infoJson.persistence.replace(/\n/g, '')));
-  $("#ivps").text(htmlencode.htmlEncode(ivps));
+  $("#ivps").text(ivps);
   $("#idomains").text(idomains);
   $("#ibichitos").text(binumber);
 

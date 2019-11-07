@@ -20,14 +20,16 @@ package network
 import (
 
 	"crypto/tls"
-	"fmt"
+	//Debug:
+	//"fmt"
 	"strings"
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
     "net/http"
     "encoding/json"	
-    "net/http/httputil"
+    //Debug import
+    //"net/http/httputil"
     "io/ioutil"
     "time"
     "net"
@@ -74,7 +76,6 @@ func RetrieveJobs(redirector string,authentication string) ([]byte,string){
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", "https://"+redirector+"/image.jpg", nil)
 	req.Header.Set("Authorization", authentication)
-	fmt.Println("trying to connect GET...")
 	res, err := client.Do(req)
 	if err != nil {
 		error = "Connection errir with redirector "+redirector+":"+err.Error()
@@ -82,12 +83,13 @@ func RetrieveJobs(redirector string,authentication string) ([]byte,string){
 	}
 
 	//Debug: Get request
+	/*
 	requestDump, err2 := httputil.DumpResponse(res, true)
 	if err2 != nil {
   		fmt.Println(err2)
 	}
 	fmt.Println(string(requestDump))
-
+	*/
 
 	newJobs,_ = ioutil.ReadAll(res.Body)
     return newJobs,"Success"
@@ -108,7 +110,6 @@ func SendJobs(redirector string,authentication string,encodedJob []byte) string{
 	req, _ := http.NewRequest("POST", "https://"+redirector+"/upload",bytes.NewBuffer(encodedJob))
 	req.Header.Set("Authorization", authentication)
 	
-	fmt.Println("trying to connect POST...")
 	_, err := client.Do(req)
 	if err != nil {
 		error = "Connection error with redirector "+redirector+":"+err.Error()
@@ -117,11 +118,13 @@ func SendJobs(redirector string,authentication string,encodedJob []byte) string{
 
 
 	//Debug: Post Request
+	/*
 	requestDump, err2 := httputil.DumpRequest(req, true)
 	if err2 != nil {
   		fmt.Println(err2)
 	}
 	fmt.Println(string(requestDump))
+	*/
 
 	return "Success"
 }

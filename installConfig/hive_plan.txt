@@ -42,6 +42,7 @@
 		    	"sudo apt-get install -y sqlite3",
 		    	"sudo apt-get install -y gcc",
 		    	"sudo apt-get install -y unzip",
+		    	"sudo apt-get install -y cmake",
 		    	"sudo mkdir /usr/local/STHive",
 		    	"sudo mkdir /usr/local/STHive/implants",
 		    	"sudo mkdir /usr/local/STHive/stagings",		      
@@ -66,6 +67,7 @@
 				"/usr/local/STHive/sources/go/bin/go get \"golang.org/x/oauth2\"",
 				"/usr/local/STHive/sources/go/bin/go get \"golang.org/x/oauth2/google\"",
 				"/usr/local/STHive/sources/go/bin/go get \"google.golang.org/api/gmail/v1\"",
+				"/usr/local/STHive/sources/go/bin/go get \"github.com/hectane/go-acl/api\"",
 		    	"cd /usr/local/STHive/sources/src/infra/.terraform/plugins",
 		    	"sudo wget https://github.com/n3integration/terraform-godaddy/releases/download/v1.6.4/terraform-godaddy_linux_amd64.tgz",
 		    	"sudo tar xvf terraform-godaddy_linux_amd64.tgz",
@@ -90,6 +92,16 @@
 		  provisioner "file" {
 		    source      = "ST.db"
 		    destination = "/usr/local/STHive/ST.db"
+		    connection {
+		      type     = "ssh"
+		      user     = "ubuntu"
+		      private_key = "${file("@keyname.pem")}"
+		    }
+		  }
+
+		  provisioner "file" {
+		    source      = "MacOSX10.13.sdk.tar.xz"
+		    destination = "/usr/local/STHive/MacOSX10.13.sdk.tar.xz"
 		    connection {
 		      type     = "ssh"
 		      user     = "ubuntu"

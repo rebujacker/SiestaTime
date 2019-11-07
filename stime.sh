@@ -56,6 +56,7 @@ export GOPATH="$(pwd)"
 ./installConfig/go/bin/go get "golang.org/x/oauth2"
 ./installConfig/go/bin/go get "golang.org/x/oauth2/google"
 ./installConfig/go/bin/go get "google.golang.org/api/gmail/v1"
+./installConfig/go/bin/go get "github.com/hectane/go-acl/api"
 
 
 #Compile client with target variables and prepare electron front-end

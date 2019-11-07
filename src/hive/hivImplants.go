@@ -353,6 +353,7 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 
 
 
+	//Debug: Catch Bichitos JSON arguments
 	fmt.Println("GOOS=linux GOARCH=amd64 /usr/local/STHive/sources/go/bin/go build --ldflags '-X main.parameters="+ redCompilParams +"' -tags " + rModules + " -o "+ implantFolder +"/redirector redirector")
 	fmt.Println("GOOS=windows GOARCH=amd64 /usr/local/STHive/sources/go/bin/go build --ldflags '-X main.parameters="+ biCompilParams +" -H=windowsgui' -tags "+ bModules +" -o "+ implantFolder +"/bichitoW bichito")
 
@@ -403,6 +404,7 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 	bichitoWx64.Env = append(bichitoWx64.Env,"GOARCH=amd64")
 	bichitoWx64.Env = append(bichitoWx64.Env,"GOCACHE=/tmp/.cache")
 
+	/*
 	bichitoOx32 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+biCompilParams,"-tags",bModules,"-o",implantFolder+"/bichitoDarwinx32","bichito")
 	bichitoOx32.Env = os.Environ()
 	bichitoOx32.Env = append(bichitoOx32.Env,"GOPATH=/usr/local/STHive/sources/")
@@ -416,8 +418,27 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 	bichitoOx64.Env = append(bichitoOx64.Env,"GOOS=darwin")
 	bichitoOx64.Env = append(bichitoOx64.Env,"GOARCH=amd64")
 	bichitoOx64.Env = append(bichitoOx64.Env,"GOCACHE=/tmp/.cache")
+	*/
 
+	bichitoOx32 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+biCompilParams,"-tags",bModules,"-o",implantFolder+"/bichitoOSXx32","bichito")
+	bichitoOx32.Env = os.Environ()
+	bichitoOx32.Env = append(bichitoOx32.Env,"GOPATH=/usr/local/STHive/sources/")
+	bichitoOx32.Env = append(bichitoOx32.Env,"GOOS=darwin")
+	bichitoOx32.Env = append(bichitoOx32.Env,"GOARCH=386")
+	bichitoOx32.Env = append(bichitoOx32.Env,"GOCACHE=/tmp/.cache")
+	bichitoOx32.Env = append(bichitoOx32.Env,"PATH=/usr/local/STHive/sources/osxcross/target/bin/:"+os.Getenv("PATH"))
+	bichitoOx32.Env = append(bichitoOx32.Env,"CGO_ENABLED=1")
+	bichitoOx32.Env = append(bichitoOx32.Env,"CC=o32-clang")
 
+	bichitoOx64 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+biCompilParams,"-tags",bModules,"-o",implantFolder+"/bichitoOSXx64","bichito")
+	bichitoOx64.Env = os.Environ()
+	bichitoOx64.Env = append(bichitoOx64.Env,"GOPATH=/usr/local/STHive/sources/")
+	bichitoOx64.Env = append(bichitoOx64.Env,"GOOS=darwin")
+	bichitoOx64.Env = append(bichitoOx64.Env,"GOARCH=amd64")
+	bichitoOx64.Env = append(bichitoOx64.Env,"GOCACHE=/tmp/.cache")
+	bichitoOx64.Env = append(bichitoOx64.Env,"PATH=/usr/local/STHive/sources/osxcross/target/bin/:"+os.Getenv("PATH"))
+	bichitoOx64.Env = append(bichitoOx64.Env,"CGO_ENABLED=1")
+	bichitoOx64.Env = append(bichitoOx64.Env,"CC=o64-clang")
 
 	var comperrRed,comperrLx32,comperrLx64,comperrWx32,comperrWx64,comperrOx32,comperrOx64 bytes.Buffer
 	var compoutRed,compoutLx32,compoutLx64,compoutWx32,compoutWx64,compoutOx32,compoutOx64 bytes.Buffer

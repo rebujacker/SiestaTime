@@ -41,15 +41,31 @@
       case "clear":
         clearConsole();
         break;
-      case "exec":
-        sendBjob(id,jobEx,args);
-        break; 
       case "respTime":
         sendBjob(id,jobEx,args);
         break;
       case "ttl":
         sendBjob(id,jobEx,args);
-        break;                 
+        break; 
+      case "exec":
+        sendBjob(id,jobEx,args);
+        break; 
+      case "ls":
+        sendBjob(id,jobEx,args);
+        break; 
+      case "accesschk":
+        sendBjob(id,jobEx,args);
+        break;
+      case "read":
+        sendBjob(id,jobEx,args);
+        break; 
+      case "write":
+        sendBjob(id,jobEx,args);
+        break;
+      case "wipe":
+        sendBjob(id,jobEx,args);
+        break;
+                           
       default:
         help();
         break;
@@ -70,7 +86,7 @@ function clearConsole() {
 }
 
 function help(){
-  localEcho.println('Help: List of available commands: help,clear,exec,respTime,ttl');
+  localEcho.println('Help: List of available commands: help,clear,respTime,ttl,exec,ls,accesschk,read,write,wipe');
 }
 
 function checkJobsOutput(){
