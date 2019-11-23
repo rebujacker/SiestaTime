@@ -18,7 +18,7 @@ import (
 
 
 func accessKeysInputWhite(input string) bool{
-    var white = regexp.MustCompile(`^[a-zA-Z0-9\-\.\+_/=]{0,200}$`).MatchString
+    var white = regexp.MustCompile(`^[a-zA-Z0-9\-\.\+_/=]{1,200}$`).MatchString
     return white(input)
 
 }
@@ -34,12 +34,12 @@ func rsaKeysInputWhite(input string) bool{
 
 
 func namesInputWhite(input string) bool{
-    var white = regexp.MustCompile(`^[a-zA-Z0-9]{0,200}$`).MatchString
+    var white = regexp.MustCompile(`^[a-zA-Z0-9]{1,200}$`).MatchString
     return white(input)
 }
 
 func numbersInputWhite(input string) bool{
-    var white = regexp.MustCompile(`^[0-9]{0,200}$`).MatchString
+    var white = regexp.MustCompile(`^[0-9]{1,200}$`).MatchString
     return white(input)
 }
 

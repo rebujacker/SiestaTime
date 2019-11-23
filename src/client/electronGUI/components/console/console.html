@@ -65,7 +65,12 @@
       case "wipe":
         sendBjob(id,jobEx,args);
         break;
-                           
+      case "upload":
+        sendBjob(id,jobEx,args);
+        break;
+      case "download":
+        sendBjob(id,jobEx,args);
+        break;                          
       default:
         help();
         break;
@@ -86,7 +91,7 @@ function clearConsole() {
 }
 
 function help(){
-  localEcho.println('Help: List of available commands: help,clear,respTime,ttl,exec,ls,accesschk,read,write,wipe');
+  localEcho.println('Help: List of available commands: help,clear,respTime,ttl,exec,ls,accesschk,read,write,wipe,upload,download');
 }
 
 function checkJobsOutput(){

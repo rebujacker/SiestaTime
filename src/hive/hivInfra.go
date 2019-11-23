@@ -103,26 +103,45 @@ func generateImplantInfra(implantpath string,coms string,comsparams string,redir
 			}
 	}
 
-	terraApply :=  exec.Command("/bin/sh","-c", "cd "+implantpath+"/infra;sudo ./terraform init -input=false ")
-	//terraApply.Stdout = &outbuf2
 
+	infralog, err := os.Create(implantpath+"/infra/infra.log")
+	if err != nil {
+		elog := fmt.Sprintf("%s%s","InfraLogCreation(ImplantGeneration):",err)
+   	 	return elog
+	}
+
+	defer infralog.Close()
+
+	var initOutbuf,applyOutbuf,errInitbuf,errApplybuf bytes.Buffer
+	terraInit :=  exec.Command("/bin/sh","-c", "cd "+implantpath+"/infra;sudo ./terraform init -input=false ")
+	terraInit.Stdout = &initOutbuf
+	terraInit.Stdout = &errInitbuf
+
+	terraInit.Start()
+	terraInit.Wait()
+
+
+	terraApply :=  exec.Command("/bin/sh","-c", "cd "+implantpath+"/infra;sudo ./terraform apply -input=false -auto-approve")
+	terraApply.Stdout = &applyOutbuf
+	terraApply.Stdout = &errApplybuf
+	
 	terraApply.Start()
 	terraApply.Wait()
 
-	terraApply2 :=  exec.Command("/bin/sh","-c", "cd "+implantpath+"/infra;sudo ./terraform apply -input=false -auto-approve")
-	//terraApply2.Stdout = &outbuf1
 	
-	terraApply2.Start()
-	terraApply2.Wait()
+	//Let's save terraform output in log files
+	terraInitOut := initOutbuf.String()
+	terraInitError := errInitbuf.String()
+	terraApplyOut := applyOutbuf.String()
+	terraApplyError := errApplybuf.String()
 
-	//TO-DO: Well done error handling on infra generation yet
+	if _, err = infralog.WriteString("OutInit: "+terraInitOut+"ErrInit:"+terraInitError+"OutApply: "+terraApplyOut+"ErrApply: "+terraApplyError); err != nil {
+		elog := fmt.Sprintf("%s%s","InfraFolderCreation(ImplantGeneration):",err)
+   		return elog
+	}
+
 	/*
-	terraApplyOut := outbuf1.String()
-	terraApplyOut2 := outbuf2.String()
-
-	terraApplyErr := ""
-
-
+	//TO-DO: Well done error handling on infra generation yet
 	if strings.Contains(terraApplyErr,spottedError) {
 		fmt.Println("Error!!")
 		errorT := fmt.Sprintf("%s",terraApplyErr)
@@ -932,32 +951,43 @@ sudo systemctl daemon-reload
 	}
 
 
-	//var outbuf1 bytes.Buffer
+	infralog, err := os.Create("/usr/local/STHive/stagings/"+stagingName+"/"+"infra.log")
+	if err != nil {
+		elog := fmt.Sprintf("%s%s","InfraLogCreation(ImplantGeneration):",err)
+   	 	return elog
+	}
 
-	terraApply :=  exec.Command("/bin/sh","-c", "cd /usr/local/STHive/stagings/"+stagingName+";sudo ./terraform init -input=false ")
+	defer infralog.Close()
 
+	var initOutbuf,applyOutbuf,errInitbuf,errApplybuf bytes.Buffer
+
+	terraInit :=  exec.Command("/bin/sh","-c", "cd /usr/local/STHive/stagings/"+stagingName+";sudo ./terraform init -input=false ")
+	terraInit.Stdout = &initOutbuf
+	terraInit.Stdout = &errInitbuf
+
+
+	terraInit.Start()
+	terraInit.Wait()
+
+
+	terraApply :=  exec.Command("/bin/sh","-c", "cd /usr/local/STHive/stagings/"+stagingName+";sudo ./terraform apply -input=false -auto-approve")
+	terraApply.Stdout = &applyOutbuf
+	terraApply.Stdout = &errApplybuf
+	
 	terraApply.Start()
 	terraApply.Wait()
 
-
-	terraApply2 :=  exec.Command("/bin/sh","-c", "cd /usr/local/STHive/stagings/"+stagingName+";sudo ./terraform apply -input=false -auto-approve")
-	//terraApply2.Stdout = &outbuf1
 	
-	terraApply2.Start()
-	terraApply2.Wait()
+	//Let's save terraform output in log files
+	terraInitOut := initOutbuf.String()
+	terraInitError := errInitbuf.String()
+	terraApplyOut := applyOutbuf.String()
+	terraApplyError := errApplybuf.String()
 
-	//fmt.Println("Path Stager: /usr/local/STHive/stagers/"+stagerName)
 
-	//terraApplyOut := outbuf1.String()
 
-	//TO-DO: Well done error handling on infra generation yet
 	/*
-	terraApplyOut := outbuf1.String()
-	terraApplyOut2 := outbuf2.String()
-
-	terraApplyErr := ""
-
-
+	//TO-DO: Well done error handling on infra generation yet
 	if strings.Contains(terraApplyErr,spottedError) {
 		fmt.Println("Error!!")
 		errorT := fmt.Sprintf("%s",terraApplyErr)
@@ -973,15 +1003,21 @@ sudo systemctl daemon-reload
 	// A. Wait 3 min for Domain Re-Freshment and Install required certificates/software in target server
  	// B. Install a tunneling Service on hive to open the staging SSH to ST Clients
 
+ 	var scriptOutbuf,scriptErrbuf bytes.Buffer
 	instScript :=  exec.Command("/bin/bash","/usr/local/STHive/stagings/"+stagingName+"/installScript.sh")
-	var outbuf1,errbuf1 bytes.Buffer
-	instScript.Stdout = &outbuf1
-	instScript.Stderr = &errbuf1
+	
+	instScript.Stdout = &scriptOutbuf
+	instScript.Stderr = &scriptErrbuf
 
 	instScript.Start()
 	instScript.Wait()
 	
 	//fmt.Println(outbuf1.String() + errbuf1.String())
+
+	if _, err = infralog.WriteString("OutInit: "+terraInitOut+"ErrInit:"+terraInitError+"OutApply: "+terraApplyOut+"ErrApply: "+terraApplyError+"ScriptOut: "+scriptOutbuf.String()+"ScriptError: "+scriptErrbuf.String()); err != nil {
+		elog := fmt.Sprintf("%s%s","InfraFolderCreation(ImplantGeneration):",err)
+   		return elog
+	}
 
 
 	return "Done"

@@ -1,21 +1,19 @@
 {
-  "name": "electron-quick-start",
-  "version": "1.0.0",
-  "description": "A minimal Electron application",
+  "name": "SiestaTime",
+  "version": "0.0.1",
+  "description": "Red Team Automation tool powered by go and terraform",
   "main": "main.js",
   "scripts": {
     "start": "electron ."
   },
-  "repository": "https://github.com/electron/electron-quick-start",
+  "repository": "https://github.com/rebujacker/SiestaTime",
   "keywords": [
-    "Electron",
-    "quick",
-    "start",
-    "tutorial",
-    "demo"
+    "redteam",
+    "infraestructure",
+    "implants"
   ],
-  "author": "GitHub",
-  "license": "CC0-1.0",
+  "author": "Rebujacker",
+  "license": "GPLv3",
   "devDependencies": {
     "electron": "^3.0.7"
   },

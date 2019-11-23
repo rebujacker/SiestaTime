@@ -54,6 +54,12 @@ type JobsToBichito struct {
 	Jobs []*Job
 }
 
+type lockObject struct {
+    mux  sync.RWMutex
+    Lock int
+}
+
+var lock *lockObject
 
 var(
 	parameters string
@@ -91,6 +97,7 @@ func main() {
 	var jobs []*Job
 	jobsToHive	= &JobsToHive{Jobs:jobs}
 	jobsToBichito = &JobsToBichito{Jobs:jobs}
+	lock = &lockObject{Lock:0}
 
 	// Keep pinging Hive each 5 seconds till checking is done
 	for{

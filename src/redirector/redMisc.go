@@ -28,9 +28,16 @@ func addLog(error string){
 		log Log
 		job Job
 	)
+
 	if !strings.Contains(rid,"R-"){
 		return
 	}
+
+	//Skip logs when there is a job/log overhead
+	if len(jobsToHive.Jobs) > 10 {
+		return
+	}
+
 	time := time.Now().Format("02/01/2006 15:04:05 MST")
 	log = Log{rid,time,error}
 
@@ -40,11 +47,15 @@ func addLog(error string){
 	param := "["+resultRP+"]"
 
 	//Mutex to avoid Race Conditions
-	jobsToHive.mux.Lock()
-	defer jobsToHive.mux.Unlock()
+	
+	
 
 	job = Job{"","",rid,"None","log","","","",param}
+	jobsToHive.mux.Lock()
 	jobsToHive.Jobs = append(jobsToHive.Jobs, &job)
+	jobsToHive.mux.Unlock()
+
+	return
 }
 
 func randomString(length int) string{

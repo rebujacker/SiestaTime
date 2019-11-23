@@ -20,7 +20,7 @@ import (
     "strings"
 	"encoding/hex"
 	"crypto/sha256"
-	//"net/http/httputil"
+	"net/http/httputil"
 	"net"
 	"time"
 )
@@ -161,59 +161,89 @@ type GuiData struct {
     Bichitos 			[]*Bichito `json:"bichitos"`
 }
 
-// Client on memory slices for GuiData
-var(
-
-	jobs 		[]*Job
-	logs 		[]*Log
-	implants 	[]*Implant
-	vpss 		[]*Vps
-	domains 	[]*Domain
-	stagings 	[]*Staging
-	reports 	[]*Report
-	redirectors []*Redirector
-	bichitos 	[]*Bichito
-
-)
-
 
 //Extra lock to avoid queue too many Get requests
-var lock = 0
 
 func connectHive(){
 	
-	lock = 1
+	//Debug: Chceck client is continuously trying to connect on clicks
+	fmt.Println("Connecting...")
+	fmt.Println(lock.Lock)
+
+    lock.mux.Lock()
+	lock.Lock = lock.Lock - 1
+    lock.mux.Unlock()
+	defer unlock()
 
 	//Get GUI data from Hive and update it
-	getHive()
-	
+	getHive("jobs")
+	jobsToSend.mux.Lock()
+	defer jobsToSend.mux.Unlock()
 	//Write all packages to Hive
 	for{
 		// Starting each iteraction first looks if there are any bichito
 		// packages to redirect,also implements the own timeout for it
-		if len(jobsToSend) > 0 {
-			postHive(jobsToSend[0])
-			jobsToSend = append(jobsToSend[:0], jobsToSend[1:]...)
+		if len(jobsToSend.Jobs) > 0 {
+			postHive(jobsToSend.Jobs[0])
+			jobsToSend.Jobs = append(jobsToSend.Jobs[:0], jobsToSend.Jobs[1:]...)
 
 		//Check if there are redirector Job finished to Send Back to Hive, is send, rset connT
 		}else{
 			break
 		}
 	}
-	lock = 0
 
 }
 
+func unlock(){
+    lock.mux.Lock()
+	lock.Lock = lock.Lock + 1
+    lock.mux.Unlock()
+}
 
-func getHive(){
+func getHive(objtype string){
 	
+    fmt.Println("Lock:")
+    fmt.Println(lock.Lock)
+    lock.mux.Lock()
+    lock.Lock = lock.Lock - 1
+    lock.mux.Unlock()
+    defer unlock()
+
+
+	fmt.Println("Getting:" + objtype)
+
 	checkTLSignature()
 	
-	//Bypass unsecure self-signed certificate
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	client := &http.Client{}
+	//HTTP Clients Conf
+	client := &http.Client{
+		Transport: &http.Transport{
+        	DialContext:(&net.Dialer{
+            	Timeout:   10 * time.Second,
+            	KeepAlive: 10 * time.Second,
+        	}).DialContext,
+
+        	//Skip TLS Verify since we are using self signed Certs
+        	TLSClientConfig:(&tls.Config{
+            	InsecureSkipVerify: true,
+        	}),
+
+        	TLSHandshakeTimeout:   20 * time.Second,   
+        	ExpectContinueTimeout: 10 * time.Second,
+        	ResponseHeaderTimeout: 10 * time.Second,	
+		},
+
+		Timeout: 30 * time.Second,
+	}
+
 	req, _ := http.NewRequest("GET", "https://"+roasterString+"/client", nil)
 	req.Header.Set("Authorization", authbearer)
+	
+	q := req.URL.Query()
+	q.Add("objtype", objtype)
+	req.URL.RawQuery = q.Encode()
+	
+
 	res, err := client.Do(req)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -231,17 +261,17 @@ func getHive(){
 	fmt.Println(string(body))
 	*/
 
-	updateData(string(body))
+	go updateData(objtype,string(body))
 
 }
 
-func updateData(guidata string){
+func updateData(objtype string,guidata string){
 
     reader := strings.NewReader(guidata)
 
+    /*
     var guidataO *GuiData
     err := json.NewDecoder(reader).Decode(&guidataO)
-
     if err != nil{
         fmt.Println(err.Error())
         return
@@ -256,23 +286,161 @@ func updateData(guidata string){
 	reports = guidataO.Reports
 	redirectors = guidataO.Redirectors
 	bichitos = guidataO.Bichitos
+	*/
+
+
+    switch objtype{
+        case "jobs":
+			var guidataO []*Job
+    		err := json.NewDecoder(reader).Decode(&guidataO)
+    		if err != nil{
+        		fmt.Println(err.Error())
+        		return
+    		}
+    		jobsDB.mux.Lock()
+    		jobsDB.Jobs = guidataO
+    		jobsDB.mux.Unlock()	
+        case "logs":
+			var guidataO []*Log
+    		err := json.NewDecoder(reader).Decode(&guidataO)
+    		if err != nil{
+        		fmt.Println(err.Error())
+        		return
+    		}
+    		logsDB.mux.Lock()
+    		logsDB.Logs = guidataO
+    		logsDB.mux.Unlock()	
+        case "implants":
+			var guidataO []*Implant
+    		err := json.NewDecoder(reader).Decode(&guidataO)
+    		if err != nil{
+        		fmt.Println(err.Error())
+        		return
+    		}
+    		implantsDB.mux.Lock()
+    		implantsDB.Implants = guidataO
+    		implantsDB.mux.Unlock()	
+        case "vps":
+			var guidataO []*Vps
+    		err := json.NewDecoder(reader).Decode(&guidataO)
+    		if err != nil{
+        		fmt.Println(err.Error())
+        		return
+    		}
+    		vpsDB.mux.Lock()
+    		vpsDB.Vpss = guidataO
+    		vpsDB.mux.Unlock()	
+        case "domains":
+			var guidataO []*Domain
+    		err := json.NewDecoder(reader).Decode(&guidataO)
+    		if err != nil{
+        		fmt.Println(err.Error())
+        		return
+    		}
+    		domainsDB.mux.Lock()
+    		domainsDB.Domains = guidataO
+    		domainsDB.mux.Unlock()	
+        case "redirectors":
+			var guidataO []*Redirector
+    		err := json.NewDecoder(reader).Decode(&guidataO)
+    		if err != nil{
+        		fmt.Println(err.Error())
+        		return
+    		}
+    		redsDB.mux.Lock()
+    		redsDB.Redirectors = guidataO
+    		redsDB.mux.Unlock()	
+        case "bichitos":
+			var guidataO []*Bichito
+    		err := json.NewDecoder(reader).Decode(&guidataO)
+    		if err != nil{
+        		fmt.Println(err.Error())
+        		return
+    		}
+    		bisDB.mux.Lock()
+    		bisDB.Bichitos = guidataO
+    		bisDB.mux.Unlock()	
+        case "stagings":
+			var guidataO []*Staging
+    		err := json.NewDecoder(reader).Decode(&guidataO)
+    		if err != nil{
+        		fmt.Println(err.Error())
+        		return
+    		}
+    		stagingsDB.mux.Lock()
+    		stagingsDB.Stagings = guidataO
+    		stagingsDB.mux.Unlock()	
+        case "reports":
+			var guidataO []*Report
+    		err := json.NewDecoder(reader).Decode(&guidataO)
+    		if err != nil{
+        		fmt.Println(err.Error())
+        		return
+    		}
+    		reportsDB.mux.Lock()
+    		reportsDB.Reports = guidataO
+    		reportsDB.mux.Unlock()	
+        default:
+        	fmt.Println("Incorrect objtype")
+        	return
+    }
+
+
 
 }
 
 func postHive(job *Job){
 
+    lock.mux.Lock()
+    lock.Lock = lock.Lock - 1
+    lock.mux.Unlock()
+    defer unlock()
+	
 	checkTLSignature()
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	
 	//Serialize Job, and send it to Hive
-	bytesRepresentation, err := json.Marshal(job)
+	/*
+	encodedJob, err := json.Marshal(job)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
+	bytesRepresentation := bytes.NewReader(encodedJob)
+	*/
 
-	client := &http.Client{}
-	req, _ := http.NewRequest("POST", "https://"+roasterString+"/client",bytes.NewBuffer(bytesRepresentation))
+	
+    bytesRepresentation := new(bytes.Buffer)
+    err := json.NewEncoder(bytesRepresentation).Encode(job)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}    
+	
+
+	//HTTP Clients Conf
+	client := &http.Client{
+		Transport: &http.Transport{
+        	DialContext:(&net.Dialer{
+            	Timeout:   10 * time.Second,
+            	KeepAlive: 10 * time.Second,
+        	}).DialContext,
+
+        	//Skip TLS Verify since we are using self signed Certs
+        	TLSClientConfig:(&tls.Config{
+            	InsecureSkipVerify: true,
+        	}),
+
+        	TLSHandshakeTimeout:   20 * time.Second,   
+        	ExpectContinueTimeout: 10 * time.Second,
+        	ResponseHeaderTimeout: 10 * time.Second,	
+		},
+
+		Timeout: 20 * time.Second,
+	}
+
+
+
+	req, _ := http.NewRequest("POST", "https://"+roasterString+"/client",bytesRepresentation)
 	req.Header.Set("Authorization", authbearer)
 	_, err = client.Do(req)
 	if err != nil {
@@ -295,9 +463,28 @@ func postHive(job *Job){
 func getKey(vpsName string) string{
 	
 	checkTLSignature()
-	//Bypass unsecure self-signed certificate
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	client := &http.Client{}
+	
+	//HTTP Clients Conf
+	client := &http.Client{
+		Transport: &http.Transport{
+        	DialContext:(&net.Dialer{
+            	Timeout:   10 * time.Second,
+            	KeepAlive: 10 * time.Second,
+        	}).DialContext,
+
+        	//Skip TLS Verify since we are using self signed Certs
+        	TLSClientConfig:(&tls.Config{
+            	InsecureSkipVerify: true,
+        	}),
+
+        	TLSHandshakeTimeout:   10 * time.Second,   
+        	ExpectContinueTimeout: 4 * time.Second,
+        	ResponseHeaderTimeout: 3 * time.Second,	
+		},
+
+		Timeout: 20 * time.Second,
+	}
+	
 	req, _ := http.NewRequest("GET", "https://"+roasterString+"/vpskey", nil)
 	req.Header.Set("Authorization", authbearer)
 	
@@ -333,10 +520,28 @@ func getKey(vpsName string) string{
 func getReport(reportName string) string{
 	
 	checkTLSignature()
+		
+	//HTTP Clients Conf
+	client := &http.Client{
+		Transport: &http.Transport{
+        	DialContext:(&net.Dialer{
+            	Timeout:   10 * time.Second,
+            	KeepAlive: 10 * time.Second,
+        	}).DialContext,
+
+        	//Skip TLS Verify since we are using self signed Certs
+        	TLSClientConfig:(&tls.Config{
+            	InsecureSkipVerify: true,
+        	}),
+
+        	TLSHandshakeTimeout:   10 * time.Second,   
+        	ExpectContinueTimeout: 4 * time.Second,
+        	ResponseHeaderTimeout: 3 * time.Second,	
+		},
+
+		Timeout: 20 * time.Second,
+	}
 	
-	//Bypass unsecure self-signed certificate
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	client := &http.Client{}
 	req, _ := http.NewRequest("GET", "https://"+roasterString+"/report", nil)
 	req.Header.Set("Authorization", authbearer)
 	
@@ -376,6 +581,67 @@ func getReport(reportName string) string{
 	}
 
 	return ""
+
+}
+
+
+func getJIDResult(jid string) (string,string){
+	
+	checkTLSignature()
+		
+	//HTTP Clients Conf
+	client := &http.Client{
+		Transport: &http.Transport{
+        	DialContext:(&net.Dialer{
+            	Timeout:   10 * time.Second,
+            	KeepAlive: 10 * time.Second,
+        	}).DialContext,
+
+        	//Skip TLS Verify since we are using self signed Certs
+        	TLSClientConfig:(&tls.Config{
+            	InsecureSkipVerify: true,
+        	}),
+
+        	TLSHandshakeTimeout:   10 * time.Second,   
+        	ExpectContinueTimeout: 4 * time.Second,
+        	ResponseHeaderTimeout: 3 * time.Second,	
+		},
+
+		Timeout: 20 * time.Second,
+	}
+	
+	req, _ := http.NewRequest("GET", "https://"+roasterString+"/jobresult", nil)
+	req.Header.Set("Authorization", authbearer)
+	
+	q := req.URL.Query()
+	q.Add("jid", jid)
+	req.URL.RawQuery = q.Encode()
+	
+	res, err := client.Do(req)
+	if err != nil {
+		return "GetJidResult:" + err.Error(),""
+	}
+
+	body, err2 := ioutil.ReadAll(res.Body)
+	if err2 != nil {
+		return "GetJidResult:" + err2.Error(),""
+	}
+
+    //Debug Get Report
+    
+    requestDump, err2 := httputil.DumpRequest(req, true)
+    if err2 != nil {
+        fmt.Println(err2)
+    }
+    fmt.Println(string(requestDump))
+	fmt.Println(string(body))
+	
+
+	if string(body) == "" {
+		return "Empty Job Result",""
+	}
+
+	return "",string(body)
 
 }
 

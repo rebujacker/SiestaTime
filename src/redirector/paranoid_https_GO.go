@@ -24,7 +24,9 @@ import (
     "encoding/json"
     "bytes"
     "fmt"
-    "net/http/httputil"
+    "time"
+    //Debug
+    //"net/http/httputil"
 
 )
 
@@ -70,6 +72,9 @@ func bichitoHandler(){
         },
     }
     srv := &http.Server{
+        ReadHeaderTimeout: 10 *time.Second,
+        ReadTimeout: 20 * time.Second,
+        WriteTimeout: 40 * time.Second,
         Addr:         socket,
         Handler:      router,
         TLSConfig:    cfg,
@@ -81,6 +86,7 @@ func bichitoHandler(){
     	//ErrorLog
         fmt.Println("Error starting https server:"+err.Error())
 		addLog("Network(Listener Starting Error)"+err.Error())
+        panic(err)
     }
 
 }
@@ -102,15 +108,17 @@ func SendJobs(w http.ResponseWriter, r *http.Request) {
     }    
 
     //Debug: Send Hive Jobs to Bichito
+    /*
     requestDump, err2 := httputil.DumpRequest(r, true)
     if err2 != nil {
         fmt.Println(err2)
     }
     fmt.Println(string(requestDump))
-
+    */
 
     json.NewEncoder(w).Encode(getBiJobs(bid))
 
+    
 }
 
 
@@ -124,22 +132,23 @@ func ReceiveJob(w http.ResponseWriter, r *http.Request) {
     }     
 
     decoder := json.NewDecoder(r.Body)
-    var job []*Job
-    err := decoder.Decode(&job)
+    var jobs []*Job
+    err := decoder.Decode(&jobs)
     if err != nil {
-		addLog("Jobs(Error Decoding Bichito Job)"+err.Error())
+		go addLog("Jobs(Error Decoding Bichito Job)"+err.Error())
 		return
     }
 
     //Debug: Get the Jobs from Bichito and send to Hive
+    /*
     requestDump, err2 := httputil.DumpRequest(r, true)
     if err2 != nil {
         fmt.Println(err)
     }
     fmt.Println(string(requestDump))
+    */
 
-
-    processJobs(job)
+    go processJobs(jobs)
 
 }
 
@@ -156,7 +165,7 @@ func biAuth(authbearer string) string{
     err := decoder.Decode(&biauth)
 
     if err != nil{
-        addLog("Bichito Authentication Json Decoding Error"+err.Error())
+        go addLog("Bichito Authentication Json Decoding Error"+err.Error())
         return "Bad"
     }
 
@@ -164,7 +173,7 @@ func biAuth(authbearer string) string{
         return biauth.Bid
     }
 
-	addLog("Bichito bad login!"+err.Error())
+	go addLog("Bichito bad login!"+err.Error())
     return "Bad"
 
 }

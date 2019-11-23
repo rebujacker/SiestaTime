@@ -170,21 +170,14 @@ function getImpantIds(implantName) {
   return returnArray
 }
 
-  // Not working on opening STIme research
-  getJobs();
-  getLogs();
-  getImplants();
-  getRedirectors();
-  getBichitos();
-  getVps();
-  getDomains();
-  getStagings();
-  getReports();
-  $(".STheader").load('./components/header/header.html');
+
 
 $(document).ready(function() {
-        
+
+  $(".STheader").load('./components/header/header.html');
+     
   $("#sidebar-menu").on("click","a",function() {
+
         
         //Prepare Menu elements
         var link = $(this);
@@ -193,17 +186,6 @@ $(document).ready(function() {
         var closestUpper_li = link.closest("li");
         var lower_ul = closestUpper_li.children("ul")
         //var link_status = closestUpper_li.hasClass("active");
-        
-        // On Menu click, refresh Memory Data
-        getJobs();
-        getLogs();
-        getImplants();
-        getRedirectors();
-        getBichitos();
-        getVps();
-        getDomains();
-        getStagings();
-        getReports();
         
         $(".STheader").load('./components/header/header.html');
 
@@ -223,14 +205,20 @@ $(document).ready(function() {
 
           //Implant, bots sliding menu
           case "implantList":
+            getImplants();
+            getBichitos();
+            getRedirectors();
+
             lower_ul.empty();
             for (i = 0; i < implants.length; i++){
               //console.log("Adding implat");
               var row = implants[i];
               lower_ul.append("<li class=\"implantli\"><a href=\"#\" class=\"implant\" id=\""+htmlencode.htmlEncode(row.name)+"\">"+htmlencode.htmlEncode(row.name)+"<span class=\"fa fa-chevron-down\"></span></a><ul class=\"nav child_menu\" style=\"display: block;\"></ul></li>");
             }
+            
             break;
           case "implant":
+            getBichitos();
             $(".STmain").empty();
             $(".STmain").attr("id",link.attr("id"));
             $(".STmain").load('./components/implant/implant.html')
@@ -280,6 +268,7 @@ $(document).ready(function() {
             }
             break;
           case "bichito":
+            getBichitos();
             $(".STmain").attr("id",link.attr("id"));
             //console.log($(".STmain").attr("id",link.attr("id")));
             $(".STmain").empty();
@@ -289,6 +278,7 @@ $(document).ready(function() {
 
           // Vps,domains and Staging List/Menus
           case "vpsList":
+            getVps();
             lower_ul.empty();
             for (i = 0; i < vps.length; i++){
               var row = vps[i];
@@ -300,6 +290,7 @@ $(document).ready(function() {
             $(".STmain").load('./components/vps/vps.html')
             break;
           case "domainsList":
+            getDomains();
             lower_ul.empty();
             for (i = 0; i < domains.length; i++){
               var row = domains[i];
@@ -309,6 +300,7 @@ $(document).ready(function() {
             }
             break;
           case "saasList":
+            getDomains();
             lower_ul.empty();
             for (i = 0; i < domains.length; i++){
               var row = domains[i];
@@ -321,6 +313,7 @@ $(document).ready(function() {
             $(".STmain").load('./components/domain/domain.html')
             break;
           case "dropletList":
+            getStagings();
             lower_ul.empty();
             for (i = 0; i < stagings.length; i++){
               var row = stagings[i];
@@ -330,6 +323,7 @@ $(document).ready(function() {
             }
             break;
           case "hanlerList":
+            getStagings();
             lower_ul.empty();
             for (i = 0; i < stagings.length; i++){
               var row = stagings[i];
@@ -339,10 +333,12 @@ $(document).ready(function() {
             }
             break;
           case "staging":
+            getStagings();
             $(".STmain").attr("id",link.attr("id"));
             $(".STmain").load('./components/staging/staging.html')
             break;
           case "reportsList":
+            getReports();
             lower_ul.empty();
             for (i = 0; i < reports.length; i++){
               var row = reports[i];

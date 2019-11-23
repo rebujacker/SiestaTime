@@ -7,17 +7,23 @@ import (
     "encoding/json"
     "bytes"
     "strings"
+    "sync"
 )
 
+type JobsToSend struct {
+    mux  sync.RWMutex
+    Jobs []*Job
+}
+
 var (
-    packagestoHive []string
     roasterString string
     fingerPrint   string
     username string
     password string
+    jobsToSend *JobsToSend
 )
 
-var jobsToSend []*Job
+
 
 func main() {
 
@@ -27,7 +33,11 @@ func main() {
     json.NewEncoder(bufA).Encode(tmp)    
     authbearer = strings.TrimSuffix(bufA.String(), "\n")
 
-    go connectHive()
+    //Initialize on memory slices for Send Jobs to Hive
+    var jobs []*Job
+    jobsToSend  = &JobsToSend{Jobs:jobs}
+
+    //go connectHive()
 
     guiHandler()
 

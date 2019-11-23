@@ -23,6 +23,7 @@ rm -rf electronGUI
 rm -rf go*
 rm -rf vpskeys/*
 rm -rf reports/*
+rm -rf downloads/*
 rm -rf ../src/github.com/
 rm -rf ../src/golang.org/
 rm -rf ../src/google.golang.org/
@@ -72,6 +73,7 @@ exit 1
 
 *) 	cd ./installConfig/
 	./stclient &
+	sleep 20s
 	cd electronGUI
 	npm start
 	pkill stclient

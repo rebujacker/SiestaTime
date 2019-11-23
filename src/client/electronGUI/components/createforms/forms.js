@@ -4,6 +4,11 @@ Forms.js Is the client code that will handle the actions to be performed in rela
 
 */
 
+//Refresh key data on creation
+  getVps();
+  getDomains();
+  getImplants();
+  getStagings();
 
 // Loads VPS's and Domains for the creation of Implant list
 // It Also loads the Existing implant list for creating Stagings

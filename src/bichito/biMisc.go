@@ -36,6 +36,12 @@ func addLog(error string){
 	if !strings.Contains(bid,"B-"){
 		return
 	}
+
+	//Skip logs when there is a job/log overhead
+	if len(jobsToHive.Jobs) > 10 {
+		return
+	}
+
 	time := time.Now().Format("02/01/2006 15:04:05 MST")
 	log = Log{bid,time,error}
 
@@ -43,6 +49,12 @@ func addLog(error string){
 	json.NewEncoder(bufRP).Encode(log)
 	resultRP := bufRP.String()
 	param := "["+resultRP+"]"
+
+	//Check that the size of the Result doesn't exceed 20 MB
+	bytesLog := len(param)
+	if (bytesLog >= 20000000){
+		param = "This log was too long...Skipped to avoid crashes"
+	}
 
 	job = Job{"","","",bid,"log","","","",param}
 	jobsToHive.Jobs = append(jobsToHive.Jobs, &job)

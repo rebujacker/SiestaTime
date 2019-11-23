@@ -512,7 +512,10 @@ func removeImplant(name string) string{
 	}
 
 	for _,bid := range bichitosIds {
-		//TO-DO:Send remove infection 
+		//TO-DO:Send remove infection
+		rmJobsbyChidDB(bid) 
+		rmLogsbyPidDB(bid)
+		//removeInfection(bid)
 		rmBibyBidDB(bid)
 	}
 
@@ -526,6 +529,7 @@ func removeImplant(name string) string{
 	for _,rid := range redirectorsIds {
 		dname,_ := getDomainbyRidDB(rid)
 		setUsedDomainDB(dname,"No")
+		rmLogsbyPidDB(rid)
 		rmRedbyRidDB(rid)
 	}
 
