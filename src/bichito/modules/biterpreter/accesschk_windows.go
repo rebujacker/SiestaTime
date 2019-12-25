@@ -5,33 +5,27 @@ package biterpreter
 import (
     "fmt"
     "os"
-    "strings"
     "github.com/hectane/go-acl/api"
     "golang.org/x/sys/windows"
 )
 
 
-func Accesschk(commands string) (bool,string){
+func Accesschk(filepath string) (bool,string){
 
     var result string
-
-    arguments := strings.Split(commands," ")
-    if len(arguments) != 1 {
-        return true,"Incorrect Number of params"
-    } 
 
     var (
         owner   *windows.SID
         secDesc windows.Handle
     )
 
-    fileInfo, err := os.Stat(arguments[0])
+    fileInfo, err := os.Stat(filepath)
     if err != nil {
         return true,"Error Listing stats of file: "+err.Error() 
     }
 
     err = api.GetNamedSecurityInfo(
-        os.Args[1],
+        filepath,
         api.SE_FILE_OBJECT,
         api.OWNER_SECURITY_INFORMATION,
         &owner,

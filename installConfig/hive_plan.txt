@@ -43,6 +43,10 @@
 		    	"sudo apt-get install -y gcc",
 		    	"sudo apt-get install -y unzip",
 		    	"sudo apt-get install -y cmake",
+		    	"sudo apt-get install -y mingw-w64",
+		    	"sudo apt-get install -y minngw-w64-common",
+		    	"sudo apt-get install -y mingw-w64-i686-dev",
+		    	"sudo apt-get install -y mingw-w64-x86-64-dev",
 		    	"sudo mkdir /usr/local/STHive",
 		    	"sudo mkdir /usr/local/STHive/implants",
 		    	"sudo mkdir /usr/local/STHive/stagings",		      
@@ -102,6 +106,16 @@
 		  provisioner "file" {
 		    source      = "MacOSX10.13.sdk.tar.xz"
 		    destination = "/usr/local/STHive/MacOSX10.13.sdk.tar.xz"
+		    connection {
+		      type     = "ssh"
+		      user     = "ubuntu"
+		      private_key = "${file("@keyname.pem")}"
+		    }
+		  }
+
+		  provisioner "file" {
+		    source      = "windependencies.zip"
+		    destination = "/usr/local/STHive/windependencies.zip"
 		    connection {
 		      type     = "ssh"
 		      user     = "ubuntu"

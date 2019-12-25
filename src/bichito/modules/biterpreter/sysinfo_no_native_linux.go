@@ -1,4 +1,4 @@
-// +build darwin-sysnonative
+// +build linux-sysnonative
 
 
 package biterpreter
@@ -48,7 +48,7 @@ func Sysinfo() (bool,string){
 	cmd.Stderr = &errbuf
 	cmd.Run()
 	cmd.Wait()
-	os = outbuf.String()
+	os = "Compiled for linux: " + outbuf.String()
 	stderr = errbuf.String()
 	if stderr != "" {
 		return true,"Error Getting OS:"+stderr
@@ -58,7 +58,7 @@ func Sysinfo() (bool,string){
 	errbuf.Reset()
 
 	//OS Distro
-	cmd = exec.Command(cmd_path, "-c","sw_vers")
+	cmd = exec.Command(cmd_path, "-c","cat /etc/issue.net")
 	cmd.Stdout = &outbuf
 	cmd.Stderr = &errbuf
 	cmd.Run()
@@ -103,7 +103,7 @@ func Sysinfo() (bool,string){
 	errbuf.Reset()
 
 	//mac
-	cmd = exec.Command(cmd_path, "-c","ifconfig | grep ether | cut -d \" \" -f 2 | head -n 1")
+	cmd = exec.Command(cmd_path, "-c","ip link | grep \"link/ether\" | cut -d \"/\" -f 2 | cut -d ' ' -f 2 | head -n 1")
 	cmd.Stdout = &outbuf
 	cmd.Stderr = &errbuf
 	cmd.Run()

@@ -210,56 +210,56 @@ func GetJobs(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(jobsDB.Jobs)
     //if lock == 0 {go connectHive()}
     
-    if(lock.Lock > -1){getHive("jobs")}
+    if(lock.Lock > -1){go getHive("jobs")}
 }
 
 func GetLogs(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(logsDB.Logs)
 
-    if lock.Lock > -1 {getHive("logs")}
+    if lock.Lock > -1 {go getHive("logs")}
 }
 
 func GetImplants(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(implantsDB.Implants)
 
-    if lock.Lock > -1 {getHive("implants")}
+    if lock.Lock > -1 {go getHive("implants")}
 }
 
 func GetVps(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(vpsDB.Vpss)
 
-    if lock.Lock > -1 {getHive("vps")}
+    if lock.Lock > -1 {go getHive("vps")}
 }
 
 func GetDomains(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(domainsDB.Domains)
 
-    if lock.Lock > -1 {getHive("domains")}
+    if lock.Lock > -1 {go getHive("domains")}
 }
 
 func GetStagings(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(stagingsDB.Stagings)
 
-    if lock.Lock > -1 {getHive("jobs")}
+    if lock.Lock > -1 {go getHive("jobs")}
 }
 
 func GetReports(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(reportsDB.Reports)
 
-    if lock.Lock > -1 {getHive("jobs")}
+    if lock.Lock > -1 {go getHive("jobs")}
 }
 
 
 func GetRedirectors(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(redsDB.Redirectors)
 
-    if lock.Lock > 0 {getHive("redirectors")}
+    if lock.Lock > 0 {go getHive("redirectors")}
 }
 
 func GetBichitos(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(bisDB.Bichitos)
 
-    if lock.Lock > 0 {getHive("bichitos")}
+    if lock.Lock > 0 {go getHive("bichitos")}
 }
 
 func CreateJob(w http.ResponseWriter, r *http.Request) {

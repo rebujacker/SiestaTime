@@ -9,6 +9,9 @@ sudo rm master.zip
 cd /usr/local/STHive/sources/osxcross/
 sudo bash ./tools/get_dependencies.sh
 sudo yes | sudo ./build.sh
+#Dependencies for windows c++ code
+sudo mkdir /usr/local/STHive/sources/winDependencies
+sudo unzip /usr/local/STHive/windependencies.zip -d /usr/local/STHive/sources/winDependencies
 #Hive Service Configs
 sudo chmod +x /usr/local/STHive/hive
 sudo cp /usr/local/STHive/hive.service /etc/systemd/system/

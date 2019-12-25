@@ -1,6 +1,6 @@
-// +build linux
+// +build darwin
 
-package biterpreter
+package sysinfo_native_darwin
 
 import (
 	
@@ -9,10 +9,38 @@ import (
 	"bytes"
 	"encoding/json"
 	"strconv"
-	"syscall"
 	"net"
 	"strings"
+    "unsafe"
 )
+
+/*
+#cgo CFLAGS: -x objective-c
+#cgo LDFLAGS: -framework Foundation
+#import <Foundation/Foundation.h>
+#import <mach-o/arch.h>
+#include <stdlib.h>
+
+int arch(char * res){
+    int n;
+    NXArchInfo *info = NXGetLocalArchInfo();
+    NSString *typeOfCpu = [NSString stringWithUTF8String:info->description];
+    char *archch = strdup([typeOfCpu UTF8String]);
+    n = sprintf(res,"%s",archch);
+    return n;
+}
+
+int osv(char * res) {
+    int n;
+    NSProcessInfo *pInfo = [NSProcessInfo processInfo];
+    NSString *version = [pInfo operatingSystemVersionString];
+    char *versionch = strdup([version UTF8String]);
+    n = sprintf(res,"%s",versionch);
+    return n;
+}
+*/
+import "C"
+
 
 type SysInfo struct {
     Pid string  `json:"pid"`
@@ -26,20 +54,8 @@ type SysInfo struct {
 
 }
 
-func int8ToStr(arr []int8) string {
-    b := make([]byte, 0, len(arr))
-    for _, v := range arr {
-        if v == 0x00 {
-            break
-        } 
-        b = append(b, byte(v))
-    }
-    return string(b)
-}
 
-
-
-func Sysinfo() (bool,string){
+func SysinfoNativeDarwin() (bool,string){
 
 	var(
 		pid,oss,osv,arch,hostname,mac,actualUser,privileges string
@@ -52,24 +68,21 @@ func Sysinfo() (bool,string){
 
 
 	//OS Distro,version,arch
-    var uname syscall.Utsname
-    if err := syscall.Uname(&uname); err == nil {
-        // extract members:
-        type Utsname struct {
-          Sysname    [65]int8
-        //  Nodename   [65]int8
-          Release    [65]int8
-          Version    [65]int8
-          Machine    [65]int8
-         // Domainname [65]int8
-         }
+    oss = "darwin"
 
-        	oss = "Compiled for linux: " + int8ToStr(uname.Sysname[:]) 
-            osv = int8ToStr(uname.Release[:])
-            osv = osv + int8ToStr(uname.Version[:])
-            arch = int8ToStr(uname.Machine[:])
-            //hostname = int8ToStr(uname.Domainname[:])
-    }
+    ptrArch := C.malloc(C.sizeof_char * 1024)
+    defer C.free(unsafe.Pointer(ptrArch))
+    sizeArch := C.arch((*C.char)(ptrArch))
+    bArch := C.GoBytes(ptrArch, sizeArch)
+    arch = "Compiled for x64: " + string(bArch)
+
+
+    ptrOsv := C.malloc(C.sizeof_char * 1024)
+    defer C.free(unsafe.Pointer(ptrOsv))
+    sizeOsv := C.osv((*C.char)(ptrOsv))
+    bOsv := C.GoBytes(ptrOsv, sizeOsv)
+    osv = string(bOsv)
+
 
     //Hostname
 	hostname,err = os.Hostname()

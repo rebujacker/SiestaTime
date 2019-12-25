@@ -112,6 +112,85 @@ $("#params").on('click','.remove',function () {
 });
 
 
+//Userland Persistence Module Options
+$('#persistenceosx').change(function(){
+
+  if ($('#persistenceosx').val() == 'launchd'){
+    $("#userlandPersistenceOSXParams").empty();
+    $("#userlandPersistenceOSXParams").append(`
+    
+    <form role="form" id="userlandpersistenceosxparamsform">
+      <div class="form-group">
+        <label for="launchdname"> Launchd Name </label>
+        <input type="text" class="form-control" name="launchdname" id="launchdname" placeholder="Name...">
+      </div>
+
+      <div class="form-group">
+        <label for="implantpath"> Implant Path (Relative to Default User Home Folder) </label>
+        <input type="text" class="form-control" name="implantpath" id="implantpath" placeholder="folder/folder/filename...">
+      </div>
+
+    </form>  
+    `);
+  }else{
+    $("#userlandPersistenceOSXParams").empty();
+  }
+
+});
+
+$('#persistencewindows').change(function(){
+
+  if ($('#persistencewindows').val() == 'schtasks'){
+    $("#userlandPersistenceWindowsParams").empty();
+    $("#userlandPersistenceWindowsParams").append(`
+    
+    <form role="form" id="userlandpersistencewindowsparamsform">
+      <div class="form-group">
+        <label for="taskname"> Schtask Name </label>
+        <input type="text" class="form-control" name="taskname" id="taskname" placeholder="Name...">
+      </div>
+
+      <div class="form-group">
+        <label for="implantpath"> Implant Path (Relative to Default User Home Folder) </label>
+        <input type="text" class="form-control" name="implantpath" id="implantpath" placeholder="folder\\folder\\filename...">
+      </div>
+
+    </form>  
+    `);
+  }else{
+    $("#userlandPersistenceWindowsParams").empty();
+  }
+
+});
+
+
+$('#persistencelinux').change(function(){
+
+  if ($('#persistencelinux').val() == 'cron'){
+    $("#userlandPersistenceLinuxParams").empty();
+    $("#userlandPersistenceLinuxParams").append(`
+    
+    <form role="form" id="userlandpersistencelinuxparamsform">
+      <div class="form-group">
+        <label for="cronname"> Cron Name </label>
+        <input type="text" class="form-control" name="cronname" id="cronname" placeholder="Name...">
+      </div>
+
+      <div class="form-group">
+        <label for="implantpath"> Implant Path (Relative to Default User Home Folder) </label>
+        <input type="text" class="form-control" name="implantpath" id="implantpath" placeholder="folder/folder/filename...">
+      </div>
+
+    </form>  
+    `);
+  }else{
+    $("#userlandPersistenceLinuxParams").empty();
+  }
+
+});
+
+
+
 //Used to change Forms for different VPS types
 $('#coms').change(function(){
 
@@ -123,8 +202,8 @@ $('#coms').change(function(){
 
 
   if ($('#coms').val() == 'gmailgo'){
-    $("#params").empty();
-    $("#params").append(`
+    $("#netParams").empty();
+    $("#netParams").append(`
     
     <div class="form-group">
         <label for="iname">Server/Red For SaaS Coms </label>
@@ -152,12 +231,12 @@ $('#coms').change(function(){
         </tr>
       </table>
   </div>
-  <button type="button" class="btn btn-primary" id="submitcreationImplantDomain">Create Implant</button>
+  <button type="button" class="btn btn-primary" id="submitcreationImplantSaaS">Create Implant</button>
     `);
     loadFormDataSaaS();
   }else{
-    $("#params").empty();
-    $("#params").append(`
+    $("#netParams").empty();
+    $("#netParams").append(`
     <div class="form-group">
       <label for="iname">TLS Port </label>
       <input type="text" class="form-control" name="comsparams" placeholder="">
@@ -189,7 +268,7 @@ $('#coms').change(function(){
         </tr>
   </table>
 </div>
-<button type="button" class="btn btn-primary" id="submitcreationImplantSaaS">Create Implant</button>
+<button type="button" class="btn btn-primary" id="submitcreationImplantDomain">Create Implant</button>
     `);
     loadFormDataDomains();
   }
@@ -208,23 +287,41 @@ type CreateImplant struct {
     Resptime string   `json:"resptime"`
     Coms string   `json:"coms"`
     ComsParams string `json:"comsparams"`
-    Persistence string `json:"persistence"`
+    PersistenceOsx string `json:"persistenceosx"`
+    PersistenceOsxP string `json:"persistenceosxp"`
+    PersistenceWindows string `json:"persistencewindows"`
+    PersistenceWindowsP string `json:"persistencewindowsp"`
+    PersistenceLin string `json:"persistencelin"`
+    PersistenceLinP string `json:"persistencelinp"`
     Redirectors  []Red `json:"redirectors"`
 }
 */
-$("#params").on('click','#submitcreationImplantDomain',function () {
+$("#netParams").on('click','#submitcreationImplantDomain',function () {
 
   //Serialize form in the correct way
 
+
+  function objectifySimpleForm(formArray) {
+    var returnArray = {};
+
+    for (var i = 0; i < formArray.length; i++){
+        returnArray[formArray[i]['name']] = formArray[i]['value']; 
+    }
+
+    return returnArray;
+  }
+
+
   //Transform the array in one JSON STRING
-  function objectifyForm(formArray) {
+  function objectifyImplantForm(formArray) {
     var returnArray = {};
     var arrayRedirectors = [];
+
     var vps = "";
     for (var i = 0; i < formArray.length; i++){
       if (formArray[i]['name'] == 'vps'){
         vps = formArray[i]['value']
-        returnArray[formArray[i]['name']] = formArray[i]['value'];
+        //returnArray[formArray[i]['name']] = formArray[i]['value'];
       }else if (formArray[i]['name'] == 'domain'){
         var tempObject = {};
         tempObject['vps'] = vps;
@@ -236,11 +333,15 @@ $("#params").on('click','#submitcreationImplantDomain',function () {
     }
 
     returnArray['redirectors'] = arrayRedirectors
+    returnArray['persistenceosxp'] = JSON.stringify(objectifySimpleForm($("#userlandpersistenceosxparamsform").serializeArray()));
+    returnArray['persistencewindowsp'] = JSON.stringify(objectifySimpleForm($("#userlandpersistencewindowsparamsform").serializeArray()));
+    returnArray['persistencelinuxp'] = JSON.stringify(objectifySimpleForm($("#userlandpersistencelinuxparamsform").serializeArray()));
+
     return returnArray;
   }
 
-  var createImplantJSON = objectifyForm($("#createimplantform").serializeArray());
-  console.log(objectifyForm($("#createimplantform").serializeArray()));
+  var createImplantJSON = objectifyImplantForm($("#createimplantform").serializeArray());
+  console.log(createImplantJSON);
 
 
   //Create Job to send with two elements
@@ -266,7 +367,7 @@ $("#params").on('click','#submitcreationImplantDomain',function () {
 
 
 
-$("#params").on('click','#submitcreationImplantSaaS',function () {
+$("#netParams").on('click','#submitcreationImplantSaaS',function () {
 
   //Serialize form in the correct way
 
@@ -291,7 +392,8 @@ $("#params").on('click','#submitcreationImplantSaaS',function () {
   }
 
   var createImplantJSON = objectifyForm($("#createimplantform").serializeArray());
-  console.log(objectifyForm($("#createimplantform").serializeArray()));
+  console.log("THis happening 2 ...");
+  console.log(createImplantJSON);
 
 
   //Create Job to send with two elements

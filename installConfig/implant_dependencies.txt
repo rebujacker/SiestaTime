@@ -1,0 +1,37 @@
+/////STime Implant Dependencies////
+
+To install Hive, "installFolder" will need:
+
+	MacOSX10.13.sdk.tar
+	windependencies.zip
+
+
+For A, Follow instructions on: https://github.com/tpoechtrager/osxcross
+
+For B, windependencies.zip needs within:
+
+	includes/
+		taskschd.h
+	libs/
+		x86/
+			comsupp.lib
+		x64/
+			comsupp.lib
+
+How to Get Needed Dependencies?
+	Windows 10 + MVS --> "C++ Concole apps Development" 
+	Look target Folders for required libraries
+
+Module Persistence: schtasks
+
+	Includes
+			C:\Program Files (x86)\Windows Kits\10\Include\10.0.18362.0\taskschd.h
+	Libs
+		x86
+			C:\Program Files\Windows Kits\10\Lib\10.0.18362.0\um\x86\taskschd.lib
+			C:\Program Files\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.23.28105\lib\x86\comsupp.lib
+
+		x64
+			C:\Program Files\Windows Kits\10\Lib\10.0.18362.0\um\x64\taskschd.lib
+			C:\Program Files\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.23.28105\lib\x64\comsupp.lib
+

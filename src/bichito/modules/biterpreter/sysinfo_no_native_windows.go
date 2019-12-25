@@ -51,7 +51,7 @@ func Sysinfo() (bool,string){
 	cmd.Stderr = &errbuf
 	cmd.Run()
 	cmd.Wait()
-	os = outbuf.String()
+	os = "Compiled for windows: " + outbuf.String()
 	stderr = errbuf.String()
 	if stderr != "" {
 		return true,"Error Getting OS:"+stderr

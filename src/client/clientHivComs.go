@@ -256,10 +256,9 @@ func getHive(objtype string){
 		return
 	}
 
-	//Debug Client Get Hive Data
-	/*
+	//Debug Client Get Hive Data	
 	fmt.Println(string(body))
-	*/
+
 
 	go updateData(objtype,string(body))
 

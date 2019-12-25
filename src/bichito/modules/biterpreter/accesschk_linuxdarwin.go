@@ -6,20 +6,14 @@ import (
     "fmt"
     "os"
     "syscall"
-    "strings"
 )
 
 
-func Accesschk(commands string) (bool,string){
+func Accesschk(filepath string) (bool,string){
 
     var result string
 
-    arguments := strings.Split(commands," ")
-    if len(arguments) != 1 {
-        return true,"Incorrect Number of params"
-    }  
-
-    fileInfo, err := os.Stat(arguments[0])
+    fileInfo, err := os.Stat(filepath)
     if err != nil {
         return true,"Error Listing stats of file: "+err.Error()
     }

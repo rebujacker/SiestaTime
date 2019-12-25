@@ -23,6 +23,33 @@
                     <input type="text" class="form-control" name="resptime" placeholder="Beaconing back time...">
                   </div>
 
+                  <label for="heard"> Userland Persistence Module OSX</label>
+                    <select class="form-control" id="persistenceosx" name="persistenceosx">
+                      <option value="none">None</option>
+                      <option value="launchd">Launchd_Native</option>
+                    </select>
+  
+                    <div id=userlandPersistenceOSXParams></div>
+                    
+
+                  <label for="heard"> Userland Persistence Module Windows</label>
+                    <select class="form-control" id="persistencewindows" name="persistencewindows">
+                      <option value="none">None</option>
+                      <option value="schtasks">Schtasks_Native</option>
+                    </select>
+  
+                    <div id=userlandPersistenceWindowsParams></div>
+
+                  <label for="heard"> Userland Persistence Module Linux</label>
+                    <select class="form-control" id="persistencelinux" name="persistencelinux">
+                      <option value="none">None</option>
+                      <option value="cron">Cron_Native</option>
+                    </select>
+  
+                    <div id=userlandPersistenceLinuxParams></div>
+
+
+
                   <label for="heard"> Network Module </label>
                     <select class="form-control" id="coms" name="coms">
                       <option value="paranoidtlsgo">Paranoid TCP/TLS Go</option>
@@ -30,10 +57,9 @@
                       <option value="letsencrypthttpsgo">Let's Encrypt Certificate Https Go</option>
                       <option value="gmailgo">SaaS:Gmail API</option>
                     </select>
-                    
-                    
-                    <div id=params></div>
-
+                                      
+                    <div id=netParams></div>
+                
                 </form>
                     <!-- end form for validations -->
             </div>
