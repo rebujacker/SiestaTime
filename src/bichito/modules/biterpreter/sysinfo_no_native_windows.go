@@ -8,6 +8,7 @@ import (
 	"os/exec"	// requirement to execute commands against target system
 	"bytes"
 	"encoding/json"
+	"runtime"
 )
 
 type SysInfo struct {
@@ -81,7 +82,7 @@ func Sysinfo() (bool,string){
 	cmd.Stderr = &errbuf
 	cmd.Run()
 	cmd.Wait()
-	arch = outbuf.String()
+	arch = "Compiled for "+runtime.GOARCH+": "+ outbuf.String()
 	stderr = errbuf.String()
 	if stderr != "" {
 		return true,"Error Getting Arch:"+stderr

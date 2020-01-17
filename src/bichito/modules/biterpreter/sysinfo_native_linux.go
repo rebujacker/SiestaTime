@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"net"
 	"strings"
+    "runtime"
 )
 
 type SysInfo struct {
@@ -67,7 +68,7 @@ func Sysinfo() (bool,string){
         	oss = "Compiled for linux: " + int8ToStr(uname.Sysname[:]) 
             osv = int8ToStr(uname.Release[:])
             osv = osv + int8ToStr(uname.Version[:])
-            arch = int8ToStr(uname.Machine[:])
+            arch = "Compiled for "+runtime.GOARCH+": "+ int8ToStr(uname.Machine[:])
             //hostname = int8ToStr(uname.Domainname[:])
     }
 

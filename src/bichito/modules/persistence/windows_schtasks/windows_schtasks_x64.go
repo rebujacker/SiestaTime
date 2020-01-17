@@ -136,7 +136,7 @@ func RemovePersistenceSchtasks(jsonPersistence string) (bool,string){
 	}	
 	*/    
 
-    if (error != 1) || (wipeErr != false){
+    if (error != 1) || (execErr != false){
 
     	return true,"Schtasks Error:" + string(errorString) +"Wipe Error:" + genError
     }

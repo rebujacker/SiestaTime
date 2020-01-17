@@ -760,8 +760,10 @@ func jobProcessor(jobO *Job){
 					return
 				}
 
-				x64 := strings.Contains(biInfo.Arch,"64")
-				x32 := strings.Contains(biInfo.Arch,"86")
+				//Need to fix this one to just detect "COmpiled for String --> Compiled for x64: Intel x86-64h Haswell"
+				compiledFor := strings.Split(biInfo.Arch,":")[0]
+				x64 := strings.Contains(compiledFor,"64")
+				x32 := strings.Contains(compiledFor,"86")
 
 				windows := strings.Contains(biInfo.Os,"windows")
 				linux := strings.Contains(biInfo.Os,"linux")

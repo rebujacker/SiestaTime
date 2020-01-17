@@ -18,11 +18,10 @@ func Exec(commands string) (bool,string){
 	cmd.Stdout = &outbuf
 	cmd.Stderr = &errbuf
 	cmd.Run()
-	stdout := outbuf.String()
-	stderr := errbuf.String()
-	if stderr != ""{
-		return true,stderr+stdout
+	cmd.Wait()
+	if errbuf.String() != ""{
+		return true,errbuf.String()+outbuf.String()
 	}
 
-	return false,stdout+stderr
+	return false,outbuf.String()+errbuf.String()
 }

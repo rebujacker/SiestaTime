@@ -86,7 +86,7 @@ function removeRow(button) {
 }
 
 /* Doc ready */
-$("#params").on('click','.add', function () {
+$("#netParams").on('click','.add', function () {
     addRow();
 
   $(this).closest("tr").appendTo("#participantTable");
@@ -97,7 +97,7 @@ $("#params").on('click','.add', function () {
   }
 });
 
-$("#params").on('click','.remove',function () {
+$("#netParams").on('click','.remove',function () {
 
   if($("#participantTable tr").length === 3) {
     //alert("Can't remove row.");
@@ -121,7 +121,7 @@ $('#persistenceosx').change(function(){
     
     <form role="form" id="userlandpersistenceosxparamsform">
       <div class="form-group">
-        <label for="launchdname"> Launchd Name </label>
+        <label for="launchdname"> Launchd Name (~/Library/LaunchAgents/com.name.agent.plist)</label>
         <input type="text" class="form-control" name="launchdname" id="launchdname" placeholder="Name...">
       </div>
 
@@ -166,14 +166,14 @@ $('#persistencewindows').change(function(){
 
 $('#persistencelinux').change(function(){
 
-  if ($('#persistencelinux').val() == 'cron'){
+  if ($('#persistencelinux').val() == 'linuxautostart'){
     $("#userlandPersistenceLinuxParams").empty();
     $("#userlandPersistenceLinuxParams").append(`
     
     <form role="form" id="userlandpersistencelinuxparamsform">
       <div class="form-group">
-        <label for="cronname"> Cron Name </label>
-        <input type="text" class="form-control" name="cronname" id="cronname" placeholder="Name...">
+        <label for="cronname"> Autostart File Name ($XDG_CONFIG_HOME/.config/autostart/name.desktop) </label>
+        <input type="text" class="form-control" name="autostartname" id="autostartname" placeholder="Name...">
       </div>
 
       <div class="form-group">

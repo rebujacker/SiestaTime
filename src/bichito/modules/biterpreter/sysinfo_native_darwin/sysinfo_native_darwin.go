@@ -12,6 +12,7 @@ import (
 	"net"
 	"strings"
     "unsafe"
+    "runtime"
 )
 
 /*
@@ -70,11 +71,12 @@ func SysinfoNativeDarwin() (bool,string){
 	//OS Distro,version,arch
     oss = "darwin"
 
+    arch = "Compiled for "+runtime.GOARCH+": "
     ptrArch := C.malloc(C.sizeof_char * 1024)
     defer C.free(unsafe.Pointer(ptrArch))
     sizeArch := C.arch((*C.char)(ptrArch))
     bArch := C.GoBytes(ptrArch, sizeArch)
-    arch = "Compiled for x64: " + string(bArch)
+    arch = arch + string(bArch)
 
 
     ptrOsv := C.malloc(C.sizeof_char * 1024)

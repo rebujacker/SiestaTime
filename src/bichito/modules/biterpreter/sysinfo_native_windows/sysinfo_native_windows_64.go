@@ -14,6 +14,7 @@ import (
     "strings"
     "unsafe"
     "fmt"
+    "runtime"
 )
 /*
 #cgo CXXFLAGS: -I"../../../../../winDependencies/includes/"
@@ -78,20 +79,20 @@ func SysinfoNativeWindows() (bool,string){
         return true,"Error Getting Arch witg GetSystemInfo:"+err.Error()
     }
 
-    //fmt.Println(systemInfo)
+    arch = "Compiled for "+runtime.GOARCH+": "
     switch systemInfo.wProcessorArchitecture {
         case 9:
-            arch = "x64 (AMD or Intel)"
+            arch = arch + "x64 (AMD or Intel)"
         case 5:
-            arch = "ARM"
+            arch = arch + "ARM"
         case 12:
-            arch = "ARM64"
+            arch = arch + "ARM64"
         case 6:
-            arch = "Intel Itanium-based"
+            arch = arch + "Intel Itanium-based"
         case 0:
-            arch = "x86"
+            arch = arch + "x86"
         default:
-            arch = "Unknown architecture"
+            arch = arch + "Unknown architecture"
 
     }
 

