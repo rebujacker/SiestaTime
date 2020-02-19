@@ -18,8 +18,8 @@ func Accesschk(filepath string) (bool,string){
         return true,"Error Listing stats of file: "+err.Error()
     }
 
-    result = "File name ||| Bytes ||| Permissions ||| UID ||| GUID ||| Last Modified"
-    result = result + fmt.Sprintf("%s   %d   %s   %d   %d   %s\n",fileInfo.Name(),fileInfo.Size(),fileInfo.Mode(),
+    result = "File name ||| Bytes ||| Permissions ||| UID ||| GUID ||| Last Modified\n"
+    result = result + fmt.Sprintf("%s ||| %d ||| %s ||| %d ||| %d   %s \n",fileInfo.Name(),fileInfo.Size(),fileInfo.Mode(),
                         fileInfo.Sys().(*syscall.Stat_t).Uid,fileInfo.Sys().(*syscall.Stat_t).Gid,fileInfo.ModTime())
 
     return false,result

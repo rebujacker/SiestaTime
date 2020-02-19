@@ -16,6 +16,14 @@ import (
 // User Inputs White Listing to avoid the crazy number of Dangerous Ops in Hive ¯\_(ツ)_/¯
 // TL;DR; Fixing all possible Injections in a such op-based server like hive is a pain on the arse (feeling like a dev. now (ﾾ︹ﾾ))
 
+func gmailInputWhite(input string) bool{
+    
+    if (len(input) > 5000){
+        return false
+    }
+    return true
+
+}
 
 func accessKeysInputWhite(input string) bool{
     var white = regexp.MustCompile(`^[a-zA-Z0-9\-\.\+_/=]{1,200}$`).MatchString

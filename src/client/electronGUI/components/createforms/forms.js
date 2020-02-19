@@ -234,7 +234,87 @@ $('#coms').change(function(){
   <button type="button" class="btn btn-primary" id="submitcreationImplantSaaS">Create Implant</button>
     `);
     loadFormDataSaaS();
-  }else{
+  }else if ($('#coms').val() == 'gmailmimic'){
+    $("#netParams").empty();
+    $("#netParams").append(`
+ 
+    <div class="form-group">
+        <label for="iname">User Agent </label>
+        <input type="text" class="form-control" id="comsparam1" name="comsparam1" placeholder="Mozilla/5.0 (X11; Linux x86_64) AppleWeb...">     
+    </div>
+
+    <div class="form-group">
+        <label for="iname">TLS Fingenprint (JA3 provided)</label>
+        <input type="text" class="form-control" name="comsparams" id="comsparam2" name="comsparam2" placeholder="71,4865-4866-4867-49195-491...">     
+    </div>
+
+    <div class="form-group">
+        <label for="iname">Server/Red For SaaS Coms </label>
+        <select id="vpsOpt" class="required-entry" name="vps"></select>      
+    </div>
+    
+    <div>
+      <table class="form-group" id="participantTable">
+        <thead>
+            <tr>
+                <th>Redirector</th>
+                <th>SaaS API Account</th>
+            </tr>
+        </thead>
+        <tr class="participantRow" name="redirector">
+            <td id="redNumber"></td>
+            <td>
+                <select id="domainOpt" class="required-entry" name="domain">
+                </select>
+            </td>
+            <td><button class="btn btn-danger remove" type="button">Remove</button></td>
+        </tr>
+        <tr id="addButtonRow">
+            <td colspan="4"><center><button class="btn btn-large btn-success add" type="button">Add</button></center></td>
+        </tr>
+      </table>
+  </div>
+  <button type="button" class="btn btn-primary" id="submitcreationImplantSaaS">Create Implant</button>
+    `);
+    loadFormDataSaaS();
+  }else if ($('#coms').val() == 'selfsignedhttpsgo'){
+    $("#netParams").empty();
+    $("#netParams").append(`
+    <div class="form-group">
+      <label for="iname">TLS Port </label>
+      <input type="text" class="form-control" name="comsparams" placeholder="">
+    </div>
+
+<div>
+  <table class="form-group" id="participantTable">
+        <thead>
+            <tr>
+                <th>Redirector</th>
+                <th>VPS</th>
+                <th>Domain</th>
+            </tr>
+        </thead>
+        <tr class="participantRow" name="redirector">
+            <td id="redNumber"></td>
+            <td>
+                <select id="vpsOpt" class="required-entry" name="vps">
+                </select>
+            </td>
+            <td>
+                <select id="domainOpt" class="required-entry" name="domain">
+                </select>
+            </td>
+            <td><button class="btn btn-danger remove" type="button">Remove</button></td>
+        </tr>
+        <tr id="addButtonRow">
+            <td colspan="4"><center><button class="btn btn-large btn-success add" type="button">Add</button></center></td>
+        </tr>
+  </table>
+</div>
+<button type="button" class="btn btn-primary" id="submitcreationImplantDomain">Create Implant</button>
+    `);
+    loadFormDataDomains();
+  }else if ($('#coms').val() == 'paranoidhttpsgo'){
     $("#netParams").empty();
     $("#netParams").append(`
     <div class="form-group">
@@ -315,6 +395,7 @@ $("#netParams").on('click','#submitcreationImplantDomain',function () {
   //Transform the array in one JSON STRING
   function objectifyImplantForm(formArray) {
     var returnArray = {};
+    var arrayComsParam = [];
     var arrayRedirectors = [];
 
     var vps = "";
@@ -327,11 +408,18 @@ $("#netParams").on('click','#submitcreationImplantDomain',function () {
         tempObject['vps'] = vps;
         tempObject['domain'] = formArray[i]['value'];
         arrayRedirectors.push(tempObject)
+
+      //ComsParams Array
+      }else if (formArray[i]['name'].startsWith('comsparam')){
+        var tempObject = {};
+        arrayComsParam.push(formArray[i]['value'])
+
       }else{
         returnArray[formArray[i]['name']] = formArray[i]['value'];
       }
     }
 
+    returnArray['comsparams'] = arrayComsParam
     returnArray['redirectors'] = arrayRedirectors
     returnArray['persistenceosxp'] = JSON.stringify(objectifySimpleForm($("#userlandpersistenceosxparamsform").serializeArray()));
     returnArray['persistencewindowsp'] = JSON.stringify(objectifySimpleForm($("#userlandpersistencewindowsparamsform").serializeArray()));
@@ -374,7 +462,9 @@ $("#netParams").on('click','#submitcreationImplantSaaS',function () {
   //Transform the array in one JSON STRING
   function objectifyForm(formArray) {
     var returnArray = {};
+    var arrayComsParam = [];
     var arrayRedirectors = [];
+
     for (var i = 0; i < formArray.length; i++){
       if (formArray[i]['name'] == 'vps'){
         var tempObject = {};
@@ -382,17 +472,23 @@ $("#netParams").on('click','#submitcreationImplantSaaS',function () {
         i++;
         tempObject[formArray[i]['name']] = formArray[i]['value'];
         arrayRedirectors.push(tempObject)
+
+      //ComsParams Array
+      }else if (formArray[i]['name'].startsWith('comsparam')){
+        var tempObject = {};
+        arrayComsParam.push(formArray[i]['value'])
+        
       }else{
         returnArray[formArray[i]['name']] = formArray[i]['value'];
       }
     }
 
+    returnArray['comsparams'] = arrayComsParam
     returnArray['redirectors'] = arrayRedirectors
     return returnArray;
   }
 
   var createImplantJSON = objectifyForm($("#createimplantform").serializeArray());
-  console.log("THis happening 2 ...");
   console.log(createImplantJSON);
 
 

@@ -35,7 +35,7 @@ type CreateImplant struct {
     Ttl string   `json:"ttl"`
     Resptime string   `json:"resptime"`
     Coms string   `json:"coms"`
-    ComsParams string `json:"comsparams"`
+    ComsParams []string `json:"comsparams"`
     PersistenceOsx string `json:"persistenceosx"`
     PersistenceOsxP string `json:"persistenceosxp"`
     PersistenceWindows string `json:"persistencewindows"`
@@ -129,13 +129,25 @@ func jobProcessor(jobO *Job){
     			//Decode VPC by type and do formatting check
 				switch commandO.Coms{
 
-					case "paranoidhttpsgo":
+					case "selfsignedhttpsgo":
 						//Check Network Module Parameters formatting
-						if !tcpPortInputWhite(commandO.ComsParams) {
+						if !tcpPortInputWhite(commandO.ComsParams[0]) {
 							setJobStatusDB(jid,"Error")
 							setJobResultDB(jid,"Hive-Create Implant(Paranoid Https TCP Port incorrect)")
 							return
 							}
+							
+					case "paranoidhttpsgo":
+						//Check Network Module Parameters formatting
+						if !tcpPortInputWhite(commandO.ComsParams[0]) {
+							setJobStatusDB(jid,"Error")
+							setJobResultDB(jid,"Hive-Create Implant(Paranoid Https TCP Port incorrect)")
+							return
+							}
+
+					case "gmailgo":
+					case "gmailmimic":
+
 
 					default:
 						setJobStatusDB(jid,"Error")
@@ -323,11 +335,13 @@ func jobProcessor(jobO *Job){
 							return
 						}
 
-    					if !(namesInputWhite(commandO.Name) && domainsInputWhite(commandO.Domain) && accessKeysInputWhite(gmail.Creds) && 
-    						accessKeysInputWhite(gmail.Token)){
+						//Let's create a fake domain for gmail SAAS so it doesn't give problems on Hive checking auth
+						commandO.Domain = commandO.Domain + ".com"
+    					if !(namesInputWhite(commandO.Name) && domainsInputWhite(commandO.Domain) && gmailInputWhite(gmail.Creds) && 
+    						gmailInputWhite(gmail.Token)){
 
 							setJobStatusDB(jid,"Error")
-							setJobResultDB(jid,"Hive-Domain Add(Google GoDaddy Incorrect Param. Formatting)")
+							setJobResultDB(jid,"Hive-Domain Add(SAAS Gmail Incorrect Param. Formatting)")
 							return
     					}
 					default:

@@ -59,6 +59,15 @@ export GOPATH="$(pwd)"
 ./installConfig/go/bin/go get "google.golang.org/api/gmail/v1"
 ./installConfig/go/bin/go get "github.com/hectane/go-acl/api"
 
+#Change Golang Source Code with Rebugo Patched Version
+#crypto/tls
+cp ./src/rebugo/tls/* ./installConfig/go/src/crypto/tls/.
+#golang.org/x/oauth2
+cp ./src/rebugo/oauth2/oauth2.go ./src/golang.org/x/oauth2/.
+cp ./src/rebugo/oauth2/token.go ./src/golang.org/x/oauth2/.
+cp ./src/rebugo/oauth2/internal/token.go ./src/golang.org/x/oauth2/internal/.
+#google.golang.org/api/gmail/v1
+cp ./src/rebugo/gmail/v1/gmail-gen.go ./src/google.golang.org/api/gmail/v1/.
 
 #Compile client with target variables and prepare electron front-end
 cd ./installConfig

@@ -31,14 +31,14 @@ func List(commands string) (bool,string){
         }
     }
 
-    result = "---------------Directories-----------"
+    result = "---------------Directories-----------\n"
     for _, dir := range dirs{
-        result = result + dir
+        result = result + dir +"\n"
     }
 
-    result = result + "---------------Files-----------------"
+    result = result + "---------------Files-----------------\n"
     for _, file := range files{
-        result = result + file
+        result = result + file + "\n"
     }
 
     return false,result

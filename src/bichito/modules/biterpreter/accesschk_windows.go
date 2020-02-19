@@ -40,8 +40,8 @@ func Accesschk(filepath string) (bool,string){
     }
     defer windows.LocalFree(secDesc)
 
-    result = "File name ||| Bytes ||| Permissions ||| SID ||| Last Modified"
-    result = result + fmt.Sprintf("%s   %d   %s   %s %s\n",fileInfo.Name(),fileInfo.Size(),fileInfo.Mode(),owner,fileInfo.ModTime())
+    result = "File name ||| Bytes ||| Permissions ||| SID ||| Last Modified\n"
+    result = result + fmt.Sprintf("%s ||| %d ||| %s ||| %s ||| %s \n",fileInfo.Name(),fileInfo.Size(),fileInfo.Mode(),owner,fileInfo.ModTime())
 
     return false,result
 

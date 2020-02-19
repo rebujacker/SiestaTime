@@ -11,7 +11,7 @@ import (
 	"encoding/json"
 )
 
-func generateImplantInfra(implantpath string,coms string,comsparams string,redirectors []Red) string{
+func generateImplantInfra(implantpath string,coms string,comsparams []string,redirectors []Red) string{
 
 	var (
 		errbuf bytes.Buffer
@@ -64,6 +64,24 @@ func generateImplantInfra(implantpath string,coms string,comsparams string,redir
    	 			return elog
 			}
 
+		case "gmailmimic":
+			vps = getVpsFullDB(redirectors[0].Vps)
+			domainO = getDomainFullDB(redirectors[0].Domain)
+			//Create plans for redirector VPS
+			switch vps.Vtype{
+				case "aws_instance":
+					vps_plan_string,errVps = aws_instance_saas(vps,implantpath,domainO)
+					if errVps != "Success"{
+						return errVps
+					} 
+
+			}
+
+			if _, err = plan.WriteString(vps_plan_string); err != nil {
+				elog := fmt.Sprintf("%s%s","InfraFolderCreation(ImplantGeneration):",err)
+   	 			return elog
+			}
+
 		case "paranoidhttpsgo":
 
  			for _,red := range redirectors{
@@ -76,7 +94,7 @@ func generateImplantInfra(implantpath string,coms string,comsparams string,redir
 				switch vps.Vtype{
 
 					case "aws_instance":
-						vps_plan_string,errVps = aws_instance_paranoidhttpsgo(comsparams,vps,implantpath,domainO)
+						vps_plan_string,errVps = aws_instance_paranoidhttpsgo(comsparams[0],vps,implantpath,domainO)
 						if errVps != "Success"{
 							return errVps
 						} 
@@ -101,6 +119,45 @@ func generateImplantInfra(implantpath string,coms string,comsparams string,redir
    	 				return elog
 				}
 			}
+
+		case "selfsignedhttpsgo":
+
+ 			for _,red := range redirectors{
+
+ 				//To change by DB,need pulling out DB row elements of each by name...
+				vps = getVpsFullDB(red.Vps)
+				domainO = getDomainFullDB(red.Domain)
+
+				//Create plans for redirector VPS
+				switch vps.Vtype{
+
+					case "aws_instance":
+						vps_plan_string,errVps = aws_instance_paranoidhttpsgo(comsparams[0],vps,implantpath,domainO)
+						if errVps != "Success"{
+							return errVps
+						} 
+
+				}
+				if _, err = plan.WriteString(vps_plan_string); err != nil {
+					elog := fmt.Sprintf("%s%s","InfraFolderCreation(ImplantGeneration):",err)
+   	 				return elog
+				}
+
+				// Create plans for the domain/saas
+				switch domainO.Dtype{
+					case "godaddy":
+						domain_plan_string,errDomain = godaddy(vps,domainO)
+						if errDomain != "Success"{
+							return errDomain
+						} 		
+				}
+
+				if _, err = plan.WriteString(domain_plan_string); err != nil {
+					elog := fmt.Sprintf("%s%s","InfraFolderCreation(ImplantGeneration):",err)
+   	 				return elog
+				}
+			}
+
 	}
 
 

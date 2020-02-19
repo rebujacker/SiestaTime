@@ -56,6 +56,7 @@
 		    	"sudo mkdir /usr/local/STHive/sources/src",
 		    	"sudo mkdir /usr/local/STHive/sources/src/bichito",
 		    	"sudo mkdir /usr/local/STHive/sources/src/redirector",
+		    	"sudo mkdir /usr/local/STHive/sources/src/rebugo",
 		    	"sudo mkdir /usr/local/STHive/sources/src/infra",
 		    	"sudo mkdir /usr/local/STHive/sources/src/infra/.terraform",
 		    	"sudo mkdir /usr/local/STHive/sources/src/infra/.terraform/plugins",
@@ -136,6 +137,16 @@
 		  provisioner "file" {
 		    source      = "../src/redirector/"
 		    destination = "/usr/local/STHive/sources/src/redirector/"
+		    connection {
+		      type     = "ssh"
+		      user     = "ubuntu"
+		      private_key = "${file("@keyname.pem")}"
+		    }
+		  }
+
+		  provisioner "file" {
+		    source      = "../src/rebugo/"
+		    destination = "/usr/local/STHive/sources/src/rebugo/"
 		    connection {
 		      type     = "ssh"
 		      user     = "ubuntu"
