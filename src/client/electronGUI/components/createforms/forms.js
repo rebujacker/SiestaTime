@@ -818,6 +818,14 @@ $('#stype').change(function(){
       `); 
       loadFormDataDomains();
       break; 
+    case 'ssh_rev_shell':
+      $("#params").empty();
+      $("#params").append(`
+    <form role="form" id="stagingparamsform">
+    </form> 
+      `); 
+      loadFormDataDomains();
+      break; 
   }
 });
 

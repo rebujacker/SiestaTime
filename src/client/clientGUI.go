@@ -59,6 +59,11 @@ type ReportObject struct {
     Name string   `json:"name"`
 }
 
+type ImplantObject struct {
+    Name string   `json:"name"`
+    OsName string   `json:"osname"`
+    Arch string   `json:"arch"`
+}
 
 type DeleteImplant struct{
     Name string `json:"name"`
@@ -200,7 +205,7 @@ func guiHandler() {
     router.HandleFunc("/job", CreateJob).Methods("POST")
     router.HandleFunc("/interact", Interact).Methods("POST")
     router.HandleFunc("/report", DownloadReport).Methods("POST")
-
+    router.HandleFunc("/implant", DownloadImplant).Methods("POST")
 
     log.Fatal(http.ListenAndServe(":8000", router))
 }
@@ -240,13 +245,13 @@ func GetDomains(w http.ResponseWriter, r *http.Request) {
 func GetStagings(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(stagingsDB.Stagings)
 
-    if lock.Lock > -1 {go getHive("jobs")}
+    if lock.Lock > -1 {go getHive("stagings")}
 }
 
 func GetReports(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(reportsDB.Reports)
 
-    if lock.Lock > -1 {go getHive("jobs")}
+    if lock.Lock > -1 {go getHive("reports")}
 }
 
 
@@ -468,6 +473,9 @@ func Interact(w http.ResponseWriter, r *http.Request) {
         command = "gnome-terminal -- ssh -oStrictHostKeyChecking=no -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo printf \"\n\nInteractive Session started time,from:"+username+"\n\n\" >> "+interact.Handler+".log;sudo reptyr -s $(echo $(ps -ax | grep "+interact.Handler+" | head -n 1 |cut -d \" \" -f 1))|tee -a "+interact.Handler+".log'" 
     case "empire":
         command = "gnome-terminal -- ssh -oStrictHostKeyChecking=no -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo printf \"\n\nInteractive Session started time,from:"+username+"\n\n\" >> "+interact.Handler+".log;sudo reptyr -s $(echo $(ps -ax | grep "+interact.Handler+" | head -n 1 |cut -d \" \" -f 1))|tee -a "+interact.Handler+".log'" 
+    case "ssh":
+        command = "gnome-terminal -- ssh -oStrictHostKeyChecking=no -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo printf \"\n\nInteractive Session started time,from:"+username+"\n\n\" >> "+interact.Handler+".log;nc 127.0.0.1 2222|tee -a "+interact.Handler+".log'"
+
 
     }
 
@@ -485,6 +493,7 @@ func Interact(w http.ResponseWriter, r *http.Request) {
 
 
 }
+
 func DownloadReport(w http.ResponseWriter, r *http.Request) {
 
     var(
@@ -501,6 +510,27 @@ func DownloadReport(w http.ResponseWriter, r *http.Request) {
     }
 
     error := getReport(report.Name)
+    if error != "" {
+       fmt.Println("Error Getting Report"+ error) 
+    }
+}
+
+func DownloadImplant(w http.ResponseWriter, r *http.Request) {
+
+    var(
+        implant ImplantObject
+    )
+    
+    buf := new(bytes.Buffer)
+    buf.ReadFrom(r.Body)
+    
+    //Decode Json Job, add Jid, time and status
+    errDaws := json.Unmarshal([]byte(buf.String()),&implant)
+    if errDaws != nil {
+        fmt.Println("Error Decoding Json"+ errDaws.Error())
+    }
+
+    error := getImplant(implant.Name,implant.OsName,implant.Arch)
     if error != "" {
        fmt.Println("Error Getting Report"+ error) 
     }

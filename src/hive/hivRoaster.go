@@ -17,6 +17,8 @@ import (
     "strings"
     "sync"
     "strconv"
+    "io/ioutil"
+    "encoding/base64"
 )
 
 //Auth JSON, for encoded auth bearer for users and redirectors
@@ -50,6 +52,7 @@ func startRoaster(){
     //Hive Servlet - Users
     router.HandleFunc("/client", GetUser).Methods("GET")
     router.HandleFunc("/vpskey", GetVpsKey).Methods("GET")
+    router.HandleFunc("/implant", GetImplant).Methods("GET")
     router.HandleFunc("/report", GetReport).Methods("GET")
     router.HandleFunc("/jobresult", GetJobResult).Methods("GET")
     router.HandleFunc("/client", PostUser).Methods("POST")
@@ -115,7 +118,7 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
     if !ok || len(objtype[0]) < 1 {
         //ErrorLog
         time := time.Now().Format("02/01/2006 15:04:05 MST")
-        go addLogDB("Hive",time,"Bad GetKey Get Query from:"+cid)
+        go addLogDB("Hive",time,"Bad GetUser Get Query from:"+cid)
         return
     }
 
@@ -190,20 +193,71 @@ func GetVpsKey(w http.ResponseWriter, r *http.Request) {
     if !ok || len(keys[0]) < 1 {
         //ErrorLog
         time := time.Now().Format("02/01/2006 15:04:05 MST")
-        addLogDB("Hive",time,"Bad GetKey Get Query from:"+cid)
+        addLogDB("Hive",time,"Bad GetVpsKey Get Query from:"+cid)
         return
     }
 
-
+    //Change this to read file from staging? to reduce DB reads?
     key,err := getVpsPemDB(keys[0])
     if err != nil {
         //ErrorLog
         time := time.Now().Format("02/01/2006 15:04:05 MST")
-        addLogDB("Hive",time,"Bad GetKey Get Query from:"+cid)
+        addLogDB("Hive",time,"Bad GetVpsKey Get Query from:"+cid)
         return
     }
     
     fmt.Fprint(w, key)
+    return
+}
+
+// Download target Implant
+func GetImplant(w http.ResponseWriter, r *http.Request) {
+    
+
+    //Do auth flow, get CID if valid
+    cid := userAuth(r.Header.Get("Authorization"))
+    if cid == "Bad"{    
+        return
+    }
+
+    implantname, ok := r.URL.Query()["implantname"]
+    if !ok || len(implantname[0]) < 1 {
+        //ErrorLog
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
+        addLogDB("Hive",time,"Bad implantname Get Implant Query from:"+cid)
+        return
+    }
+
+    osName, ok := r.URL.Query()["osName"]
+    if !ok || len(implantname[0]) < 1 {
+        //ErrorLog
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
+        addLogDB("Hive",time,"Bad osName Get Implant Query from:"+cid)
+        return
+    }
+
+    arch, ok := r.URL.Query()["arch"]
+    if !ok || len(arch[0]) < 1 {
+        //ErrorLog
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
+        addLogDB("Hive",time,"Bad arch Get Implant Query from:"+cid)
+        return
+    }
+
+    //Debug
+    //fmt.Println("The file to read is: /usr/local/STHive/implants/"+implantname[0]+"/bichito"+osName[0]+arch[0])
+    content, err := ioutil.ReadFile("/usr/local/STHive/implants/"+implantname[0]+"/bichito"+osName[0]+arch[0])
+    if err != nil {
+        //ErrorLog
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
+        addLogDB("Hive",time,"Error reading Implant File:"+cid)
+        return
+    }
+
+    contentb64 := base64.StdEncoding.EncodeToString(content)
+
+
+    fmt.Fprint(w, contentb64)
     return
 }
 
@@ -223,7 +277,7 @@ func GetReport(w http.ResponseWriter, r *http.Request) {
     if !ok || len(keys[0]) < 1 {
         //ErrorLog
         time := time.Now().Format("02/01/2006 15:04:05 MST")
-        go addLogDB("Hive",time,"Bad GetKey Get Query from:"+cid)
+        go addLogDB("Hive",time,"Bad GetReport Get Query from:"+cid)
         return
     }
 
@@ -232,7 +286,7 @@ func GetReport(w http.ResponseWriter, r *http.Request) {
     if err != nil {
         //ErrorLog
         time := time.Now().Format("02/01/2006 15:04:05 MST")
-        go addLogDB("Hive",time,"Bad GetKey Get Query from:"+cid)
+        go addLogDB("Hive",time,"Bad GetReport Get Query from:"+cid)
         return
     }
     

@@ -652,6 +652,9 @@ sudo dpkg -S mod_ssl.so
 sudo a2enmod ssl
 sudo service apache2 restart
 touch /home/ubuntu/droplet.log
+echo "ClientAliveInterval 60" |sudo tee -a /etc/ssh/sshd_config
+echo "ClientAliveCountMax 0" |sudo tee -a /etc/ssh/sshd_config
+sudo reboot
 EOF
 
 sudo cp /usr/local/STHive/stagings/%s/%s.service /etc/systemd/system/
@@ -661,6 +664,45 @@ sudo systemctl enable %s.service
 sudo service %s start
 
 `,keypath,keypath,domainO.Domain,domainO.Domain,port,port,domainO.Domain,domainO.Domain,domainO.Domain,path,stagingName,stagingName,stagingName,stagingName,stagingName)
+
+
+		case "ssh_rev_shell":
+
+			port = "22"
+			//Create both installStaging.sh and removeStaging.sh on target staging Folder
+			installScript_string =
+				fmt.Sprintf(
+`
+sleep 180
+sudo chmod 600 %s
+sudo ssh-keygen -N "" -f /usr/local/STHive/stagings/%s/implantkey
+scp -oStrictHostKeyChecking=no -i %s /usr/local/STHive/stagings/%s/implantkey.pub ubuntu@%s:/home/ubuntu/implantkey.pub
+sudo rm -f /root/.ssh/known_hosts
+ssh -oStrictHostKeyChecking=no -i %s ubuntu@%s /bin/bash <<EOF
+sudo apt-get update
+sudo apt-get update
+sudo apt-get update
+sudo apt-get update
+touch /home/ubuntu/ssh.log
+sudo useradd anonymous
+sudo usermod -s /bin/false anonymous
+sudo mkdir /home/anonymous
+sudo mkdir /home/anonymous/.ssh
+sudo cp /home/ubuntu/implantkey.pub /home/anonymous/.ssh/authorized_keys
+echo "ClientAliveInterval 60" |sudo tee -a /etc/ssh/sshd_config
+echo "ClientAliveCountMax 0" |sudo tee -a /etc/ssh/sshd_config
+sudo reboot
+EOF
+
+
+sudo cp /usr/local/STHive/stagings/%s/%s.service /etc/systemd/system/
+sudo chmod 664 /etc/systemd/system/%s.service
+sudo systemctl daemon-reload
+sudo systemctl enable %s.service
+sudo service %s start
+
+`,keypath,stagingName,keypath,stagingName,domainO.Domain,keypath,domainO.Domain,stagingName,stagingName,stagingName,stagingName,stagingName)
+
 
 
 		case "https_msft_letsencrypt":
@@ -734,6 +776,9 @@ sudo systemctl daemon-reload
 sudo systemctl enable msf.service
 sudo service msf start
 touch /home/ubuntu/msfconsole.log
+echo "ClientAliveInterval 60" |sudo tee -a /etc/ssh/sshd_config
+echo "ClientAliveCountMax 0" |sudo tee -a /etc/ssh/sshd_config
+sudo reboot
 EOF
 
 sudo cp /usr/local/STHive/stagings/%s/%s.service /etc/systemd/system/
@@ -810,6 +855,9 @@ sleep 10
 sudo echo \$(curl --insecure -i https://127.0.0.1:1234/api/admin/permanenttoken?token=\$(curl --insecure -i -H "Content-Type: application/json" https://localhost:1234/api/admin/login -X POST -d '{"username":"test", "password":"test"}' | grep token | cut -d '"' -f 4) | grep token | cut -d '"' -f 4) > /home/ubuntu/token
 sudo curl --insecure -i -H "Content-Type: application/json" https://127.0.0.1:1234/api/listeners/http?token=\$(cat /home/ubuntu/token) -X POST -d '{"Name":"http","Host":"https://%s:%s","CertPath":"/home/ubuntu/Empire/data","Port":"%s"}'
 sudo echo \$(curl -s --insecure -H "Content-Type: application/json" https://localhost:1234/api/stagers?token=\$(cat /home/ubuntu/token) -X POST -d '{"StagerName":"osx/launcher", "Listener":"http"}'| python -c "import sys, json; print json.load(sys.stdin)['osx/launcher']['Output']") > /home/ubuntu/osxPythonLauncher
+echo "ClientAliveInterval 60" |sudo tee -a /etc/ssh/sshd_config
+echo "ClientAliveCountMax 0" |sudo tee -a /etc/ssh/sshd_config
+sudo reboot
 EOF
 
 sudo scp -oStrictHostKeyChecking=no -i %s ubuntu@%s:/home/ubuntu/osxPythonLauncher /usr/local/STHive/stagings/%s/pythonLauncher 
@@ -837,6 +885,7 @@ Type=simple
 WorkingDirectory=/usr/local/STHive/stagings/%s/
 ExecStart=/bin/bash -c "ssh -oStrictHostKeyChecking=no -p 22 -i %s.pem -L 0.0.0.0:%s:0.0.0.0:22 -N ubuntu@%s"
 Restart=on-failure
+RestartSec=3
 LimitNOFILE=10000
 StandardOutput=syslog
 StandardError=syslog
@@ -1069,7 +1118,8 @@ sudo systemctl daemon-reload
 	instScript.Start()
 	instScript.Wait()
 	
-	//fmt.Println(outbuf1.String() + errbuf1.String())
+	//Debug
+	//fmt.Println("ScriptOut: "+scriptOutbuf.String()+"ScriptError: "+scriptErrbuf.String())
 
 	if _, err = infralog.WriteString("OutInit: "+terraInitOut+"ErrInit:"+terraInitError+"OutApply: "+terraApplyOut+"ErrApply: "+terraApplyError+"ScriptOut: "+scriptOutbuf.String()+"ScriptError: "+scriptErrbuf.String()); err != nil {
 		elog := fmt.Sprintf("%s%s","InfraFolderCreation(ImplantGeneration):",err)

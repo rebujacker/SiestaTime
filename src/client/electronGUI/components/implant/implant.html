@@ -84,6 +84,27 @@
                     <span id="submitattack" class="btn btn-primary">Perform Attack</span>
                     
                 </form>
+
+                <form id="demo-form" data-parsley-validate>
+                  <div class="form-group">
+                    <label for="sel1">Target Operating System</label>
+                      <select class="form-control" id="osD" name="stype">
+                        <option value="Linux">Linux</option>
+                        <option value="Windows">Windows</option>
+                        <option value="OSX">Mac OSX</option>
+                      </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="sel1">Target Device Architecture</label>
+                      <select class="form-control" id="archD" name="stype">
+                        <option value="x32">x32</option>
+                        <option value="x64">x64</option>
+                      </select>
+                    </div>
+
+                    <span id="downloadImplant" class="btn btn-primary">Download Implant</span>
+                </form>
                     <!-- end form for validations -->
                     <form role="form" id="delimplantform">
                       <input type="hidden" class="form-control" name="name" id="delval" value="">

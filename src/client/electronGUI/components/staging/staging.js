@@ -42,6 +42,9 @@ $("#interact").on('click',function() {
         case "https_empire_letsencrypt":
           handlerN = "empire";
           break;
+        case "ssh_rev_shell":
+          handlerN = "ssh";
+          break;
 
       }
 
