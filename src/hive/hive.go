@@ -8,10 +8,11 @@
 //By Rebujacker - Alvaro Folgado Rueda as an open source educative project /
 package main
 
-import "os"
+//import "os"
 
 func main() {
 
+	/*
 	//Flag to initiate console instead of the Hive service	
 	if len(os.Args) > 1{
 		startDB()
@@ -19,6 +20,7 @@ func main() {
 		console()
 		os.Exit(1)
 	}
+	*/
 
 	startDB()
 

@@ -350,6 +350,7 @@ $(document).ready(function() {
             $(".STmain").load('./components/report/report.html')
             break;
 
+
           //Creation Menus
           case "createimplant":
             $(".STmain").load('./components/createforms/createImplant.html')
@@ -365,6 +366,9 @@ $(document).ready(function() {
             break;
           case "createreport":
             $(".STmain").load('./components/createforms/createReport.html')
+            break;
+          case "addoperator":
+            $(".STmain").load('./components/createforms/createOperator.html')
             break;
           default:
         }

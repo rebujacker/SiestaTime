@@ -53,7 +53,11 @@ func numbersInputWhite(input string) bool{
 
 func domainsInputWhite(input string) bool{
     var white = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$`).MatchString
-    return white(input)
+
+    //For Ipv4 Address
+    var white2 = regexp.MustCompile(`^(?:(?:^|\.)(?:2(?:5[0-5]|[0-4]\d)|1?\d?\d)){4}$`).MatchString
+    var result = (white(input) || white2(input))
+    return result
 }
 
 func tcpPortInputWhite(input string) bool{

@@ -1133,10 +1133,21 @@ func addUserDB(cid string,username string,password string) error{
 
 	bytes, _ := bcrypt.GenerateFromPassword([]byte(password), 14)
 	hash := string(bytes)
-	stmt,_ := db.Prepare("INSERT INTO users (cid,username,hash) VALUES (?,?,?)")
+	stmt,_ := db.Prepare("INSERT INTO users (cid,username,hash,admin) VALUES (?,?,?,?)")
     defer stmt.Close()
-	_,err2 := stmt.Exec(cid,username,hash)
+	_,err2 := stmt.Exec(cid,username,hash,"No")
 	return err2
+}
+
+
+func isUserAdminDB(cid string) string{
+
+
+    var admin string
+    stmt := "Select admin from users where cid=?"
+    db.QueryRow(stmt,cid).Scan(&admin)
+    
+    return admin
 }
 
 func getCidbyAuthDB(username string,password string) (string,error){
@@ -1293,6 +1304,22 @@ func getDomainTokenDB(domain string) (error,string){
 
     stmt = "Select redtoken from implants where implantId=?"
     err = db.QueryRow(stmt,implantId).Scan(&redtoken)
+    
+    return err,redtoken   
+
+}
+
+//Get the redirector token from Implant Name
+func getImplantTokenDB(implantName string) (error,string){
+
+    var redtoken string
+    ext,err := existImplantDB(implantName)
+    if !ext {
+        return err,redtoken
+    }
+
+    stmt := "Select redtoken from implants where name=?"
+    err = db.QueryRow(stmt,implantName).Scan(&redtoken)
     
     return err,redtoken   
 
@@ -1785,6 +1812,24 @@ func getRedRidbyDomain(domainName string) (string,error){
     fmt.Println(result)
 
 	return result,err
+
+}
+
+
+func getRedRidbyImplantName(implantName string) (string,error){
+
+    var id int
+    var result string
+
+    stmt := "Select implantId from implants where name=?"
+    err := db.QueryRow(stmt,implantName).Scan(&id)
+    
+    fmt.Println(id)
+    stmt = "Select rid from redirectors where implantId=?"
+    err = db.QueryRow(stmt,id).Scan(&result)
+    fmt.Println(result)
+
+    return result,err
 
 }
 

@@ -24,6 +24,7 @@ type RedConfig struct {
     Token string `json:"token"`
     BiToken string `json:"bitoken"`
     Saas string   `json:"saas"`
+    Offline string   `json:"offline"`
     Coms string   `json:"coms"`
 }
 
@@ -84,7 +85,11 @@ func main() {
 
 	if redconfig.Saas != ""{
 		hostname = redconfig.Saas
+	}else if redconfig.Offline != ""{
+		hostname = redconfig.Offline
 	}
+
+
 
 	authbearerO := RedAuth{hostname,redconfig.Token}
 	bufRP := new(bytes.Buffer)

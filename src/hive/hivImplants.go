@@ -24,6 +24,7 @@ type RedConfig struct {
     Token string `json:"token"`
     BiToken string `json:"bitoken"`
     Saas string   `json:"saas"`
+    Offline string   `json:"offline"`
     Coms string   `json:"coms"`
 }
 
@@ -123,7 +124,7 @@ type BiPersistenceAutoStart struct {
 }
 
 
-func createImplant(name string,ttl string,resptime string,coms string,comsparams []string,persistenceOSX string,
+func createImplant(Offline string,name string,ttl string,resptime string,coms string,comsparams []string,persistenceOSX string,
 		persistenceOSXParams string,persistenceWindows string,persistenceWindowsParams string,persistenceLinux string,persistenceLinuxParams string,redirectors []Red) string{
 
 	var(
@@ -159,7 +160,7 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 	}
 
 
-	redconfig = RedConfig{getRoasterStringDB(),"","","","",""}
+	redconfig = RedConfig{getRoasterStringDB(),"","","","","",""}
 	biconfig = BiConfig{ttl,resptime,"","",""}
 
 	redconfig.Token = redtoken
@@ -246,27 +247,40 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 
 			//Go over selected redirectos, add them to DB and update Implant Configuration Data
 			for _,redirector := range redirectors{
-				genId := fmt.Sprintf("%s%s","R-",randomString(8))
 
-				//Check if VPS/Domain exists
-				extvps,_ := existVpsDB(redirector.Vps)
-				extdomain,_ := existDomainDB(redirector.Domain)
-				usedDomain,_ := isUsedDomainDB(redirector.Domain)
-				if !extvps || !extdomain || usedDomain{
-					elog := fmt.Sprintf("%s","ImplantGeneration(NotExistingVPS/Domain,UsedDomain,DB-Error)")
-					return elog
+				if Offline == "No" {
+					genId := fmt.Sprintf("%s%s","R-",randomString(8))
+
+					//Check if VPS/Domain exists
+					extvps,_ := existVpsDB(redirector.Vps)
+					extdomain,_ := existDomainDB(redirector.Domain)
+					usedDomain,_ := isUsedDomainDB(redirector.Domain)
+					if !extvps || !extdomain || usedDomain{
+						elog := fmt.Sprintf("%s","ImplantGeneration(NotExistingVPS/Domain,UsedDomain,DB-Error)")
+						return elog
+					}
+
+					// Add Redirector to DB
+					implantId,_ := getImplantIdbyNameDB(name)
+					vpsId,_ := getVpsIdbyNameDB(redirector.Vps)
+					domainId,_ := getDomainIdbyNameDB(redirector.Domain)
+					setUsedDomainDB(redirector.Domain,"Yes")
+					addRedDB(genId,"","",vpsId,domainId,implantId)
+
+					// Add Redirector data to Implant Redirectors Slice
+					domainO := getDomainDB(redirector.Domain)
+					biselfsignedhttps.Redirectors = append(biselfsignedhttps.Redirectors,domainO.Domain)
+				}else{
+					biselfsignedhttps.Redirectors = append(biselfsignedhttps.Redirectors,redirector.Domain)
+					redconfig.Offline = name
 				}
+			}
 
-				// Add Redirector to DB
-				implantId,_ := getImplantIdbyNameDB(name)
-				vpsId,_ := getVpsIdbyNameDB(redirector.Vps)
-				domainId,_ := getDomainIdbyNameDB(redirector.Domain)
-				setUsedDomainDB(redirector.Domain,"Yes")
-				addRedDB(genId,"","",vpsId,domainId,implantId)
-
-				// Add Redirector data to Implant Redirectors Slice
-				domainO := getDomainDB(redirector.Domain)
-				biselfsignedhttps.Redirectors = append(biselfsignedhttps.Redirectors,domainO.Domain)
+			//If Offline let's add a dummy Redirector for comply with Architecture
+			if Offline != "No" {
+					genId := fmt.Sprintf("%s%s","R-",randomString(8))
+					implantId,_ := getImplantIdbyNameDB(name)
+					addRedDB(genId,"","",0,0,implantId)
 			}
 
 			//Debug
@@ -329,31 +343,36 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 			biparanoidhttps.RedFingenPrint = strings.Split(outbuf.String(),"\n")[0]
 			outbuf.Reset()
 
-			//fmt.Println(redirectors)
 
 			//Go over selected redirectos, add them to DB and update Implant Configuration Data
 			for _,redirector := range redirectors{
-				genId := fmt.Sprintf("%s%s","R-",randomString(8))
 
-				//Check if VPS/Domain exists
-				extvps,_ := existVpsDB(redirector.Vps)
-				extdomain,_ := existDomainDB(redirector.Domain)
-				usedDomain,_ := isUsedDomainDB(redirector.Domain)
-				if !extvps || !extdomain || usedDomain{
-					elog := fmt.Sprintf("%s","ImplantGeneration(NotExistingVPS/Domain,UsedDomain,DB-Error)")
-					return elog
+				if Offline == "No" {
+					genId := fmt.Sprintf("%s%s","R-",randomString(8))
+
+					//Check if VPS/Domain exists
+					extvps,_ := existVpsDB(redirector.Vps)
+					extdomain,_ := existDomainDB(redirector.Domain)
+					usedDomain,_ := isUsedDomainDB(redirector.Domain)
+					if !extvps || !extdomain || usedDomain{
+						elog := fmt.Sprintf("%s","ImplantGeneration(NotExistingVPS/Domain,UsedDomain,DB-Error)")
+						return elog
+					}
+
+					// Add Redirector to DB
+					implantId,_ := getImplantIdbyNameDB(name)
+					vpsId,_ := getVpsIdbyNameDB(redirector.Vps)
+					domainId,_ := getDomainIdbyNameDB(redirector.Domain)
+					setUsedDomainDB(redirector.Domain,"Yes")
+					addRedDB(genId,"","",vpsId,domainId,implantId)
+
+					// Add Redirector data to Implant Redirectors Slice
+					domainO := getDomainDB(redirector.Domain)
+					biparanoidhttps.Redirectors = append(biparanoidhttps.Redirectors,domainO.Domain)
+				}else{
+					biparanoidhttps.Redirectors = append(biparanoidhttps.Redirectors,redirector.Domain)
+					redconfig.Offline = name
 				}
-
-				// Add Redirector to DB
-				implantId,_ := getImplantIdbyNameDB(name)
-				vpsId,_ := getVpsIdbyNameDB(redirector.Vps)
-				domainId,_ := getDomainIdbyNameDB(redirector.Domain)
-				setUsedDomainDB(redirector.Domain,"Yes")
-				addRedDB(genId,"","",vpsId,domainId,implantId)
-
-				// Add Redirector data to Implant Redirectors Slice
-				domainO := getDomainDB(redirector.Domain)
-				biparanoidhttps.Redirectors = append(biparanoidhttps.Redirectors,domainO.Domain)
 			}
 
 			//Debug
@@ -386,18 +405,23 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 			redgmail = RedGmail{[]string{}}
 			bigmail = BiGmail{[]string{}}
 
-			implantId,_ := getImplantIdbyNameDB(name)
-			vpsId,_ := getVpsIdbyNameDB(redirectors[0].Vps)
-			extvps,_ := existVpsDB(redirectors[0].Vps)
 			var domainId int
-			var saas string
+			var vpsId int
 
-			if !extvps{
-				elog := fmt.Sprintf("%s","ImplantGeneration(NotExistingVPS)")
-				return elog
+			implantId,_ := getImplantIdbyNameDB(name)
+			if Offline == "No"{
+				vpsId,_ = getVpsIdbyNameDB(redirectors[0].Vps)
+				extvps,_ := existVpsDB(redirectors[0].Vps)
+				
+				if !extvps{
+					elog := fmt.Sprintf("%s","ImplantGeneration(NotExistingVPS)")
+					return elog
+				}
 			}
+
 			//Go over selected redirectos, add them to DB and update Implant Configuration Data
 			for _,redirector := range redirectors{
+				
 				extdomain,_ := existDomainDB(redirector.Domain)
 				usedDomain,_ := isUsedDomainDB(redirector.Domain)
 				if !extdomain || usedDomain{
@@ -418,8 +442,10 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
     			var gmailP GmailP
     			errD := json.Unmarshal([]byte(domainO.Parameters),&gmailP)
 
-    			fmt.Println("Domain Name:"+redirector.Domain)
-    			fmt.Println("Domain Parameters:"+domainO.Parameters)
+    			//Debug:
+    			//fmt.Println("Domain Name:"+redirector.Domain)
+    			//fmt.Println("Domain Parameters:"+domainO.Parameters)
+    			
     			if errD != nil{
         			elog := "ImplantGeneration(Gmail Parameters Decoding Error)"+errD.Error()
 					return elog
@@ -429,12 +455,18 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 				bufRP := new(bytes.Buffer)
 				json.NewEncoder(bufRP).Encode(gmailO)
 
-				saas = domainO.Domain
+				if Offline == "No"{
+					redconfig.Saas = domainO.Domain
+					genId := fmt.Sprintf("%s%s","R-",randomString(8))			
+					addRedDB(genId,"","",vpsId,domainId,implantId)
+				}else{
+					redconfig.Offline = name
+				}
+
 				redgmail.Redirectors = append(redgmail.Redirectors,bufRP.String())
 				bigmail.Redirectors = append(bigmail.Redirectors,bufRP.String())
 
-				genId := fmt.Sprintf("%s%s","R-",randomString(8))			
-				addRedDB(genId,"","",vpsId,domainId,implantId)
+				
 			}
 
 
@@ -443,7 +475,6 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 			bufRP := new(bytes.Buffer)
 			json.NewEncoder(bufRP).Encode(redgmail)
 			resultRP := bufRP.String()
-			redconfig.Saas = saas
 			redconfig.Coms = resultRP 
 	    	
 
@@ -767,11 +798,26 @@ func createImplant(name string,ttl string,resptime string,coms string,comsparams
 
 
 	// Generate target Infraestructure for Implant
-
-	infraResult := generateImplantInfra(implantFolder,coms,comsparams,redirectors)
-	if infraResult != "Done" {
-		return infraResult
+	if Offline == "No" {
+		infraResult := generateImplantInfra(implantFolder,coms,comsparams,redirectors)
+		if infraResult != "Done" {
+			return infraResult
+		}
 	}
+	
+	//Generate the Redirector Zip Folder for Downloads
+	var ziperrbuf bytes.Buffer
+	redZip := exec.Command("/bin/sh","-c", "zip -j "+implantFolder+"/redirector.zip "+implantFolder+"/red*")
+	redZip.Stderr = &errbuf
+	redZip.Start()
+	redZip.Wait()
+	redZipErr := ziperrbuf.String()
+
+	if (redZipErr != "") {
+		elog := fmt.Sprintf("%s%s","redZipCreation(ImplantGeneration):",redZip)
+		return elog
+	}
+
 
 	return ""
 }

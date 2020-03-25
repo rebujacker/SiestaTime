@@ -206,6 +206,7 @@ func guiHandler() {
     router.HandleFunc("/interact", Interact).Methods("POST")
     router.HandleFunc("/report", DownloadReport).Methods("POST")
     router.HandleFunc("/implant", DownloadImplant).Methods("POST")
+    router.HandleFunc("/redirector", DownloadRedirector).Methods("POST")
 
     log.Fatal(http.ListenAndServe(":8000", router))
 }
@@ -532,7 +533,30 @@ func DownloadImplant(w http.ResponseWriter, r *http.Request) {
 
     error := getImplant(implant.Name,implant.OsName,implant.Arch)
     if error != "" {
-       fmt.Println("Error Getting Report"+ error) 
+       fmt.Println("Error Downloading Implant"+ error) 
+    }
+}
+
+func DownloadRedirector(w http.ResponseWriter, r *http.Request) {
+
+    var(
+        implant ImplantObject
+    )
+    
+    buf := new(bytes.Buffer)
+    buf.ReadFrom(r.Body)
+    
+    //Decode Json Job, add Jid, time and status
+    errDaws := json.Unmarshal([]byte(buf.String()),&implant)
+    if errDaws != nil {
+        fmt.Println("Error Decoding Json"+ errDaws.Error())
+    }
+
+    //Debug
+    fmt.Println("Downloading:"+implant.Name)
+    error := getRedirector(implant.Name)
+    if error != "" {
+       fmt.Println("Error Downloading Redirector"+ error) 
     }
 }
 

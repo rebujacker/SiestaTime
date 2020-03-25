@@ -58,6 +58,9 @@ export GOPATH="$(pwd)"
 ./installConfig/go/bin/go get "golang.org/x/oauth2/google"
 ./installConfig/go/bin/go get "google.golang.org/api/gmail/v1"
 ./installConfig/go/bin/go get "github.com/hectane/go-acl/api"
+./installConfig/go/bin/go get "golang.org/x/crypto/ssh"
+./installConfig/go/bin/go get "golang.org/x/crypto/ssh/terminal"
+./installConfig/go/bin/go get "github.com/kr/pty"
 
 #Change Golang Source Code with Rebugo Patched Version
 #crypto/tls

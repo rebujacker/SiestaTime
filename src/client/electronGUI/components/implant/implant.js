@@ -224,3 +224,26 @@ $("#downloadImplant").on('click',function() {
     });
 
 });
+
+
+$("#downloadRedirector").on('click',function() {
+
+  var implantName = $(".STmain").attr("id");
+
+  //Create Job to send with two elements
+  var data = {name:implantName,osname:"None",arch:"None"};
+  //data.push();
+  $.ajax({
+        type: "POST",
+        url: "http://127.0.0.1:8000/redirector",
+        data:  JSON.stringify(data),
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function (response){
+          console.log("Interact Sent!");
+
+        }
+
+    });
+
+});

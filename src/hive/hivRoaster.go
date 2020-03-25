@@ -53,6 +53,7 @@ func startRoaster(){
     router.HandleFunc("/client", GetUser).Methods("GET")
     router.HandleFunc("/vpskey", GetVpsKey).Methods("GET")
     router.HandleFunc("/implant", GetImplant).Methods("GET")
+    router.HandleFunc("/redirector", GetRedirector).Methods("GET")
     router.HandleFunc("/report", GetReport).Methods("GET")
     router.HandleFunc("/jobresult", GetJobResult).Methods("GET")
     router.HandleFunc("/client", PostUser).Methods("POST")
@@ -262,6 +263,40 @@ func GetImplant(w http.ResponseWriter, r *http.Request) {
 }
 
 
+// Download target Implant's Redirector
+func GetRedirector(w http.ResponseWriter, r *http.Request) {
+    
+
+    //Do auth flow, get CID if valid
+    cid := userAuth(r.Header.Get("Authorization"))
+    if cid == "Bad"{    
+        return
+    }
+
+    implantname, ok := r.URL.Query()["implantname"]
+    if !ok || len(implantname[0]) < 1 {
+        //ErrorLog
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
+        addLogDB("Hive",time,"Bad implantname Get Redirector Query from:"+cid)
+        return
+    }
+
+    content, err := ioutil.ReadFile("/usr/local/STHive/implants/"+implantname[0]+"/redirector.zip")
+    if err != nil {
+        //ErrorLog
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
+        addLogDB("Hive",time,"Error reading Redirector File:"+cid)
+        return
+    }
+
+    contentb64 := base64.StdEncoding.EncodeToString(content)
+
+
+    fmt.Fprint(w, contentb64)
+    return
+}
+
+
 // Give back pem key
 func GetReport(w http.ResponseWriter, r *http.Request) {
     
@@ -332,7 +367,10 @@ func PostUser(w http.ResponseWriter, r *http.Request) {
 
     //Do auth flow, get CID if valid
     cid := userAuth(r.Header.Get("Authorization"))
-    if cid == "Bad"{    
+    if (cid == "Bad") || (cid == ""){ 
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
+        elog := "User Auth(No Cid returned)"
+        addLogDB("Hive",time,elog)          
         return
     }
 
@@ -663,14 +701,38 @@ func CheckingRed(w http.ResponseWriter, r *http.Request) {
         return
     }   
 
-    rid,err := getRedRidbyDomain(domain)
-    if err != nil {
-        //ErrorLog
+    var rid string
+    var err error
+    if domainsInputWhite(domain){
+        rid,err = getRedRidbyDomain(domain)
+        if err != nil {
+            //ErrorLog
+            time := time.Now().Format("02/01/2006 15:04:05 MST")
+            elog := fmt.Sprintf("%s%s","Error Getting Rid of domain:"+domain,err.Error())
+            addLogDB("Hive",time,elog)
+            return
+        }
+
+    //For Offline Implants
+    }else if namesInputWhite(domain){
+        
+        rid,err = getRedRidbyImplantName(domain)
+        if err != nil {
+            //ErrorLog
+            time := time.Now().Format("02/01/2006 15:04:05 MST")
+            elog := fmt.Sprintf("%s%s","Error Getting Rid of Offline Implant:"+domain,err.Error())
+            addLogDB("Hive",time,elog)
+            return
+        }
+    }else{
         time := time.Now().Format("02/01/2006 15:04:05 MST")
-        elog := fmt.Sprintf("%s%s","Error Getting Rid of domain:"+domain,err.Error())
-        addLogDB("Hive",time,elog)
-        return
+        elog := "Red Checking Error(Bad Formatted Domain or Implant Name)"
+        addLogDB("Hive",time,elog)     
+        return    
     }
+
+
+
     fmt.Fprint(w, rid)
     return
 }
@@ -692,23 +754,37 @@ func redAuth(authbearer string) string{
         return "Bad"
     }
 
-    if !(domainsInputWhite(redauth.Domain)){
+    var token string
+    var err error
+    if domainsInputWhite(redauth.Domain){
+        err,token = getDomainTokenDB(redauth.Domain)
+        if err != nil{
+            time := time.Now().Format("02/01/2006 15:04:05 MST")
+            elog := "Red Auth(Not token found for target domain):" + err.Error()
+            //fmt.Println("Happening Domain:"+redauth.Domain+"time:"+time+"error:"+err.Error())
+            addLogDB("Hive",time,elog)
+            return "Bad"
+        }
+
+    //For Offline Implants
+    }else if namesInputWhite(redauth.Domain){
+        err,token = getImplantTokenDB(redauth.Domain)
+        if err != nil{
+            time := time.Now().Format("02/01/2006 15:04:05 MST")
+            elog := "Red Auth(Not token found for target Offline Implant):" + err.Error()
+            //fmt.Println("Happening Domain:"+redauth.Domain+"time:"+time+"error:"+err.Error())
+            addLogDB("Hive",time,elog)
+            return "Bad"
+        }
+    }else{
         time := time.Now().Format("02/01/2006 15:04:05 MST")
-        elog := "Red Auth(Bad Formatted Domain)"
+        elog := "Red Auth(Bad Formatted Domain or Implant Name)"
         addLogDB("Hive",time,elog)     
-        return "Bad"      
+        return "Bad"    
     }
 
 
-    err,token := getDomainTokenDB(redauth.Domain)
-    if err != nil{
 
-        time := time.Now().Format("02/01/2006 15:04:05 MST")
-        elog := "Red Auth(Bad domain):" + err.Error()
-        fmt.Println("Happening Domain:"+redauth.Domain+"time:"+time+"error:"+err.Error())
-        addLogDB("Hive",time,elog)
-        return "Bad"
-    }
 
     if redauth.Token == token{
         return redauth.Domain

