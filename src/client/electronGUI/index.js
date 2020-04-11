@@ -13,6 +13,7 @@ var htmlencode = require('htmlencode');
   var domains = "";
   var stagings = "";
   var reports = "";
+  var username = "";
   
 //AJAX functions to pull data from client server
 
@@ -155,6 +156,21 @@ function getBichitos() {
 }
 
 
+function getUsername() {
+
+    $.ajax({
+        type: "GET",
+        url: "http://127.0.0.1:8000/username",
+        success: function (response){
+          if (response == null){
+            username = "";
+          }else{
+            username = response;
+          }
+        }        
+    });
+}
+
 //Some  other support functions
 
 //Get an array with all Implants Rid/Bid's
@@ -173,6 +189,20 @@ function getImpantIds(implantName) {
 
 
 $(document).ready(function() {
+
+  //Load every object on Initialization
+  getUsername();
+  getImplants();
+  getBichitos();
+  getRedirectors();
+  getBichitos();
+  getVps();
+  getDomains();
+  getStagings();
+  getReports();
+  
+
+  
 
   $(".STheader").load('./components/header/header.html');
      
@@ -227,7 +257,7 @@ $(document).ready(function() {
             var bidentities = [];
             for (i = 0; i < bichitos.length; i++){
               var row = bichitos[i];
-              console.log(row.info)
+              //console.log(row.info)
               try{
               var infoJson = JSON.parse(row.info);
               } catch (e){
@@ -249,10 +279,11 @@ $(document).ready(function() {
             //$(".STmain").attr("id",link.attr("id"));
             //$(".STmain").load('./components/host/host.html')
             lower_ul.empty();
+            lower_ul.append("<li class=\"sub_menu\"><a href=\"#\" class=\"offline\" id=\""+this.id+"\">"+"Offlines"+"<span class=\"fa fa-chevron-down\"></span></a><ul class=\"nav child_menu\" style=\"display: block;\"></ul></li>");
             //Get Parent Implant RespTime, compare it with "lastchecked" to see if it is online
             for (i = 0; i < bichitos.length; i++){
               var row = bichitos[i];
-              console.log(row.info)
+              //console.log(row.info)
               try{
               var infoJson = JSON.parse(row.info);
               } catch (e){
@@ -262,7 +293,29 @@ $(document).ready(function() {
               //console.log("LInk:"+link.closest('.implantli').find('.implant').html());
               //console.log(link.attr("id"));
               //Client side redirector organization
-              if ((row.implantname == link.closest('.implantli').find('.implant').attr("id")) && (bidentity == link.attr("id"))){
+              if ((row.implantname == link.closest('.implantli').find('.implant').attr("id")) && (bidentity == link.attr("id")) && (row.status == "Online")){
+                lower_ul.append("<li class=\"sub_menu\"><a href=\"#\" class=\"bichito\" id=\""+htmlencode.htmlEncode(row.bid)+"\">"+htmlencode.htmlEncode(row.bid)+"</a></li>");
+              }
+            }
+            break;
+          case "offline":
+            //$(".STmain").attr("id",link.attr("id"));
+            //$(".STmain").load('./components/host/host.html')
+            lower_ul.empty();
+            //Get Parent Implant RespTime, compare it with "lastchecked" to see if it is online
+            for (i = 0; i < bichitos.length; i++){
+              var row = bichitos[i];
+              //console.log(row.info)
+              try{
+              var infoJson = JSON.parse(row.info);
+              } catch (e){
+                console.log(e);
+              }
+              var bidentity = infoJson.mac.replace(/\n/g, '') + infoJson.hostname.replace(/\n/g, '');
+              //console.log("LInk:"+link.closest('.implantli').find('.implant').html());
+              //console.log(link.attr("id"));
+              //Client side redirector organization
+              if ((row.implantname == link.closest('.implantli').find('.implant').attr("id")) && (bidentity == link.attr("id")) && (row.status == "Offline")){
                 lower_ul.append("<li class=\"sub_menu\"><a href=\"#\" class=\"bichito\" id=\""+htmlencode.htmlEncode(row.bid)+"\">"+htmlencode.htmlEncode(row.bid)+"</a></li>");
               }
             }

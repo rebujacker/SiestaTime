@@ -130,9 +130,9 @@ function sendBjob(id,jobT,argums){
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (response){
-          console.log("Response Job:"+response[0].jid);
+          //console.log("Response Job:"+response[0].jid);
           if (response != null){
-            console.log("Response Job:"+response[0].jid);
+            //console.log("Response Job:"+response[0].jid);
             localEcho.println("Job with id:"+htmlencode.htmlEncode(response[0].jid)+" sent...");
             jids.push(response[0].jid);
             return

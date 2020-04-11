@@ -160,7 +160,7 @@ func generateImplantInfra(implantpath string,coms string,comsparams []string,red
 
 	}
 
-
+	
 	infralog, err := os.Create(implantpath+"/infra/infra.log")
 	if err != nil {
 		elog := fmt.Sprintf("%s%s","InfraLogCreation(ImplantGeneration):",err)
@@ -175,7 +175,7 @@ func generateImplantInfra(implantpath string,coms string,comsparams []string,red
 	terraInit.Stdout = &errInitbuf
 
 	terraInit.Start()
-	terraInit.Wait()
+	errInfra1 := terraInit.Wait()
 
 
 	terraApply :=  exec.Command("/bin/sh","-c", "cd "+implantpath+"/infra;sudo ./terraform apply -input=false -auto-approve")
@@ -183,7 +183,7 @@ func generateImplantInfra(implantpath string,coms string,comsparams []string,red
 	terraApply.Stdout = &errApplybuf
 	
 	terraApply.Start()
-	terraApply.Wait()
+	errInfra2 := terraApply.Wait()
 
 	
 	//Let's save terraform output in log files
@@ -192,21 +192,19 @@ func generateImplantInfra(implantpath string,coms string,comsparams []string,red
 	terraApplyOut := applyOutbuf.String()
 	terraApplyError := errApplybuf.String()
 
+	//Some Logging
 	if _, err = infralog.WriteString("OutInit: "+terraInitOut+"ErrInit:"+terraInitError+"OutApply: "+terraApplyOut+"ErrApply: "+terraApplyError); err != nil {
 		elog := fmt.Sprintf("%s%s","InfraFolderCreation(ImplantGeneration):",err)
    		return elog
 	}
 
-	/*
-	//TO-DO: Well done error handling on infra generation yet
-	if strings.Contains(terraApplyErr,spottedError) {
-		fmt.Println("Error!!")
-		errorT := fmt.Sprintf("%s",terraApplyErr)
-		elog := fmt.Sprintf("%s%s","TaraformerError(ImplantGeneration):",errorT)
+	
+	if (errInfra1 != nil) || (errInfra2 != nil){
+		elog := "TaraformerError(ImplantGeneration),Incorrect VPC/Domain data most probably"
 		return elog
 	}
 	
-	*/
+	
 
 	return "Done"
 }
@@ -215,8 +213,14 @@ func destroyImplantInfra(implantpath string) string{
 
 	terraApply :=  exec.Command("/bin/sh","-c", "cd "+implantpath+"/infra;sudo ./terraform destroy -auto-approve")
 	terraApply.Start()
-	terraApply.Wait()
-	return "Removed!"
+	errInfra1 := terraApply.Wait()
+	
+	if (errInfra1 != nil){
+		elog := "TaraformerError(RemoveImplantInfra)"
+		return elog
+	}
+
+	return "Done"
 }
 
 
@@ -523,6 +527,7 @@ func godaddy(vps *Vps,domainO *Domain) (string,string){
 		return domain_plan_string,elog
 	}
 
+	//Rmoved: nameservers = ["ns7.domains.com", "ns6.domains.com"]
 	domainkey := godaddy.Domainkey 
 	domainsecret := godaddy.Domainsecret 
 	domain_plan_string =
@@ -539,7 +544,6 @@ func godaddy(vps *Vps,domainO *Domain) (string,string){
 		  domain   = "%s"
 		  depends_on = ["%s.%s"]
 		  addresses   = ["${%s.%s.public_ip}"]
-		  nameservers = ["ns7.domains.com", "ns6.domains.com"]
 		}`,domainO.Name,domainkey,domainsecret,domainO.Name,domainO.Name,domainO.Domain,vps.Vtype,domainO.Name,vps.Vtype,domainO.Name)
 
 	return domain_plan_string,"Success"
@@ -1046,7 +1050,6 @@ sudo systemctl daemon-reload
 		  domain   = "%s"
 		  depends_on = ["%s.%s"]
 		  addresses   = ["${%s.%s.public_ip}"]
-		  nameservers = ["ns7.domains.com", "ns6.domains.com"]
 		}`,domainO.Name,domainkey,domainsecret,domainO.Name,domainName,domainO.Domain,vps.Vtype,domainO.Name,vps.Vtype,domainO.Name)
 
 	}
@@ -1073,7 +1076,7 @@ sudo systemctl daemon-reload
 
 
 	terraInit.Start()
-	terraInit.Wait()
+	errInfra1 := terraInit.Wait()
 
 
 	terraApply :=  exec.Command("/bin/sh","-c", "cd /usr/local/STHive/stagings/"+stagingName+";sudo ./terraform apply -input=false -auto-approve")
@@ -1081,7 +1084,7 @@ sudo systemctl daemon-reload
 	terraApply.Stdout = &errApplybuf
 	
 	terraApply.Start()
-	terraApply.Wait()
+	errInfra2 := terraApply.Wait()
 
 	
 	//Let's save terraform output in log files
@@ -1092,16 +1095,10 @@ sudo systemctl daemon-reload
 
 
 
-	/*
-	//TO-DO: Well done error handling on infra generation yet
-	if strings.Contains(terraApplyErr,spottedError) {
-		fmt.Println("Error!!")
-		errorT := fmt.Sprintf("%s",terraApplyErr)
-		elog := fmt.Sprintf("%s%s","TaraformerError(ImplantGeneration):",errorT)
+	if (errInfra1 != nil) || (errInfra2 != nil){
+		elog := "TaraformerError(ImplantGeneration),Incorrect VPC/Domain data most probably"
 		return elog
 	}
-	
-	*/
 
 
 	//Apply Staging Script
@@ -1135,13 +1132,18 @@ func destroyStagingInfra(stagingName string) string{
 	//Go to folder apply deletes
 	terraApply :=  exec.Command("/bin/sh","-c", "cd /usr/local/STHive/stagings/"+stagingName+";sudo ./terraform destroy -auto-approve")
 	terraApply.Start()
-	terraApply.Wait()
+	errInfra1 := terraApply.Wait()
 	
+	if (errInfra1 != nil){
+		elog := "TaraformerError(RemoveStagingInfra)"
+		return elog
+	}
+
 	rmScript :=  exec.Command("/bin/bash","/usr/local/STHive/stagings/"+stagingName+"/removeScript.sh")
 	rmScript.Start()
 	rmScript.Wait()
 
-	return "Removed!"
+	return "Done"
 }
 
 func dropImplant(implantName string,stagingName string,sDomainName string,path string,os string,arch string,filename string) string{

@@ -3,7 +3,7 @@ $(document).ready(function() {
 
   //Determine if elog is for hive,red or bichito, then load the logs for each case
   var name = $(".STmain").attr("id");
-  console.log(name)
+  //console.log(name)
   $("#iname").text(htmlencode.htmlEncode(name));
   //$("#delval").value = name
   $("#delval").attr("value",htmlencode.htmlEncode(name));
@@ -61,7 +61,7 @@ $("#interact").on('click',function() {
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (response){
-          console.log("Interact Sent!");
+          //console.log("Interact Sent!");
 
         }
 
@@ -82,7 +82,7 @@ $("#submitdelstaging").on('click',function() {
   //Serialize form in the correct way
 
   var submitdelstagingJSON = objectifyForm($("#delstagingform").serializeArray());
-  console.log(submitdelstagingJSON);
+  //console.log(submitdelstagingJSON);
     
   //Create Job to send with two elements
   var data = {cid:"",jid:"",pid:"Hive",chid:"None",job:"deleteStaging",time:"",status:"",result:"",parameters:"["+JSON.stringify(submitdelstagingJSON)+"]"};
@@ -94,9 +94,9 @@ $("#submitdelstaging").on('click',function() {
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (response){
-          console.log("Response Job:"+response[0].jid);
+          //console.log("Response Job:"+response[0].jid);
           if (response != null){
-            console.log("Response Job:"+response[0].jid);
+            //console.log("Response Job:"+response[0].jid);
             return
           }
         }

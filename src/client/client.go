@@ -21,6 +21,7 @@ var (
     username string
     password string
     jobsToSend *JobsToSend
+    clientPort string 
 )
 
 

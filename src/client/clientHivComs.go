@@ -165,6 +165,7 @@ type GuiData struct {
 
 //Extra lock to avoid queue too many Get requests
 
+/*
 func connectHive(){
 	
 	//Debug: Chceck client is continuously trying to connect on clicks
@@ -195,11 +196,18 @@ func connectHive(){
 	}
 
 }
+*/
 
 func unlock(){
     lock.mux.Lock()
 	lock.Lock = lock.Lock + 1
     lock.mux.Unlock()
+}
+
+func jobunlock(){
+    joblock.mux.Lock()
+    joblock.Lock = lock.Lock + 1
+    joblock.mux.Unlock()
 }
 
 func getHive(objtype string){
@@ -391,23 +399,20 @@ func updateData(objtype string,guidata string){
 
 func postHive(job *Job){
 
-    lock.mux.Lock()
-    lock.Lock = lock.Lock - 1
-    lock.mux.Unlock()
-    defer unlock()
+
+
+    if !(joblock.Lock > 0) {
+        return        
+    }
+
+    joblock.mux.Lock()
+    joblock.Lock = joblock.Lock - 1
+    joblock.mux.Unlock()
+    defer jobunlock()
 	
+    //job := jobsToSend.Jobs[0]
 	checkTLSignature()
 	
-	//Serialize Job, and send it to Hive
-	/*
-	encodedJob, err := json.Marshal(job)
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-	bytesRepresentation := bytes.NewReader(encodedJob)
-	*/
-
 	
     bytesRepresentation := new(bytes.Buffer)
     err := json.NewEncoder(bytesRepresentation).Encode(job)
@@ -448,6 +453,22 @@ func postHive(job *Job){
 		return
 	}
 
+
+/*
+    unlock()
+
+
+    //Debug:
+    fmt.Println(len(jobsToSend.Jobs))
+    jobsToSend.mux.Lock()
+    jobsToSend.Jobs = jobsToSend.Jobs[1:]
+    jobsToSend.mux.Unlock()
+
+    if len(jobsToSend.Jobs) != 0 {
+        time.Sleep(1 * time.Second)
+        postHive()
+    }
+    */
 
 	//Debug Post to Hive
 	/*

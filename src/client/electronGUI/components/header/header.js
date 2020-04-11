@@ -40,5 +40,6 @@ $(document).ready(function() {
   $("#hvps").text(vnumber);
   $("#hredirectors").text(rednumber);
   $("#hstagings").text(snumber);
+  $("#username").text("Logged as "+ htmlencode.htmlEncode(username.username));
 
 })

@@ -108,13 +108,19 @@ type AddOperator struct {
 
 func jobProcessor(jobO *Job){
 
+	var(
+		jStatus error
+		jResult error
+	)
+
 	cid := jobO.Cid
 	pid := jobO.Pid
 	chid := jobO.Chid
 	jid := jobO.Jid
 	job := jobO.Job
 	parameters := jobO.Parameters
-	fmt.Println(job+parameters)
+	//Debug
+	//fmt.Println(job+parameters)
 	if strings.Contains(pid,"Hive"){
 
 		switch job{
@@ -126,8 +132,19 @@ func jobProcessor(jobO *Job){
     			commandO := jsconcommanA[0]
     			// Error Log
     			if errD != nil {
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-createImplant(Command JSON Decoding Error):"+errD.Error())
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-createImplant(Command JSON Decoding Error):"+errD.Error())
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+					
 					return
     			}
 
@@ -135,8 +152,18 @@ func jobProcessor(jobO *Job){
     			if !(namesInputWhite(commandO.Name) && numbersInputWhite(commandO.Ttl) && numbersInputWhite(commandO.Resptime) && 
     				 namesInputWhite(commandO.Coms)){
 
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-createImplant(Implant "+commandO.Name+" Incorrect Param. Formatting)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-createImplant(Implant "+commandO.Name+" Incorrect Param. Formatting)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
 					return
     			}
 
@@ -146,33 +173,77 @@ func jobProcessor(jobO *Job){
 					case "selfsignedhttpsgo":
 						//Check Network Module Parameters formatting
 						if !tcpPortInputWhite(commandO.ComsParams[0]) {
-							setJobStatusDB(jid,"Error")
-							setJobResultDB(jid,"Hive-Create Implant(Paranoid Https TCP Port incorrect)")
+							jStatus = setJobStatusDB(jid,"Error")
+							jResult = setJobResultDB(jid,"Hive-Create Implant(Paranoid Https TCP Port incorrect)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 							return
-							}
+						}
 							
 					case "paranoidhttpsgo":
 						//Check Network Module Parameters formatting
 						if !tcpPortInputWhite(commandO.ComsParams[0]) {
-							setJobStatusDB(jid,"Error")
-							setJobResultDB(jid,"Hive-Create Implant(Paranoid Https TCP Port incorrect)")
+							jStatus = setJobStatusDB(jid,"Error")
+							jResult = setJobResultDB(jid,"Hive-Create Implant(Paranoid Https TCP Port incorrect)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 							return
-							}
+						}
 
 					case "gmailgo":
 					case "gmailmimic":
 
 
 					default:
-						setJobStatusDB(jid,"Error")
-						setJobResultDB(jid,"Hive-Create Implant(Netowrk Module yet not Implemented)")
+						jStatus = setJobStatusDB(jid,"Error")
+						jResult = setJobResultDB(jid,"Hive-Create Implant(Netowrk Module yet not Implemented)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 						return
 				}
 
 				existV,_ := existImplantDB(commandO.Name)
 				if existV{
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-createImplant(Implant "+commandO.Name+" Already exists)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-createImplant(Implant "+commandO.Name+" Already exists)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 					return
 				}
 
@@ -180,12 +251,34 @@ func jobProcessor(jobO *Job){
 				
 				if errI != ""{
 					removeImplant(commandO.Name)
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-createImplant("+errI+")")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-createImplant("+errI+")")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 					return
 				}else{
-					setJobStatusDB(jid,"Success")
-					setJobResultDB(jid,"Hive-createImplant("+commandO.Name+" created)")
+					jStatus = setJobStatusDB(jid,"Success")
+					jResult = setJobResultDB(jid,"Hive-createImplant("+commandO.Name+" created)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 					return
 				}
 			case "deleteImplant":
@@ -194,32 +287,80 @@ func jobProcessor(jobO *Job){
     			errD := decoder.Decode(&jsconcommanA)
     			commandO := jsconcommanA[0]
     			if errD != nil {
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-createImplant("+commandO.Name+" created)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-createImplant("+commandO.Name+" created)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 					return
     			}
 
     			//Server Side white-list for Hive Commands
     			if !namesInputWhite(commandO.Name){
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-deleteImplant(Implant "+commandO.Name+" Incorrect Param. Formatting)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-deleteImplant(Implant "+commandO.Name+" Incorrect Param. Formatting)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 					return
     			}
 
 				existI,_ := existImplantDB(commandO.Name)
 				if !existI{
-					setJobStatusDB(jid,"Error:Hive-deleteImplant(Implant Not in DB)")
+					jStatus = setJobStatusDB(jid,"Error:Hive-deleteImplant(Implant Not in DB)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
 					return
 				}
 
 				err := removeImplant(commandO.Name)
 				if err != "Done"{
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Error:Hive-deleteImplant("+err+")")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Error:Hive-deleteImplant("+err+")")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 					return
 				}
-				setJobStatusDB(jid,"Success")
-				setJobResultDB(jid,"Hive-deleteImplant(Implant "+commandO.Name+" Deleted)")
+				jStatus = setJobStatusDB(jid,"Success")
+				jResult = setJobResultDB(jid,"Hive-deleteImplant(Implant "+commandO.Name+" Deleted)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
 				return
 
 			case "createVPS":
@@ -229,8 +370,19 @@ func jobProcessor(jobO *Job){
     			errD := decoder.Decode(&resultA)
     			result := resultA[0]
     			if errD != nil {
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"createVPS(VPS JSON Decoding Error)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"createVPS(VPS JSON Decoding Error)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 					return
     			}
 
@@ -242,8 +394,19 @@ func jobProcessor(jobO *Job){
 						var amazon *Amazon
 						errDaws := json.Unmarshal([]byte(result.Parameters), &amazon)
 						if errDaws != nil {
-							setJobStatusDB(jid,"Error")
-							setJobResultDB(jid,"VPC Add(Amazon Parameters Decoding Error):"+errDaws.Error())
+							jStatus = setJobStatusDB(jid,"Error")
+							jResult = setJobResultDB(jid,"VPC Add(Amazon Parameters Decoding Error):"+errDaws.Error())
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 							return
 						}
 
@@ -251,28 +414,88 @@ func jobProcessor(jobO *Job){
     						accessKeysInputWhite(amazon.Secretkey) && accessKeysInputWhite(amazon.Region) && 
     						namesInputWhite(amazon.Sshkeyname) && accessKeysInputWhite(amazon.Ami) && rsaKeysInputWhite(amazon.Sshkey)){
 							
-							setJobStatusDB(jid,"Error")
-							setJobResultDB(jid,"Hive-VPC Add(VPC Amazon Incorrect Param. Formatting)")
+							jStatus = setJobStatusDB(jid,"Error")
+							jResult = setJobResultDB(jid,"Hive-VPC Add(VPC Amazon Incorrect Param. Formatting)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 							return
     					}
 
 					default:
-						setJobStatusDB(jid,"Error")
-						setJobResultDB(jid,"Hive-VPC Add(VPC Type not yet Implemented)")
+						jStatus = setJobStatusDB(jid,"Error")
+						jResult = setJobResultDB(jid,"Hive-VPC Add(VPC Type not yet Implemented)")
+						
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+						
 						return
 				}
 
 
 				existV,_ := existVpsDB(result.Name)
 				if existV{
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Error:createVPS(VPS "+result.Name+" Already exists)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Error:createVPS(VPS "+result.Name+" Already exists)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 					return
 				}
 
-				addVpsDB(&result)
-				setJobStatusDB(jid,"Success")
-				setJobResultDB(jid,"createVPS(VPS "+result.Name+" Created)")
+				errAddVps := addVpsDB(&result)
+				if (errAddVps != nil){
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"createVPS(VPS "+result.Name+" DB Error:"+errAddVps.Error()+")")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+				}
+
+				jStatus = setJobStatusDB(jid,"Success")
+				jResult = setJobResultDB(jid,"createVPS(VPS "+result.Name+" Created)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 				return
 
 			case "deleteVPS":
@@ -282,28 +505,88 @@ func jobProcessor(jobO *Job){
     			errD := decoder.Decode(&jsconcommanA)
     			commandO := jsconcommanA[0]
     			if errD != nil {
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-deleteVPS(Command JSON Decoding Error))")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-deleteVPS(Command JSON Decoding Error))")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 					return
     			}
 
     			//Server Side white-list for Hive Commands
     			if !namesInputWhite(commandO.Name){
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-deleteVPC(VPC "+commandO.Name+" Incorrect Param. Formatting)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-deleteVPC(VPC "+commandO.Name+" Incorrect Param. Formatting)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 					return
     			}
 
 				existV,_ := existVpsDB(commandO.Name)
 				if !existV{
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-deleteVPS(VPS not in DB)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-deleteVPS(VPS not in DB)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 					return
 				}
 
-				rmVpsDB(commandO.Name)
-				setJobStatusDB(jid,"Success")
-				setJobResultDB(jid,"Hive-deleteVPS(VPS "+commandO.Name+" Deleted)")
+				errRmVps := rmVpsDB(commandO.Name)
+				if (errRmVps != nil){
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"deleteVPS(VPS "+commandO.Name+" DB Error:"+errRmVps.Error()+")")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+				}
+
+
+				jStatus = setJobStatusDB(jid,"Success")
+				jResult = setJobResultDB(jid,"Hive-deleteVPS(VPS "+commandO.Name+" Deleted)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 				return
 
 			case "createDomain":
@@ -314,8 +597,19 @@ func jobProcessor(jobO *Job){
     			errD := decoder.Decode(&resultA)
     			commandO := resultA[0]
     			if errD != nil {
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-createDomain(JSON Decoding Error)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-createDomain(JSON Decoding Error)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 					return
     			}
 
@@ -326,16 +620,38 @@ func jobProcessor(jobO *Job){
 						var godaddy *Godaddy
 						errDaws := json.Unmarshal([]byte(commandO.Parameters), &godaddy)
 						if errDaws != nil {
-							setJobStatusDB(jid,"Error")
-							setJobResultDB(jid,"Domain Add(Godaddy Parameters Decoding Error):"+errDaws.Error())
+							jStatus = setJobStatusDB(jid,"Error")
+							jResult = setJobResultDB(jid,"Domain Add(Godaddy Parameters Decoding Error):"+errDaws.Error())
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 							return
 						}
 
     					if !(namesInputWhite(commandO.Name) && domainsInputWhite(commandO.Domain) && 
     						accessKeysInputWhite(godaddy.Domainkey) && accessKeysInputWhite(godaddy.Domainsecret)){
 							
-							setJobStatusDB(jid,"Error")
-							setJobResultDB(jid,"Hive-Domain Add(Domain GoDaddy Incorrect Param. Formatting)")
+							jStatus = setJobStatusDB(jid,"Error")
+							jResult = setJobResultDB(jid,"Hive-Domain Add(Domain GoDaddy Incorrect Param. Formatting)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 							return
     					}
 
@@ -343,8 +659,19 @@ func jobProcessor(jobO *Job){
 						var gmail *Gmail
 						errDaws := json.Unmarshal([]byte(commandO.Parameters), &gmail)
 						if errDaws != nil {
-							setJobStatusDB(jid,"Error")
-							setJobResultDB(jid,"Domain Add(GoogleParameters Decoding Error):"+errDaws.Error())
+							jStatus = setJobStatusDB(jid,"Error")
+							jResult = setJobResultDB(jid,"Domain Add(GoogleParameters Decoding Error):"+errDaws.Error())
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 							return
 						}
 
@@ -353,26 +680,83 @@ func jobProcessor(jobO *Job){
     					if !(namesInputWhite(commandO.Name) && domainsInputWhite(commandO.Domain) && gmailInputWhite(gmail.Creds) && 
     						gmailInputWhite(gmail.Token)){
 
-							setJobStatusDB(jid,"Error")
-							setJobResultDB(jid,"Hive-Domain Add(SAAS Gmail Incorrect Param. Formatting)")
+							jStatus = setJobStatusDB(jid,"Error")
+							jResult = setJobResultDB(jid,"Hive-Domain Add(SAAS Gmail Incorrect Param. Formatting)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 							return
     					}
 					default:
-						setJobStatusDB(jid,"Error")
-						setJobResultDB(jid,"Hive-Domain Add(Domain Type not yet Implemented)")
+						jStatus = setJobStatusDB(jid,"Error")
+						jResult = setJobResultDB(jid,"Hive-Domain Add(Domain Type not yet Implemented)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
 						return
 				}
 
 				existV,_ := existDomainDB(commandO.Name)
 				if existV{
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-createDomain(Domain already exists)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-createDomain(Domain already exists)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
 					return
 				}
 
-				addDomainDB(&commandO)
-				setJobStatusDB(jid,"Success")
-				setJobResultDB(jid,"Hive-createDomain(Domain "+commandO.Name+"Created)")
+				errAddDomain := addDomainDB(&commandO)
+				if (errAddDomain != nil){
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"createDomain(Domain "+commandO.Name+" DB Error:"+errAddDomain.Error()+")")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+				}
+
+				jStatus = setJobStatusDB(jid,"Success")
+				jResult = setJobResultDB(jid,"Hive-createDomain(Domain "+commandO.Name+"Created)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 				return
 
 			case "deleteDomain":
@@ -383,28 +767,88 @@ func jobProcessor(jobO *Job){
     			commandO := jsconcommanA[0]
     			// Error Log
     			if errD != nil {
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-deleteDomain(Command JSON Decoding Error)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-deleteDomain(Command JSON Decoding Error)")
+					
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 					return
     			}
 
     			//Server Side white-list for Hive Commands
     			if !namesInputWhite(commandO.Name){
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-deleteDomain(Domain "+commandO.Name+" Incorrect Param. Formatting)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-deleteDomain(Domain "+commandO.Name+" Incorrect Param. Formatting)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 					return
     			}
 
 				existV,_ := existDomainDB(commandO.Name)
 				if !existV{
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-deleteDomain(Domain Exists)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-deleteDomain(Domain Exists)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+					
 					return
 				}
 
-				rmDomainDB(commandO.Name)
-				setJobStatusDB(jid,"Success")
-				setJobResultDB(jid,"Hive-deleteDomain(Domain "+commandO.Name+" Deleted)")
+				errDeleteDomain := rmDomainDB(commandO.Name)
+				if errDeleteDomain != nil{
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"deleteDomain(VPS "+commandO.Name+" DB Error:"+errDeleteDomain.Error()+")")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+				}
+
+				jStatus = setJobStatusDB(jid,"Success")
+				jResult = setJobResultDB(jid,"Hive-deleteDomain(Domain "+commandO.Name+" Deleted)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 				return
 
 			case "createStaging":
@@ -415,8 +859,19 @@ func jobProcessor(jobO *Job){
     			commandO := jsconcommanA[0]
     			// Error Log
     			if errD != nil {
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-createStaging(Command JSON Decoding Error)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-createStaging(Command JSON Decoding Error)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+					
 					return
    				}
 
@@ -427,8 +882,19 @@ func jobProcessor(jobO *Job){
 						var droplet *Droplet
 						errDaws := json.Unmarshal([]byte(commandO.Parameters), &droplet)
 						if errDaws != nil {
-							setJobStatusDB(jid,"Error")
-							setJobResultDB(jid,"Staging Add(Droplet Parameters Decoding Error):"+errDaws.Error())
+							jStatus = setJobStatusDB(jid,"Error")
+							jResult = setJobResultDB(jid,"Staging Add(Droplet Parameters Decoding Error):"+errDaws.Error())
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+							
 							return
 						}
 
@@ -436,8 +902,19 @@ func jobProcessor(jobO *Job){
     						namesInputWhite(commandO.DomainName) && tcpPortInputWhite(droplet.HttpsPort) && 
     						namesInputWhite(droplet.Path)){
 
-							setJobStatusDB(jid,"Error")
-							setJobResultDB(jid,"Staging Add(Droplet Incorrect Param. Formatting)")
+							jStatus = setJobStatusDB(jid,"Error")
+							jResult = setJobResultDB(jid,"Staging Add(Droplet Incorrect Param. Formatting)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 							return
     					}
 
@@ -445,16 +922,38 @@ func jobProcessor(jobO *Job){
 						var msf *Msf
 						errDaws := json.Unmarshal([]byte(commandO.Parameters), &msf)
 						if errDaws != nil {
-							setJobStatusDB(jid,"Error")
-							setJobResultDB(jid,"Staging Add(MSFT Parameters Decoding Error):"+errDaws.Error())
+							jStatus = setJobStatusDB(jid,"Error")
+							jResult = setJobResultDB(jid,"Staging Add(MSFT Parameters Decoding Error):"+errDaws.Error())
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 							return
 						}
 
     					if !(namesInputWhite(commandO.Name) && namesInputWhite(commandO.VpsName) && 
     						namesInputWhite(commandO.DomainName) && tcpPortInputWhite(msf.HttpsPort)){
 
-							setJobStatusDB(jid,"Error")
-							setJobResultDB(jid,"Staging Add(MSFT Incorrect Param. Formatting)")
+							jStatus = setJobStatusDB(jid,"Error")
+							jResult = setJobResultDB(jid,"Staging Add(MSFT Incorrect Param. Formatting)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 							return
     					}
 
@@ -462,45 +961,130 @@ func jobProcessor(jobO *Job){
 						var empire *Empire
 						errDaws := json.Unmarshal([]byte(commandO.Parameters), &empire)
 						if errDaws != nil {
-							setJobStatusDB(jid,"Error")
-							setJobResultDB(jid,"Staging Add(MSFT Parameters Decoding Error):"+errDaws.Error())
+							jStatus = setJobStatusDB(jid,"Error")
+							jResult = setJobResultDB(jid,"Staging Add(MSFT Parameters Decoding Error):"+errDaws.Error())
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 							return
 						}
 
     					if !(namesInputWhite(commandO.Name) && namesInputWhite(commandO.VpsName) && 
     						namesInputWhite(commandO.DomainName) && tcpPortInputWhite(empire.HttpsPort)){
 
-							setJobStatusDB(jid,"Error")
-							setJobResultDB(jid,"Staging Add(MSFT Incorrect Param. Formatting)")
+							jStatus = setJobStatusDB(jid,"Error")
+							jResult = setJobResultDB(jid,"Staging Add(MSFT Incorrect Param. Formatting)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
 							return
     					}
+
     				case "ssh_rev_shell":
 
+    					if !(namesInputWhite(commandO.Name) && namesInputWhite(commandO.VpsName) && 
+    						namesInputWhite(commandO.DomainName)){
+
+							jStatus = setJobStatusDB(jid,"Error")
+							jResult = setJobResultDB(jid,"Staging Add(Rev. SSH Incorrect params formatting)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
+							return
+    					}
 
 					default:
-						setJobStatusDB(jid,"Error")
-						setJobResultDB(jid,"Staging Add(Staging Type not yet Implemented)")
-						return
+						jStatus = setJobStatusDB(jid,"Error")
+						jResult = setJobResultDB(jid,"Staging Add(Staging Type not yet Implemented)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+
+					return
 				}	
 
 
 				existV,_ := existStagingDB(commandO.Name)
 				if existV{
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-createStaging(Staging exists)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-createStaging(Staging exists)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+					
 					return
 				}
 
 				errI := createStaging(commandO.Name,commandO.Stype,commandO.Parameters,commandO.VpsName,commandO.DomainName)
 
 				if errI != ""{
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-createStaging(Staging "+errI+" Error)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-createStaging(Staging "+errI+" Error)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+					
 					removeStaging(commandO.Name)
 					return
 				}else{
-					setJobStatusDB(jid,"Success")
-					setJobResultDB(jid,"Hive-createStaging(Staging "+commandO.Name+" created)")
+					jStatus = setJobStatusDB(jid,"Success")
+					jResult = setJobResultDB(jid,"Hive-createStaging(Staging "+commandO.Name+" created)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+					
 					return
 				}
 
@@ -512,28 +1096,85 @@ func jobProcessor(jobO *Job){
     			commandO := jsconcommanA[0]
     			// Error Log
     			if errD != nil {
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-deleteStaging(Command JSON Decoding Error)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-deleteStaging(Command JSON Decoding Error)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+					
 					return
     			}
 
 
     			//Server Side white-list for Hive Commands
     			if !namesInputWhite(commandO.Name){
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-deleteStaging(Staging "+commandO.Name+" Incorrect Param. Formatting)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-deleteStaging(Staging "+commandO.Name+" Incorrect Param. Formatting)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+					
 					return
     			}
 
 				existI,_ := existStagingDB(commandO.Name)
 				if !existI{
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-deleteStaging(Staging doesn't exists)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-deleteStaging(Staging doesn't exists)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
 					return
 				}
-				removeStaging(commandO.Name)
-				setJobStatusDB(jid,"Succes")
-				setJobResultDB(jid,"Hive-deleteStaging(Staging "+commandO.Name+" deleted)")
+				resRemove := removeStaging(commandO.Name)
+				if resRemove != "Done"{
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-deleteStaging(Staging Infra Not removed):"+resRemove)
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+					return
+				}
+				jStatus = setJobStatusDB(jid,"Succes")
+				jResult = setJobResultDB(jid,"Hive-deleteStaging(Staging "+commandO.Name+" deleted)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
 				return
 
 			case "dropImplant":
@@ -544,31 +1185,71 @@ func jobProcessor(jobO *Job){
     			commandO := jsconcommanA[0]
     			// Error Log
     			if errD != nil {
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-dropImplant(Command JSON Decoding Error)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-dropImplant(Command JSON Decoding Error)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
 					return
     			}
 
 				existI,_ := existStagingDB(commandO.Staging)
 				if !existI{
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-dropImplant(Staging doesn't exists)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-dropImplant(Staging doesn't exists)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
 					return
 				}
 
 				stagingO := getStagingDB(commandO.Staging)
 				//fmt.Println(strings.Contains(stagingO.Stype,"droplet"))
 				if !strings.Contains(stagingO.Stype,"droplet"){
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-dropImplant(Staging is not a Droplet)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-dropImplant(Staging is not a Droplet)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
 					return
 				}
 
 				var droplet *Droplet
 				errD = json.Unmarshal([]byte(stagingO.Parameters), &droplet)
 				if errD != nil {
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-dropImplant(Problem Decoding Staging Droplet Object Parameters)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-dropImplant(Problem Decoding Staging Droplet Object Parameters)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
    	 				return
 				}
 				
@@ -577,19 +1258,49 @@ func jobProcessor(jobO *Job){
     				namesInputWhite(droplet.Path) && namesInputWhite(commandO.Os) && namesInputWhite(commandO.Arch) && 
     				namesInputWhite(commandO.Filename)){
 
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-dropImplant(Drop "+commandO.Implant+" Incorrect Param. Formatting)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-dropImplant(Drop "+commandO.Implant+" Incorrect Param. Formatting)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
 					return
     			}
 
 				errI := dropImplant(commandO.Implant,commandO.Staging,stagingO.DomainName,droplet.Path,commandO.Os,commandO.Arch,commandO.Filename)
 				if errI != ""{
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-dropImplant(Drop Implant "+errI+" Error)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-dropImplant(Drop Implant "+errI+" Error)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
 					return
 				}else{
-					setJobStatusDB(jid,"Success")
-					setJobResultDB(jid,"Hive-dropImplant(Drop Implant: "+stagingO.DomainName+":"+droplet.HttpsPort+"/"+droplet.Path+"/"+commandO.Filename+" created)")
+					jStatus = setJobStatusDB(jid,"Success")
+					jResult = setJobResultDB(jid,"Hive-dropImplant(Drop Implant: "+stagingO.DomainName+":"+droplet.HttpsPort+"/"+droplet.Path+"/"+commandO.Filename+" created)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}					
 					return
 				}
 
@@ -601,35 +1312,84 @@ func jobProcessor(jobO *Job){
     			commandO := jsconcommanA[0]
     			// Error Log
     			if errD != nil {
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-createReport(Command JSON Decoding Error)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-createReport(Command JSON Decoding Error)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
 					return
    				}
 
     			//Server Side white-list for Hive Commands
     			if !namesInputWhite(commandO.Name){
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-createReport(Report "+commandO.Name+" Incorrect Param. Formatting)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-createReport(Report "+commandO.Name+" Incorrect Param. Formatting)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
 					return
     			}   				
 
 				existV,_ := existReportDB(commandO.Name)
 				if existV{
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-createReport(Report exists)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-createReport(Report exists)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
 					return
 				}
 
 				errI := createReport(commandO.Name)
 
 				if errI != ""{
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-createReport(Report "+errI+" Error)")
-					removeStaging(commandO.Name)
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-createReport(Report "+errI+" Error)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
 					return
 				}else{
-					setJobStatusDB(jid,"Success")
-					setJobResultDB(jid,"Hive-createReport(Report "+commandO.Name+" created)")
+					jStatus = setJobStatusDB(jid,"Success")
+					jResult = setJobResultDB(jid,"Hive-createReport(Report "+commandO.Name+" created)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
 					return
 				}
 
@@ -641,8 +1401,18 @@ func jobProcessor(jobO *Job){
     			commandO := jsconcommanA[0]
     			// Error Log
     			if errD != nil {
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-addOperator(Command JSON Decoding Error)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-addOperator(Command JSON Decoding Error)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
 					return
    				}
 
@@ -651,23 +1421,67 @@ func jobProcessor(jobO *Job){
    				//fmt.Println("Is admin??:"+isUserAdminDB(jobO.Cid))
 
    				if isUserAdminDB(jobO.Cid) != "Yes"{
-   					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-addOperator(Is not Admin User)")
+   					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-addOperator(Is not Admin User)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
 					return
    				}
 
 
    				err,_ := addUser(commandO.Username,commandO.Password)
     			if err != "" {
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Hive-addOperator(Error adding new user to DB):"+err)
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-addOperator(Error adding new user to DB):"+err)
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
 					return
-   				}
+   				}else{
+					jStatus = setJobStatusDB(jid,"Success")
+					jResult = setJobResultDB(jid,"Hive-addOperator(Operator "+commandO.Username+" added)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+					return
+				}
 
 
 			default:
-				setJobStatusDB(jid,"Error")
-				setJobResultDB(jid,"Hive-JobNotImplemented")
+				jStatus = setJobStatusDB(jid,"Error")
+				jResult = setJobResultDB(jid,"Hive-JobNotImplemented")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
 				return
 		}
 
@@ -709,10 +1523,27 @@ func jobProcessor(jobO *Job){
 				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobsreceived)
 				jobsToProcess.mux.Unlock()
 
-   				time := time.Now().Format("02/01/2006 15:04:05 MST")
-   				setRedLastCheckedDB(pid,time)
-   				setBiLastCheckedbyBidDB(chid,time)
-   				setBiRidDB(chid,pid)
+   				timeA := time.Now().Format("02/01/2006 15:04:05 MST")
+   				errSet1 := setRedLastCheckedDB(pid,timeA)
+   				errSet2 := setBiLastCheckedbyBidDB(chid,timeA)
+   				errSet3 := setBiRidDB(chid,pid)
+   				if (errSet1 != nil){
+       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
+        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet1.Error())
+        			return
+   				}
+   				if (errSet2 != nil){
+       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
+        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet2.Error())
+        			return
+   				}
+   				if (errSet3 != nil){
+       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
+        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet3.Error())
+        			return
+   				}
+
+
 				return
 
 			//Main Beacon of Implants, will be used to Update the bot and its redirector
@@ -743,10 +1574,26 @@ func jobProcessor(jobO *Job){
 				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobsreceived)
 				jobsToProcess.mux.Unlock()
 
-   				time := time.Now().Format("02/01/2006 15:04:05 MST")
-   				setRedLastCheckedDB(pid,time)
-   				setBiLastCheckedbyBidDB(chid,time)
-   				setBiRidDB(chid,pid)
+   				timeA := time.Now().Format("02/01/2006 15:04:05 MST")
+   				errSet1 := setRedLastCheckedDB(pid,timeA)
+   				errSet2 := setBiLastCheckedbyBidDB(chid,timeA)
+   				errSet3 := setBiRidDB(chid,pid)
+   				if (errSet1 != nil){
+       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
+        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet1.Error())
+        			return
+   				}
+   				if (errSet2 != nil){
+       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
+        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet2.Error())
+        			return
+   				}
+   				if (errSet3 != nil){
+       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
+        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet3.Error())
+        			return
+   				}
+
 				return
 			case "log":
 				
@@ -768,10 +1615,25 @@ func jobProcessor(jobO *Job){
    				commandO := jsconcommanA[0]
 				addLogDB(chid,commandO.Time,commandO.Error)
 
-				time := time.Now().Format("02/01/2006 15:04:05 MST")
-   				setRedLastCheckedDB(pid,time)
-   				setBiLastCheckedbyBidDB(chid,time)
-   				setBiRidDB(chid,pid)
+				timeA := time.Now().Format("02/01/2006 15:04:05 MST")
+   				errSet1 := setRedLastCheckedDB(pid,timeA)
+   				errSet2 := setBiLastCheckedbyBidDB(chid,timeA)
+   				errSet3 := setBiRidDB(chid,pid)
+   				if (errSet1 != nil){
+       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
+        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet1.Error())
+        			return
+   				}
+   				if (errSet2 != nil){
+       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
+        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet2.Error())
+        			return
+   				}
+   				if (errSet3 != nil){
+       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
+        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet3.Error())
+        			return
+   				}
 				return
 			
 			////Jobs Triggered by users
@@ -965,16 +1827,36 @@ func jobProcessor(jobO *Job){
     			commandO := jsconcommanA[0]
     			// Error Log
     			if errD != nil {
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Implant-injectEmpire(Command JSON Decoding Error)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Implant-injectEmpire(Command JSON Decoding Error)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
 					return
     			}
 
 				//Generate target shellcode
 				error,launcher := getEmpireLauncher(commandO.Staging,chid)
     			if error != "" {
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Implant-injectEmpire(Generate Launcher error):"+error)
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Implant-injectEmpire(Generate Launcher error):"+error)
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
 					return
     			}
 
@@ -995,15 +1877,35 @@ func jobProcessor(jobO *Job){
     			commandO := jsconcommanA[0]
     			// Error Log
     			if errD != nil {
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Implant-injectEmpire(Command JSON Decoding Error)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Implant-injectEmpire(Command JSON Decoding Error)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
 					return
     			}
 
     			domain,err1,err2 := getDomainbyStagingDB(commandO.Staging)
     			if (err1 != nil) || (err2 != nil) {
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Implant-injectRevSshShell(Get Staging Domain):"+err1.Error()+err2.Error())
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Implant-injectRevSshShell(Get Staging Domain):"+err1.Error()+err2.Error())
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
 					return
     			}
 
@@ -1013,8 +1915,18 @@ func jobProcessor(jobO *Job){
     			sshkey, err := ioutil.ReadFile("/usr/local/STHive/stagings/"+commandO.Staging+"/implantkey")
     			if err != nil {
         			//ErrorLog
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Implant-injectRevSshShell(Reading Anonymous Staging Key):"+err1.Error()+err2.Error())
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Implant-injectRevSshShell(Reading Anonymous Staging Key):"+err1.Error()+err2.Error())
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
         			return
     			}
 
@@ -1048,8 +1960,18 @@ func jobProcessor(jobO *Job){
     			commandO := jsconcommanA[0]
     			// Error Log
     			if errD != nil {
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Implant-injectEmpire(Command JSON Decoding Error)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Implant-injectEmpire(Command JSON Decoding Error)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
 					return
     			}
 
@@ -1057,29 +1979,69 @@ func jobProcessor(jobO *Job){
 
     			if !domainsInputWhite(commandO.Domain){
         			//ErrorLog
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Implant-injectRevSshShellOffline(Incorrect Domain/IP)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Implant-injectRevSshShellOffline(Incorrect Domain/IP)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
         			return
     			}
 
     			if !rsaKeysInputWhite(commandO.Sshkey){
         			//ErrorLog
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Implant-injectRevSshShellOffline(Incorrect Domain/IP)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Implant-injectRevSshShellOffline(Incorrect Domain/IP)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
         			return
     			}
 
     			if !tcpPortInputWhite(commandO.Port){
         			//ErrorLog
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Implant-injectRevSshShellOffline(Incorrect Domain/IP)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Implant-injectRevSshShellOffline(Incorrect Domain/IP)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
         			return
     			}
 
     			if !namesInputWhite(commandO.User){
         			//ErrorLog
-					setJobStatusDB(jid,"Error")
-					setJobResultDB(jid,"Implant-injectRevSshShellOffline(Incorrect Domain/IP)")
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Implant-injectRevSshShellOffline(Incorrect Domain/IP)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
         			return
     			}
 
@@ -1212,12 +2174,30 @@ func createStaging(stagingName string,stype string,parameters string,vpsName str
 		return infraResult
 	}
 	
-	setUsedDomainDB(domainName,"Yes")
+	errSet1 := setUsedDomainDB(domainName,"Yes")
 
     vpsId,_ := getVpsIdbyNameDB(vpsName)
     domainId,_ := getDomainIdbyNameDB(domainName)
 
-	addStagingDB(stagingName,stype,tunnelPort,parameters,vpsId,domainId)
+	errSet2 := addStagingDB(stagingName,stype,tunnelPort,parameters,vpsId,domainId)
+
+	if (errSet1 != nil) {
+		destroyStagingInfra(stagingName)
+		mkdir := exec.Command("/bin/sh","-c","rm -r "+stagingFolder)
+		mkdir.Start()
+		mkdir.Wait()
+		return errSet1.Error()
+
+	}
+
+	if (errSet2 != nil) {
+		destroyStagingInfra(stagingName)
+		mkdir := exec.Command("/bin/sh","-c","rm -r "+stagingFolder)
+		mkdir.Start()
+		mkdir.Wait()
+		return errSet2.Error()
+
+	}
 
 	return ""
 
@@ -1226,14 +2206,26 @@ func createStaging(stagingName string,stype string,parameters string,vpsName str
 func removeStaging(stagingName string) string{
 
 	//Remove infra, if sucessful, remove DB row
-	result := destroyStagingInfra(stagingName)
+	resRemove := destroyStagingInfra(stagingName)
+	if resRemove != "Done"{
+		return resRemove
+	}
 	mkdir := exec.Command("/bin/sh","-c","rm -r /usr/local/STHive/stagings/"+stagingName)
 	mkdir.Start()
 	mkdir.Wait()
 	dname,_,_ := getDomainNbyStagingNameDB(stagingName)
-	setUsedDomainDB(dname,"No")
-	rmStagingDB(stagingName)
-	return result
+	
+	errSet1 := setUsedDomainDB(dname,"No")
+	errSet2 := rmStagingDB(stagingName)
+	if (errSet1 != nil) || (errSet2 != nil) {
+		return errSet1.Error()
+	}
+
+	if (errSet2 != nil) {
+		return errSet2.Error()
+	}
+
+	return "Done"
 }
 
 func createReport(reportName string) string{

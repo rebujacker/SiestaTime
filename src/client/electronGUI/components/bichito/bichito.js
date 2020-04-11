@@ -52,6 +52,7 @@ $(document).ready(function() {
 
   
   $(".STmain").on("click","button",function() {
+
     var link = $(this);
     switch(link.attr("id")) {
       case "jobs":
@@ -122,7 +123,8 @@ $('#injectType').change(function(){
        </table>
       </div>
       <button type="button" class="btn btn-primary" id="submitInject">Inject</button>
-    `);   
+    `);  
+    loadFormData(); 
   }
 
 });
@@ -131,7 +133,7 @@ $('#injectType').change(function(){
 $("#injectParams").on('click','#submitInject',function(){
 
   var attack = $('#injectType').val();
-  console.log(attack);
+  //console.log(attack);
   //Create Job to send with two elements
 
   var createInjectJSON = {staging:$("#stagingOpt").val()}
@@ -144,9 +146,9 @@ $("#injectParams").on('click','#submitInject',function(){
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (response){
-          console.log("Response Job:"+response[0].jid);
+          //console.log("Response Job:"+response[0].jid);
           if (response != null){
-            console.log("Response Job:"+response[0].jid);
+            //console.log("Response Job:"+response[0].jid);
             return
           }
         }
@@ -181,9 +183,9 @@ $("#injectParams").on('click','#submitInjectOffline',function(){
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (response){
-          console.log("Response Job:"+response[0].jid);
+          //console.log("Response Job:"+response[0].jid);
           if (response != null){
-            console.log("Response Job:"+response[0].jid);
+            //console.log("Response Job:"+response[0].jid);
             return
           }
         }

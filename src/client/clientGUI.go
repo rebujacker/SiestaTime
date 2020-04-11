@@ -149,6 +149,13 @@ type lockObject struct {
 
 var lock *lockObject
 
+type joblockObject struct {
+    mux  sync.RWMutex
+    Lock int
+}
+
+var joblock *joblockObject
+
 func guiHandler() {
 
 
@@ -176,6 +183,7 @@ func guiHandler() {
     reportsDB =     &ReportsMemoryDB{Reports:reports}
     
     lock = &lockObject{Lock:3}
+    joblock = &joblockObject{Lock:3}
 
     getHive("jobs")
     getHive("logs")
@@ -201,6 +209,7 @@ func guiHandler() {
     router.HandleFunc("/reports", GetReports).Methods("GET")
     router.HandleFunc("/redirectors", GetRedirectors).Methods("GET")
     router.HandleFunc("/bichitos", GetBichitos).Methods("GET")
+    router.HandleFunc("/username", GetUsername).Methods("GET")
 
     router.HandleFunc("/job", CreateJob).Methods("POST")
     router.HandleFunc("/interact", Interact).Methods("POST")
@@ -208,7 +217,7 @@ func guiHandler() {
     router.HandleFunc("/implant", DownloadImplant).Methods("POST")
     router.HandleFunc("/redirector", DownloadRedirector).Methods("POST")
 
-    log.Fatal(http.ListenAndServe(":8000", router))
+    log.Fatal(http.ListenAndServe(":"+clientPort, router))
 }
 
 // Get methods for the GUI 
@@ -268,18 +277,22 @@ func GetBichitos(w http.ResponseWriter, r *http.Request) {
     if lock.Lock > 0 {go getHive("bichitos")}
 }
 
+func GetUsername(w http.ResponseWriter, r *http.Request) {
+    tmp := UserAuth{username,""}
+    json.NewEncoder(w).Encode(tmp)
+
+}
+
 func CreateJob(w http.ResponseWriter, r *http.Request) {
     var(
         job Job
     )
 
-    //jobsToSend.mux.Lock()
-    //defer jobsToSend.mux.Unlock()
+    //DEbug
+    fmt.Println(joblock.Lock)
 
-    //Skip logs when there is a job/log overhead
-    //if len(jobsToSend.Jobs) > 5 {
-    //    return
-    //}
+
+    
 
     buf := new(bytes.Buffer)
     buf.ReadFrom(r.Body)
@@ -327,14 +340,12 @@ func CreateJob(w http.ResponseWriter, r *http.Request) {
     }
 
 
-
-    //jobsToSend.Jobs = append(jobsToSend.Jobs,&job)
     
-
-    if lock.Lock > 0 {
+    if joblock.Lock > 0 {
         go postHive(&job)
         fmt.Fprint(w, "[{\"jid\":\""+jid+"\"}]")
     }
+    
 
     return
 }
@@ -563,7 +574,12 @@ func DownloadRedirector(w http.ResponseWriter, r *http.Request) {
 
 func commonMiddleware(next http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        w.Header().Add("Content-Type", "application/json")
+        header := w.Header()
+        //CSP
+        csp := []string{"default-src: 'self'","object-src 'none'","","base-uri 'none'","script-src 'strict-dynamic'"}
+        header.Set("Content-Type", "application/json")
+        w.Header().Set("Content-Security-Policy", strings.Join(csp, "; "))
+        w.WriteHeader(200)
         next.ServeHTTP(w, r)
     })
 }

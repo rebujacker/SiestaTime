@@ -264,8 +264,14 @@ func createImplant(Offline string,name string,ttl string,resptime string,coms st
 					implantId,_ := getImplantIdbyNameDB(name)
 					vpsId,_ := getVpsIdbyNameDB(redirector.Vps)
 					domainId,_ := getDomainIdbyNameDB(redirector.Domain)
-					setUsedDomainDB(redirector.Domain,"Yes")
-					addRedDB(genId,"","",vpsId,domainId,implantId)
+					errSet1 := setUsedDomainDB(redirector.Domain,"Yes")
+					errSet2 := addRedDB(genId,"","",vpsId,domainId,implantId)
+					if (errSet1 != nil) {
+						return "ImplantGeneration(Error adding Red or chaging Domain Status,DB-Error):"+ errSet1.Error()
+					}
+					if (errSet2 != nil){
+						return "ImplantGeneration(Error adding Red or chaging Domain Status,DB-Error):"+ errSet2.Error()
+					}
 
 					// Add Redirector data to Implant Redirectors Slice
 					domainO := getDomainDB(redirector.Domain)
@@ -280,7 +286,10 @@ func createImplant(Offline string,name string,ttl string,resptime string,coms st
 			if Offline != "No" {
 					genId := fmt.Sprintf("%s%s","R-",randomString(8))
 					implantId,_ := getImplantIdbyNameDB(name)
-					addRedDB(genId,"","",0,0,implantId)
+					errAddRed := addRedDB(genId,"","",0,0,implantId)
+					if (errAddRed != nil){
+						return errAddRed.Error()
+					}
 			}
 
 			//Debug
@@ -363,8 +372,16 @@ func createImplant(Offline string,name string,ttl string,resptime string,coms st
 					implantId,_ := getImplantIdbyNameDB(name)
 					vpsId,_ := getVpsIdbyNameDB(redirector.Vps)
 					domainId,_ := getDomainIdbyNameDB(redirector.Domain)
-					setUsedDomainDB(redirector.Domain,"Yes")
-					addRedDB(genId,"","",vpsId,domainId,implantId)
+
+					errSet1 := setUsedDomainDB(redirector.Domain,"Yes")
+					errSet2 := addRedDB(genId,"","",vpsId,domainId,implantId)
+					if (errSet1 != nil){
+						return "ImplantGeneration(Error adding Red or chaging Domain Status,DB-Error):"+ errSet1.Error()
+					}
+					if (errSet2 != nil){
+						return "ImplantGeneration(Error adding Red or chaging Domain Status,DB-Error):"+ errSet2.Error()
+					}
+
 
 					// Add Redirector data to Implant Redirectors Slice
 					domainO := getDomainDB(redirector.Domain)
@@ -432,8 +449,12 @@ func createImplant(Offline string,name string,ttl string,resptime string,coms st
 				// Add Redirector to DB
 				
 				domainId,_ = getDomainIdbyNameDB(redirector.Domain)
-				setUsedDomainDB(redirector.Domain,"Yes")
-								
+				errSet1 := setUsedDomainDB(redirector.Domain,"Yes")
+				if (errSet1 != nil){
+					return "ImplantGeneration(Error adding Red or chaging Domain Status,DB-Error):"+errSet1.Error()
+				}
+
+
 				// Add Redirector data to Implant Redirectors Slice
 				domainO := getDomainFullDB(redirector.Domain)
 
@@ -458,7 +479,10 @@ func createImplant(Offline string,name string,ttl string,resptime string,coms st
 				if Offline == "No"{
 					redconfig.Saas = domainO.Domain
 					genId := fmt.Sprintf("%s%s","R-",randomString(8))			
-					addRedDB(genId,"","",vpsId,domainId,implantId)
+					errSet2 := addRedDB(genId,"","",vpsId,domainId,implantId)
+					if (errSet2 != nil){
+						return "ImplantGeneration(Error adding Red or chaging Domain Status,DB-Error):"+errSet2.Error()
+					}
 				}else{
 					redconfig.Offline = name
 				}
@@ -518,8 +542,11 @@ func createImplant(Offline string,name string,ttl string,resptime string,coms st
 				// Add Redirector to DB
 				
 				domainId,_ = getDomainIdbyNameDB(redirector.Domain)
-				setUsedDomainDB(redirector.Domain,"Yes")
-								
+				errSet1 := setUsedDomainDB(redirector.Domain,"Yes")
+				if (errSet1 != nil){
+					return "ImplantGeneration(Error adding Red or chaging Domain Status,DB-Error):"+errSet1.Error()
+				}
+
 				// Add Redirector data to Implant Redirectors Slice
 				domainO := getDomainFullDB(redirector.Domain)
 
@@ -544,7 +571,10 @@ func createImplant(Offline string,name string,ttl string,resptime string,coms st
 				bigmail.Redirectors = append(bigmail.Redirectors,bufRP.String())
 
 				genId := fmt.Sprintf("%s%s","R-",randomString(8))			
-				addRedDB(genId,"","",vpsId,domainId,implantId)
+				errSet2 := addRedDB(genId,"","",vpsId,domainId,implantId)
+				if (errSet2 != nil){
+					return "ImplantGeneration(Error adding Red or chaging Domain Status,DB-Error):"+errSet2.Error()
+				}
 			}
 
 
@@ -796,7 +826,7 @@ func createImplant(Offline string,name string,ttl string,resptime string,coms st
 		return elog
 	}
 
-
+	
 	// Generate target Infraestructure for Implant
 	if Offline == "No" {
 		infraResult := generateImplantInfra(implantFolder,coms,comsparams,redirectors)
@@ -805,6 +835,7 @@ func createImplant(Offline string,name string,ttl string,resptime string,coms st
 		}
 	}
 	
+
 	//Generate the Redirector Zip Folder for Downloads
 	var ziperrbuf bytes.Buffer
 	redZip := exec.Command("/bin/sh","-c", "zip -j "+implantFolder+"/redirector.zip "+implantFolder+"/red*")
@@ -827,7 +858,10 @@ func createImplant(Offline string,name string,ttl string,resptime string,coms st
 func removeImplant(name string) string{
 
 	implantFolder := "/usr/local/STHive/implants/"+name
-	destroyImplantInfra(implantFolder)
+	resRemove := destroyImplantInfra(implantFolder)
+	if resRemove != "Done"{
+		return resRemove
+	}
 	bichitosIds,err := getAllBidbyImplantNameDB(name)
 	if err != nil{
 		return err.Error()
@@ -835,10 +869,19 @@ func removeImplant(name string) string{
 
 	for _,bid := range bichitosIds {
 		//TO-DO:Send remove infection
-		rmJobsbyChidDB(bid) 
-		rmLogsbyPidDB(bid)
+		errSet1 := rmJobsbyChidDB(bid) 
+		errSet2 := rmLogsbyPidDB(bid)
 		//removeInfection(bid)
-		rmBibyBidDB(bid)
+		errSet3 := rmBibyBidDB(bid)
+		if (errSet1 != nil) {
+			return errSet1.Error()
+		}
+		if (errSet2 != nil)  {
+			return errSet3.Error()
+		}
+		if (errSet3 != nil) {
+			return errSet3.Error() 
+		}
 	}
 
 
@@ -850,13 +893,25 @@ func removeImplant(name string) string{
 	//remove reds, liberate domains,remove infra. TO-DO: Search domainId per implant itself! (for SaaS's)
 	for _,rid := range redirectorsIds {
 		dname,_ := getDomainbyRidDB(rid)
-		setUsedDomainDB(dname,"No")
-		rmLogsbyPidDB(rid)
-		rmRedbyRidDB(rid)
+		errSet1 := setUsedDomainDB(dname,"No")
+		errSet2 := rmLogsbyPidDB(rid)
+		errSet3 := rmRedbyRidDB(rid)
+		if (errSet1 != nil) {
+			return errSet1.Error()
+		}
+		if (errSet2 != nil) {
+			return errSet2.Error()
+		}
+		if (errSet3 != nil) {
+			return errSet3.Error()
+		}		
 	}
 
-	rmImplantDB(name)
-	//rmdir := exec.Command("/bin/sh","-c","rm -rf "+implantFolder)
+	errRmdb := rmImplantDB(name)
+	if (errRmdb != nil) {
+		return errRmdb.Error()
+	}
+
 	rmdir := exec.Command("/bin/rm","-rf",implantFolder)
 	rmdir.Start()
 	rmdir.Wait()

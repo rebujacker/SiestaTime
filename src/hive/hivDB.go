@@ -244,7 +244,7 @@ var reportsDB *ReportsMemoryDB
 func startDB(){
 
 	var err error
-	db, err = sql.Open("sqlite3", "./ST.db")
+	db, err = sql.Open("sqlite3", "./ST.db?_busy_timeout=1000")
 	if err != nil {
         //ErrorLog
         time := time.Now().Format("02/01/2006 15:04:05 MST")
@@ -1076,7 +1076,7 @@ func setJobStatusDB(jid string,status string) error{
     stmt,_ := db.Prepare("UPDATE jobs SET status=? where jid=?")
     defer stmt.Close()
     _,err = stmt.Exec(status,jid)
-    go updateMemoryDB("jobs")
+    //go updateMemoryDB("jobs")
     return err
 
 }

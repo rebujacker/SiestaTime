@@ -12,7 +12,7 @@ Forms.js Is the client code that will handle the actions to be performed in rela
 
 // Loads VPS's and Domains for the creation of Implant list
 // It Also loads the Existing implant list for creating Stagings
-function loadFormDataDomains(button) {
+function loadFormDataDomains() {
 
   if (implants != null){
     for (i = 0; i < implants.length; i++){
@@ -39,7 +39,7 @@ function loadFormDataDomains(button) {
 }
 
 
-function loadFormDataSaaS(button) {
+function loadFormDataSaaS() {
 
   if (implants != null){
     for (i = 0; i < implants.length; i++){
@@ -65,6 +65,8 @@ function loadFormDataSaaS(button) {
   }
 }
 
+loadFormDataDomains();
+loadFormDataSaaS();
 
 //// Parameters options for one Network Module or other
 
@@ -77,12 +79,13 @@ function getP(){
 
 
 function addRow() {
-  $(".participantRow").clone(true, true).appendTo("#participantTable");
-  $("#redNumber").text($('#participantTable tr').length - 2);
+  $(".participantRow:first").clone(true, true).appendTo("#participantTable:last");
+  $("#redNumber").text("Redirectors: " + ($('#participantTable tr').length - 2));
 }
 
 function removeRow(button) {
   button.closest("tr").remove();
+  $("#redNumber").text("Redirectors: " + ($('#participantTable tr').length - 2));
 }
 
 /* Doc ready */
@@ -201,7 +204,80 @@ $('#coms').change(function(){
 
 
 
-  if ($('#coms').val() == 'gmailgo'){
+  if ($('#coms').val() == 'selfsignedhttpsgo'){
+    $("#netParams").empty();
+    $("#netParams").append(`
+    <div class="form-group">
+      <label for="iname">TLS Port </label>
+      <input type="text" class="form-control" name="comsparams" placeholder="">
+    </div>
+
+<div>
+  <label id="redNumber"> Redirectors: 1 </label>
+  <table class="form-group" id="participantTable">
+        <thead>
+            <tr>
+                <th>VPS</th>
+                <th>Domain</th>
+            </tr>
+        </thead>
+        <tr class="participantRow" name="redirector">
+            <td>
+                <select id="vpsOpt" class="required-entry" name="vps">
+                </select>
+            </td>
+            <td>
+                <select id="domainOpt" class="required-entry" name="domain">
+                </select>
+            </td>
+            <td><button class="btn btn-danger remove" type="button">Remove</button></td>
+        </tr>
+        <tr id="addButtonRow">
+            <td colspan="4"><center><button class="btn btn-large btn-success add" type="button">Add</button></center></td>
+        </tr>
+  </table>
+</div>
+<button type="button" class="btn btn-primary" id="submitcreationImplantDomain">Create Implant</button>
+    `);
+    loadFormDataDomains();
+  }else if ($('#coms').val() == 'paranoidhttpsgo'){
+    $("#netParams").empty();
+    $("#netParams").append(`
+    <div class="form-group">
+      <label for="iname">TLS Port </label>
+      <input type="text" class="form-control" name="comsparams" placeholder="">
+    </div>
+
+<div>
+  <label id="redNumber"> Redirectors: 1 </label>
+  <table class="form-group" id="participantTable">
+        <thead>
+            <tr>
+                <th>VPS</th>
+                <th>Domain</th>
+            </tr>
+        </thead>
+        <tr class="participantRow" name="redirector">
+            <td>
+                <select id="vpsOpt" class="required-entry" name="vps">
+                </select>
+            </td>
+            <td>
+                <select id="domainOpt" class="required-entry" name="domain">
+                </select>
+            </td>
+            <td><button class="btn btn-danger remove" type="button">Remove</button></td>
+        </tr>
+        <tr id="addButtonRow">
+            <td colspan="4"><center><button class="btn btn-large btn-success add" type="button">Add</button></center></td>
+        </tr>
+  </table>
+</div>
+<button type="button" class="btn btn-primary" id="submitcreationImplantDomain">Create Implant</button>
+    `);
+    loadFormDataDomains();
+
+  }else if ($('#coms').val() == 'gmailgo'){
     $("#netParams").empty();
     $("#netParams").append(`
     
@@ -211,15 +287,14 @@ $('#coms').change(function(){
     </div>
     
     <div>
+      <label id="redNumber"> Redirectors: 1 </label>
       <table class="form-group" id="participantTable">
         <thead>
             <tr>
-                <th>Redirector</th>
                 <th>SaaS API Account</th>
             </tr>
         </thead>
         <tr class="participantRow" name="redirector">
-            <td id="redNumber"></td>
             <td>
                 <select id="domainOpt" class="required-entry" name="domain">
                 </select>
@@ -254,15 +329,14 @@ $('#coms').change(function(){
     </div>
     
     <div>
+      <label id="redNumber"> Redirectors: 1 </label>
       <table class="form-group" id="participantTable">
         <thead>
             <tr>
-                <th>Redirector</th>
                 <th>SaaS API Account</th>
             </tr>
         </thead>
         <tr class="participantRow" name="redirector">
-            <td id="redNumber"></td>
             <td>
                 <select id="domainOpt" class="required-entry" name="domain">
                 </select>
@@ -277,80 +351,8 @@ $('#coms').change(function(){
   <button type="button" class="btn btn-primary" id="submitcreationImplantSaaS">Create Implant</button>
     `);
     loadFormDataSaaS();
-  }else if ($('#coms').val() == 'selfsignedhttpsgo'){
-    $("#netParams").empty();
-    $("#netParams").append(`
-    <div class="form-group">
-      <label for="iname">TLS Port </label>
-      <input type="text" class="form-control" name="comsparams" placeholder="">
-    </div>
 
-<div>
-  <table class="form-group" id="participantTable">
-        <thead>
-            <tr>
-                <th>Redirector</th>
-                <th>VPS</th>
-                <th>Domain</th>
-            </tr>
-        </thead>
-        <tr class="participantRow" name="redirector">
-            <td id="redNumber"></td>
-            <td>
-                <select id="vpsOpt" class="required-entry" name="vps">
-                </select>
-            </td>
-            <td>
-                <select id="domainOpt" class="required-entry" name="domain">
-                </select>
-            </td>
-            <td><button class="btn btn-danger remove" type="button">Remove</button></td>
-        </tr>
-        <tr id="addButtonRow">
-            <td colspan="4"><center><button class="btn btn-large btn-success add" type="button">Add</button></center></td>
-        </tr>
-  </table>
-</div>
-<button type="button" class="btn btn-primary" id="submitcreationImplantDomain">Create Implant</button>
-    `);
-    loadFormDataDomains();
-  }else if ($('#coms').val() == 'paranoidhttpsgo'){
-    $("#netParams").empty();
-    $("#netParams").append(`
-    <div class="form-group">
-      <label for="iname">TLS Port </label>
-      <input type="text" class="form-control" name="comsparams" placeholder="">
-    </div>
 
-<div>
-  <table class="form-group" id="participantTable">
-        <thead>
-            <tr>
-                <th>Redirector</th>
-                <th>VPS</th>
-                <th>Domain</th>
-            </tr>
-        </thead>
-        <tr class="participantRow" name="redirector">
-            <td id="redNumber"></td>
-            <td>
-                <select id="vpsOpt" class="required-entry" name="vps">
-                </select>
-            </td>
-            <td>
-                <select id="domainOpt" class="required-entry" name="domain">
-                </select>
-            </td>
-            <td><button class="btn btn-danger remove" type="button">Remove</button></td>
-        </tr>
-        <tr id="addButtonRow">
-            <td colspan="4"><center><button class="btn btn-large btn-success add" type="button">Add</button></center></td>
-        </tr>
-  </table>
-</div>
-<button type="button" class="btn btn-primary" id="submitcreationImplantDomain">Create Implant</button>
-    `);
-    loadFormDataDomains();
   
   }else if ($('#coms').val() == 'selfsignedhttpsgoOffline'){
     $("#netParams").empty();
@@ -361,15 +363,14 @@ $('#coms').change(function(){
     </div>
 
 <div>
+  <label id="redNumber"> Redirectors: 1 </label>
   <table class="form-group" id="participantTable">
         <thead>
             <tr>
-                <th>Redirector Number </th>
                 <th>Domain or IP</th>
             </tr>
         </thead>
         <tr class="participantRow" name="redirector">
-            <td id="redNumber"></td>
             <td>
                 <input type="hidden" name="vps" />
             </td>
@@ -396,15 +397,14 @@ $('#coms').change(function(){
     </div>
 
 <div>
+  <label id="redNumber"> Redirectors: 1 </label>
   <table class="form-group" id="participantTable">
         <thead>
             <tr>
-                <th>Redirector Number </th>
                 <th>Domain</th>
             </tr>
         </thead>
         <tr class="participantRow" name="redirector">
-            <td id="redNumber"></td>
             <td>
                 <input type="hidden" name="vps" />
             </td>
@@ -431,15 +431,14 @@ $('#coms').change(function(){
     </div>
     
     <div>
+      <label id="redNumber"> Redirectors: 1 </label>
       <table class="form-group" id="participantTable">
         <thead>
             <tr>
-                <th>Redirector</th>
                 <th>SaaS API Account</th>
             </tr>
         </thead>
         <tr class="participantRow" name="redirector">
-            <td id="redNumber"></td>
             <td>
                 <select id="domainOpt" class="required-entry" name="domain">
                 </select>
@@ -474,15 +473,14 @@ $('#coms').change(function(){
     </div>
     
     <div>
+      <label id="redNumber"> Redirectors: 1 </label>
       <table class="form-group" id="participantTable">
         <thead>
             <tr>
-                <th>Redirector</th>
                 <th>SaaS API Account</th>
             </tr>
         </thead>
         <tr class="participantRow" name="redirector">
-            <td id="redNumber"></td>
             <td>
                 <select id="domainOpt" class="required-entry" name="domain">
                 </select>
@@ -498,8 +496,6 @@ $('#coms').change(function(){
     `);
     loadFormDataSaaS();
   }
-
-  $("#redNumber").text($('#participantTable tr').length - 2);
   
 });
 
@@ -590,7 +586,7 @@ $("#netParams").on('click','#submitcreationImplantDomain',function () {
   }
 
   var createImplantJSON = objectifyImplantForm($("#createimplantform").serializeArray());
-  console.log(createImplantJSON);
+  ////console.log(createImplantJSON);
 
 
   //Create Job to send with two elements
@@ -603,9 +599,9 @@ $("#netParams").on('click','#submitcreationImplantDomain',function () {
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (response){
-          console.log("Response Job:"+response[0].jid);
+          ////console.log("Response Job:"+response[0].jid);
           if (response != null){
-            console.log("Response Job:"+response[0].jid);
+            ////console.log("Response Job:"+response[0].jid);
             return
           }
         }
@@ -662,7 +658,7 @@ $("#netParams").on('click','#submitcreationImplantSaaS',function () {
   }
 
   var createImplantJSON = objectifyForm($("#createimplantform").serializeArray());
-  console.log(createImplantJSON);
+  ////console.log(createImplantJSON);
 
 
   //Create Job to send with two elements
@@ -675,9 +671,9 @@ $("#netParams").on('click','#submitcreationImplantSaaS',function () {
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (response){
-          console.log("Response Job:"+response[0].jid);
+          ////console.log("Response Job:"+response[0].jid);
           if (response != null){
-            console.log("Response Job:"+response[0].jid);
+            ////console.log("Response Job:"+response[0].jid);
             return
           }
         }
@@ -764,7 +760,7 @@ $("#submitcreationvps").on('click',function(){
   //Serialize form in the correct way
   var createVpsJSON = objectifyForm($("#createvpsform").serializeArray(),$("#vpsparamsform").serializeArray());
 
-  console.log(JSON.stringify(createVpsJSON));
+  ////console.log(JSON.stringify(createVpsJSON));
 
   //Create Job to send with two elements
   var data = {cid:"",jid:"",pid:"Hive",chid:"None",job:"createVPS",time:"",status:"",result:"",parameters:"["+JSON.stringify(createVpsJSON)+"]"};
@@ -776,9 +772,9 @@ $("#submitcreationvps").on('click',function(){
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (response){
-          console.log("Response Job:"+response[0].jid);
+          ////console.log("Response Job:"+response[0].jid);
           if (response != null){
-            console.log("Response Job:"+response[0].jid);
+            ////console.log("Response Job:"+response[0].jid);
             return
           }
         }
@@ -881,9 +877,9 @@ $("#params").on('click','#submitcreationdomain',function(){
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (response){
-          console.log("Response Job:"+response[0].jid);
+          //console.log("Response Job:"+response[0].jid);
           if (response != null){
-            console.log("Response Job:"+response[0].jid);
+            //console.log("Response Job:"+response[0].jid);
             return
           }
         }
@@ -933,9 +929,9 @@ $("#params").on('click','#submitcreationdomainSaaS',function(){
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (response){
-          console.log("Response Job:"+response[0].jid);
+          //console.log("Response Job:"+response[0].jid);
           if (response != null){
-            console.log("Response Job:"+response[0].jid);
+            //console.log("Response Job:"+response[0].jid);
             return
           }
         }
@@ -1030,7 +1026,7 @@ $("#submitcreationstaging").on('click',function(){
   //Serialize form in the correct way
 
   var createStagingJSON = objectifyForm($("#createstagingform").serializeArray(),$("#stagingparamsform").serializeArray());
-  console.log($("#createstagingform").serializeArray());
+  //console.log($("#createstagingform").serializeArray());
   
   //Create Job to send with two elements
   var data = {cid:"",jid:"",pid:"Hive",chid:"None",job:"createStaging",time:"",status:"",result:"",parameters:"["+JSON.stringify(createStagingJSON)+"]"};
@@ -1042,9 +1038,9 @@ $("#submitcreationstaging").on('click',function(){
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (response){
-          console.log("Response Job:"+response[0].jid);
+          //console.log("Response Job:"+response[0].jid);
           if (response != null){
-            console.log("Response Job:"+response[0].jid);
+            //console.log("Response Job:"+response[0].jid);
             return
           }
         }
@@ -1087,9 +1083,9 @@ $("#submitcreationreport").on('click',function(){
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (response){
-          console.log("Response Job:"+response[0].jid);
+          //console.log("Response Job:"+response[0].jid);
           if (response != null){
-            console.log("Response Job:"+response[0].jid);
+            //console.log("Response Job:"+response[0].jid);
             return
           }
         }
@@ -1130,9 +1126,9 @@ $("#submitaddOperator").on('click',function(){
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (response){
-          console.log("Response Job:"+response[0].jid);
+          //console.log("Response Job:"+response[0].jid);
           if (response != null){
-            console.log("Response Job:"+response[0].jid);
+            //console.log("Response Job:"+response[0].jid);
             return
           }
         }

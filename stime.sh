@@ -39,7 +39,9 @@ PASSWORD=$3
 HASH=$(htpasswd -bnBC 14 "" ${PASSWORD} | tr -d ':\n')
 HIVIP=$4
 HIVPORT=$5
-HIVTLSHASH=$6
+CLIENTPORT=$6
+HIVTLSHASH=$7
+
 
 sudo apt-get update
 sudo apt-get install gcc apache2-utils sqlite3 libsqlite3-dev unzip git
@@ -74,7 +76,7 @@ cp ./src/rebugo/gmail/v1/gmail-gen.go ./src/google.golang.org/api/gmail/v1/.
 
 #Compile client with target variables and prepare electron front-end
 cd ./installConfig
-GOOS=linux GOARCH=amd64 ./go/bin/go build --ldflags "-X main.username=${USERNAME} -X main.password=${PASSWORD} -X main.roasterString=${HIVIP}:${HIVPORT} -X main.fingerPrint=${HIVTLSHASH}" -o stclient client
+GOOS=linux GOARCH=amd64 ./go/bin/go build --ldflags "-X main.username=${USERNAME} -X main.password=${PASSWORD} -X main.roasterString=${HIVIP}:${HIVPORT} -X main.fingerPrint=${HIVTLSHASH} -X main.clientPort=${CLIENTPORT}" -o stclient client
 cp -r ../src/client/electronGUI/ .
 cd electronGUI/
 sudo apt-get install -y npm

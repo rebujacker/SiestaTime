@@ -48,11 +48,16 @@ loadFormData();
   }
 
   var infoJson = JSON.parse(implant.modules)
-  console.log(binumber);
-  console.log(idomains);
-  console.log(ivps);
+  //console.log(infoJson.coms);
+  //console.log(infoJson.persistence);
   $("#network").text(htmlencode.htmlEncode(infoJson.coms.replace(/\n/g, '')));
-  $("#persistence").text(htmlencode.htmlEncode(infoJson.persistence.replace(/\n/g, '')));
+  
+  if (infoJson.persistence != undefined){
+    $("#persistence").text(htmlencode.htmlEncode(infoJson.persistence.replace(/\n/g, '')));
+  }else{
+    $("#persistence").text("None");
+  }
+
   $("#ivps").text(ivps);
   $("#idomains").text(idomains);
   $("#ibichitos").text(binumber);

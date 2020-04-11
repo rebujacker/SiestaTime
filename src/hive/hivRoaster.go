@@ -378,8 +378,9 @@ func PostUser(w http.ResponseWriter, r *http.Request) {
     buf := new(bytes.Buffer)
     buf.ReadFrom(r.Body)
     
-    fmt.Println("Bytes Body:")
-    fmt.Println(buf.Len())
+    //Debug
+    //fmt.Println("Bytes Body:")
+    //fmt.Println(buf.Len())
     
     
     decoder := json.NewDecoder(buf)
@@ -391,24 +392,20 @@ func PostUser(w http.ResponseWriter, r *http.Request) {
 		go addLogDB("Hive",time,elog)
 		return
     }
-    
 
-    /*
-    err := json.Unmarshal([]byte(buf.String()),&job)
-    if err != nil {
-        //ErrorLog
-        time := time.Now().Format("02/01/2006 15:04:05 MST")
-        elog := fmt.Sprintf("%s%s","Jobs(Error Decoding User Job):",err.Error())
-        addLogDB("Hive",time,elog)
-        return
-    }
-    */
 
 
     job.Cid = cid
     //If it targets a bichito;Set RID to target Job, in function of the last RID assigned to the Bot
     if !strings.Contains(job.Pid,"Hive"){
-        job.Pid,_ = getRidbyBid(job.Chid)
+        job.Pid,err = getRidbyBid(job.Chid)
+        if err != nil {
+            //ErrorLog
+            time := time.Now().Format("02/01/2006 15:04:05 MST")
+            elog := fmt.Sprintf("%s%s","Jobs(Error Getting Rid by Chid):",err.Error())
+            go addLogDB("Hive",time,elog)
+            return
+        } 
     }
 	
 
@@ -442,6 +439,10 @@ func PostUser(w http.ResponseWriter, r *http.Request) {
 
 func userAddJob(job *Job){
 
+    //Don't add Parameters in the Job Log to avoid unnecessary secrets logging
+    parameters := job.Parameters
+    job.Parameters = "" 
+
     //check redundant Jid
     errJ := addJobDB(job)
     if errJ != nil {
@@ -452,9 +453,22 @@ func userAddJob(job *Job){
         return
     }
 
-    setJobStatusDB(job.Jid,"Processing")
+    errS := setJobStatusDB(job.Jid,"Processing")
+    if errS != nil {
+        //ErrorLog
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
+        elog := fmt.Sprintf("%s%s","Jobs(Error Setting Job Status to Processing):",errS.Error())
+        go addLogDB("Hive",time,elog)
+        return
+    }
+
+    job.Parameters = parameters
+
     //Start a Routine to update bichito Status
-    go bichitoStatus(job)
+    if (job.Chid != "None"){
+        go bichitoStatus(job)
+    }
+
     jobProcessor(job)
 
 }
@@ -578,9 +592,9 @@ func removeRidJobs(removePos map[int]int) {
     
     jobsToProcess.mux.Unlock()
     //Debug
-    fmt.Println(j)
-    fmt.Println(len(jobsToProcess.Jobs))
-    fmt.Println(removePos)
+    //fmt.Println(j)
+    //fmt.Println(len(jobsToProcess.Jobs))
+    //fmt.Println(removePos)
     return
 }
 
@@ -645,13 +659,29 @@ func redAddJob(job *Job){
         //Debug:
         //fmt.Println("Adding ssinfo...")
         //Update Bid Info
-        setBiInfoDB(job.Chid,job.Result)
+        err1 := setBiInfoDB(job.Chid,job.Result)
+        if err1 != nil {
+            //ErrorLog
+            time := time.Now().Format("02/01/2006 15:04:05 MST")
+            elog := fmt.Sprintf("%s%s","Jobs(Error Saving Bichito "+job.Chid+" Sysinfo to DB):",err1.Error())
+            go addLogDB("Hive",time,elog)
+            return
+        }
+
         return
     }
 
     if (job.Job == "resptime") && (job.Status == "Success") {      
         i, _ := strconv.Atoi(job.Parameters)
-        setBichitoRespTimeDB(job.Chid,i)
+        err2 := setBichitoRespTimeDB(job.Chid,i)
+        if err2 != nil {
+            //ErrorLog
+            time := time.Now().Format("02/01/2006 15:04:05 MST")
+            elog := fmt.Sprintf("%s%s","Jobs(Error Changing Bichito "+job.Chid+" Resptime to DB):",err2.Error())
+            go addLogDB("Hive",time,elog)
+            return
+        }
+
     }
 
     //Persistence Flows
@@ -685,10 +715,35 @@ func redAddJob(job *Job){
     }
 
     //Update Last Actives and Redirectors/Bichitos if PiggyBAcking Job is correct
-    time := time.Now().Format("02/01/2006 15:04:05 MST")
-    setRedLastCheckedDB(job.Pid,time)
-    setBiLastCheckedbyBidDB(job.Chid,time)
-    setBiRidDB(job.Chid,job.Pid)
+    time1 := time.Now().Format("02/01/2006 15:04:05 MST")
+    
+    errRLC := setRedLastCheckedDB(job.Pid,time1)
+    if errRLC != nil {
+        //ErrorLog
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
+        elog := fmt.Sprintf("%s%s","Jobs(Error Setting "+job.Pid+" lastchecked to DB):",errRLC.Error())
+        go addLogDB("Hive",time,elog)
+        return
+    }    
+    
+    errRLB := setBiLastCheckedbyBidDB(job.Chid,time1)
+    if errRLB != nil {
+        //ErrorLog
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
+        elog := fmt.Sprintf("%s%s","Jobs(Error Setting "+job.Chid+" lastchecked to DB):",errRLB.Error())
+        go addLogDB("Hive",time,elog)
+        return
+    }    
+    
+    errRB := setBiRidDB(job.Chid,job.Pid)
+    if errRB != nil {
+        //ErrorLog
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
+        elog := fmt.Sprintf("%s%s","Jobs(Error Setting red: "+job.Pid+" to bi: "+job.Chid+" to DB):",errRB.Error())
+        go addLogDB("Hive",time,elog)
+        return
+    }    
+    
     go updateMemoryDB("jobs")
     return
 }
@@ -760,7 +815,7 @@ func redAuth(authbearer string) string{
         err,token = getDomainTokenDB(redauth.Domain)
         if err != nil{
             time := time.Now().Format("02/01/2006 15:04:05 MST")
-            elog := "Red Auth(Not token found for target domain):" + err.Error()
+            elog := "Red Auth(Not token found for target "+redauth.Domain+"):" + err.Error()
             //fmt.Println("Happening Domain:"+redauth.Domain+"time:"+time+"error:"+err.Error())
             addLogDB("Hive",time,elog)
             return "Bad"
@@ -771,7 +826,7 @@ func redAuth(authbearer string) string{
         err,token = getImplantTokenDB(redauth.Domain)
         if err != nil{
             time := time.Now().Format("02/01/2006 15:04:05 MST")
-            elog := "Red Auth(Not token found for target Offline Implant):" + err.Error()
+            elog := "Red Auth(Not token found for target Offline Implant:"+redauth.Domain+"):" + err.Error()
             //fmt.Println("Happening Domain:"+redauth.Domain+"time:"+time+"error:"+err.Error())
             addLogDB("Hive",time,elog)
             return "Bad"
