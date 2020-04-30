@@ -23,7 +23,7 @@ import "C"
 
 
 type BiPersistenceWinSchtasks struct {
-	Path string   `json:"path"`
+	Path string   `json:"implantpath"`
 	TaskName string   `json:"taskname"`
 }
 

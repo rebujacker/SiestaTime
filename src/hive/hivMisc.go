@@ -46,6 +46,11 @@ func namesInputWhite(input string) bool{
     return white(input)
 }
 
+func filesInputWhite(input string) bool{
+    var white = regexp.MustCompile(`^[\w.-]{1,200}$`).MatchString
+    return white(input)
+}
+
 func numbersInputWhite(input string) bool{
     var white = regexp.MustCompile(`^[0-9]{1,200}$`).MatchString
     return white(input)

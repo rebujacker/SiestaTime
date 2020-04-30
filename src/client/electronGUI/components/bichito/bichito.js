@@ -51,8 +51,8 @@ $(document).ready(function() {
   $("#lastdomain").text(domain);
 
   
-  $(".STmain").on("click","button",function() {
-
+  $(".btn").unbind().click(function() {
+    console.log("happening")
     var link = $(this);
     switch(link.attr("id")) {
       case "jobs":

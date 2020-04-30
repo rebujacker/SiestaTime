@@ -57,6 +57,7 @@ func connectOut() string{
 		errorS,info := biterpreter.Sysinfo()
 		if errorS{
 			info = "Error Getting System Info:"+info
+			go addLog("Error Getting System Info:"+info)
 			return info
 		}
 

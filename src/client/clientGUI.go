@@ -288,11 +288,10 @@ func CreateJob(w http.ResponseWriter, r *http.Request) {
         job Job
     )
 
-    //DEbug
+    //Debug
+    fmt.Println("Lock Write:")
     fmt.Println(joblock.Lock)
 
-
-    
 
     buf := new(bytes.Buffer)
     buf.ReadFrom(r.Body)
@@ -344,6 +343,8 @@ func CreateJob(w http.ResponseWriter, r *http.Request) {
     if joblock.Lock > 0 {
         go postHive(&job)
         fmt.Fprint(w, "[{\"jid\":\""+jid+"\"}]")
+    }else{
+        fmt.Fprint(w, "Client Queue Full")  
     }
     
 
@@ -473,7 +474,7 @@ func Interact(w http.ResponseWriter, r *http.Request) {
 
     }
 
-    //fmt.Println("/bin/bash", "-c","gnome-terminal -- ssh -oStrictHostKeyChecking=no -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo printf \"\n\nInteractive Session started time,from:"+username+"\n\n\" >> "+interact.Handler+".log;sudo reptyr -s $(echo $(ps -ax | grep "+interact.Handler+" | head -n 1 |cut -d \" \" -f 1))|tee -a "+interact.Handler+".log'")
+
 
     var command string
 
@@ -482,14 +483,16 @@ func Interact(w http.ResponseWriter, r *http.Request) {
     case "droplet":
         command = "gnome-terminal -- ssh -oStrictHostKeyChecking=no -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo printf \"\n\nInteractive Session started time,from:"+username+"\n\n\" >> "+interact.Handler+".log;sudo bash|tee -a "+interact.Handler+".log'" 
     case "msfconsole":
-        command = "gnome-terminal -- ssh -oStrictHostKeyChecking=no -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo printf \"\n\nInteractive Session started time,from:"+username+"\n\n\" >> "+interact.Handler+".log;sudo reptyr -s $(echo $(ps -ax | grep "+interact.Handler+" | head -n 1 |cut -d \" \" -f 1))|tee -a "+interact.Handler+".log'" 
+        command = "gnome-terminal -- ssh -oStrictHostKeyChecking=no -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo printf \"\n\nInteractive Session started time,from:"+username+"\n\n\" >> "+interact.Handler+".log;sudo reptyr -s $(pgrep ruby)|tee -a "+interact.Handler+".log'" 
     case "empire":
-        command = "gnome-terminal -- ssh -oStrictHostKeyChecking=no -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo printf \"\n\nInteractive Session started time,from:"+username+"\n\n\" >> "+interact.Handler+".log;sudo reptyr -s $(echo $(ps -ax | grep "+interact.Handler+" | head -n 1 |cut -d \" \" -f 1))|tee -a "+interact.Handler+".log'" 
+        command = "gnome-terminal -- ssh -oStrictHostKeyChecking=no -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo printf \"\n\nInteractive Session started time,from:"+username+"\n\n\" >> "+interact.Handler+".log;sudo reptyr -s $(pgrep python)|tee -a "+interact.Handler+".log'" 
     case "ssh":
         command = "gnome-terminal -- ssh -oStrictHostKeyChecking=no -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo printf \"\n\nInteractive Session started time,from:"+username+"\n\n\" >> "+interact.Handler+".log;nc 127.0.0.1 2222|tee -a "+interact.Handler+".log'"
 
-
     }
+
+    //Debug
+    fmt.Println(command)
 
     outbuf.Reset()
     errbuf.Reset()

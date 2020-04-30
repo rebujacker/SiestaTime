@@ -206,13 +206,14 @@ func unlock(){
 
 func jobunlock(){
     joblock.mux.Lock()
-    joblock.Lock = lock.Lock + 1
+    joblock.Lock = joblock.Lock + 1
     joblock.mux.Unlock()
 }
 
 func getHive(objtype string){
 	
-    fmt.Println("Lock:")
+    //Debug:
+    fmt.Println("Lock Read:")
     fmt.Println(lock.Lock)
     lock.mux.Lock()
     lock.Lock = lock.Lock - 1
@@ -220,7 +221,7 @@ func getHive(objtype string){
     defer unlock()
 
 
-	fmt.Println("Getting:" + objtype)
+	//fmt.Println("Getting:" + objtype)
 
 	checkTLSignature()
 	
@@ -266,7 +267,7 @@ func getHive(objtype string){
 	}
 
 	//Debug Client Get Hive Data	
-	fmt.Println(string(body))
+	//fmt.Println(string(body))
 
 
 	go updateData(objtype,string(body))
@@ -276,26 +277,6 @@ func getHive(objtype string){
 func updateData(objtype string,guidata string){
 
     reader := strings.NewReader(guidata)
-
-    /*
-    var guidataO *GuiData
-    err := json.NewDecoder(reader).Decode(&guidataO)
-    if err != nil{
-        fmt.Println(err.Error())
-        return
-    }
-
-	jobs = guidataO.Jobs
-	logs = guidataO.Logs
-	implants = guidataO.Implants
-	vpss = guidataO.Vps
-	domains = guidataO.Domains
-	stagings = guidataO.Stagings
-	reports = guidataO.Reports
-	redirectors = guidataO.Redirectors
-	bichitos = guidataO.Bichitos
-	*/
-
 
     switch objtype{
         case "jobs":
@@ -400,15 +381,12 @@ func updateData(objtype string,guidata string){
 func postHive(job *Job){
 
 
-
-    if !(joblock.Lock > 0) {
-        return        
-    }
+    defer jobunlock()
 
     joblock.mux.Lock()
     joblock.Lock = joblock.Lock - 1
     joblock.mux.Unlock()
-    defer jobunlock()
+    
 	
     //job := jobsToSend.Jobs[0]
 	checkTLSignature()
@@ -453,32 +431,7 @@ func postHive(job *Job){
 		return
 	}
 
-
-/*
-    unlock()
-
-
-    //Debug:
-    fmt.Println(len(jobsToSend.Jobs))
-    jobsToSend.mux.Lock()
-    jobsToSend.Jobs = jobsToSend.Jobs[1:]
-    jobsToSend.mux.Unlock()
-
-    if len(jobsToSend.Jobs) != 0 {
-        time.Sleep(1 * time.Second)
-        postHive()
-    }
-    */
-
-	//Debug Post to Hive
-	/*
-	requestDump, err2 := httputil.DumpRequest(req, true)
-	if err2 != nil {
-  		fmt.Println(err)
-	}
-	fmt.Println(string(requestDump))
-	*/
-
+    return
 }
 
 

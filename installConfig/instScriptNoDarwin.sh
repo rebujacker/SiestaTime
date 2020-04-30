@@ -12,14 +12,14 @@ cp /usr/local/STHive/sources/src/rebugo/oauth2/internal/token.go /usr/local/STHi
 cp /usr/local/STHive/sources/src/rebugo/gmail/v1/gmail-gen.go /usr/local/STHive/sources/src/google.golang.org/api/gmail/v1/.
 
 #Objective-C/Cocoa Cross-Compilation:darwin - osxcross
-sudo wget https://github.com/tpoechtrager/osxcross/archive/master.zip
-sudo unzip master.zip
-sudo mv osxcross-master/ /usr/local/STHive/sources/osxcross
-sudo mv /usr/local/STHive/MacOSX10.13.sdk.tar.xz /usr/local/STHive/sources/osxcross/tarballs/
-sudo rm master.zip
-cd /usr/local/STHive/sources/osxcross/
-sudo bash ./tools/get_dependencies.sh
-sudo yes | sudo ./build.sh
+#sudo wget https://github.com/tpoechtrager/osxcross/archive/master.zip
+#sudo unzip master.zip
+#sudo mv osxcross-master/ /usr/local/STHive/sources/osxcross
+#sudo mv /usr/local/STHive/MacOSX10.13.sdk.tar.xz /usr/local/STHive/sources/osxcross/tarballs/
+#sudo rm master.zip
+#cd /usr/local/STHive/sources/osxcross/
+#sudo bash ./tools/get_dependencies.sh
+#sudo yes | sudo ./build.sh
 
 #Dependencies for windows c++ code
 sudo mkdir /usr/local/STHive/sources/winDependencies

@@ -18,7 +18,7 @@ import (
 	//Fixes
 	"time"
 	"encoding/json"
-	//"fmt"
+	"fmt"
 )
 
 type InjectRevSshShellBichito struct {
@@ -32,7 +32,7 @@ type InjectRevSshShellBichito struct {
 func RevSshShell(jsonparams string) (bool,string){
 
 	//Debug
-	//fmt.Println(jsonparams)
+	fmt.Println(jsonparams)
 
 	var revsshshellparams *InjectRevSshShellBichito
 	errDaws := json.Unmarshal([]byte(jsonparams),&revsshshellparams)

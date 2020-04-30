@@ -68,7 +68,7 @@ type Domain struct {
     Active   string `json:"active"`         // It is being used by an Implant or not    
     Dtype string `json:"dtype"`             // Godaddy,Facebook,...
     Domain string   `json:"domain"`         // Just for domain providers
-    Parameters string   `json:"parameters"` // Parameters will be JSON serialized to provide flexibility
+    Parameters string   `json:"parameters"`
 }
 
 
@@ -240,18 +240,64 @@ type ReportsMemoryDB struct {
 var reportsDB *ReportsMemoryDB
 
 
+type OperatorAuth struct {
+    Cid string
+    Username string
+    Hash string
+    Admin string
+}
+
+type OperatorsAuthMemoryDB struct {
+    mux  sync.RWMutex
+    Operators []*OperatorAuth
+}
+var operatorsAuthDB *OperatorsAuthMemoryDB
+
+type ImplantAuth struct {
+    Name string
+    RedToken string
+}
+
+type ImplantsAuthMemoryDB struct {
+    mux  sync.RWMutex
+    Implants []*ImplantAuth
+}
+var implantsAuthDB *ImplantsAuthMemoryDB
+
+type updateMemoryDBLockObject struct {
+    mux  sync.RWMutex
+    Working bool
+    Jobs bool
+    Domains bool
+    Vps bool
+    Logs bool
+    Implants bool
+    Redirectors bool
+    Bichitos bool
+    Stagings bool
+    Reports bool
+    OperatorsAuth bool
+    ImplantsAuth bool
+}
+
+var readLock *updateMemoryDBLockObject
+
+
 
 func startDB(){
 
 	var err error
-	db, err = sql.Open("sqlite3", "./ST.db?_busy_timeout=1000")
-	if err != nil {
+	db, err = sql.Open("sqlite3", "./ST.db?_busy_timeout=10000") //prev 1000
+	//db, err = sql.Open("sqlite3", "./ST.db:locked.sqlite?cache=shared")
+    if err != nil {
         //ErrorLog
         time := time.Now().Format("02/01/2006 15:04:05 MST")
         elog := fmt.Sprintf("%s%s","Network(Error Starting DB):",err.Error())
         addLogDB("Hive",time,elog)
     	panic(err)
     }
+
+    //db.SetMaxOpenConns(1)
 
     // To avoid panicquing with golang concurrency
     //db.SetMaxOpenConns(20)
@@ -267,7 +313,14 @@ func startDB(){
         redirectors []*Redirector
         bichitos    []*Bichito
         reports     []*Report
+        operatorsAuth     []*OperatorAuth
+        implantsAuth    []*ImplantAuth
+
+        jobsQueue   []*Job
+        logsQueue   []*LogSync
+        bijobsQueue   []*Job
     )
+
     jobsDB =        &JobsMemoryDB{Jobs:jobs}
     logsDB =        &LogsMemoryDB{Logs:logs}
     implantsDB =    &ImplantsMemoryDB{Implants:implants}
@@ -278,6 +331,20 @@ func startDB(){
     bisDB =         &BisMemoryDB{Bichitos:bichitos}
     reportsDB =     &ReportsMemoryDB{Reports:reports}
 
+    //On memory DB for operators and redirectors Auth.
+    operatorsAuthDB = &OperatorsAuthMemoryDB{Operators:operatorsAuth}
+    implantsAuthDB = &ImplantsAuthMemoryDB{Implants:implantsAuth}
+
+    //Initialize Job/Log Queues
+    hivejobqueue = &hiveJobQueue{Jobs:jobsQueue,Working:false}
+    hivelogqueue = &hiveLogQueue{Logs:logsQueue,Working:false}
+    bichitosjobqueue = &bichitosJobQueue{Jobs:bijobsQueue,Working:false}
+
+    //Let's set a Lock on "memoryDB" reads to reduce t keep DB on lock too much time on data Modifications
+    readLock = &updateMemoryDBLockObject{Working:false,Jobs:false,Logs:false,Domains:false,Vps:false,Implants:false,Redirectors:false,Bichitos:false,Stagings:false,Reports:false,OperatorsAuth:false,ImplantsAuth:false}
+
+    updateMemoryDB("operatorsAuth")
+    updateMemoryDB("implantsAuth")
     updateMemoryDB("jobs")
     updateMemoryDB("logs")
     updateMemoryDB("implants")
@@ -288,133 +355,310 @@ func startDB(){
     updateMemoryDB("bichitos")
     updateMemoryDB("reports")
 
+
 }
 
 
-
 //Get the GUI data with limit of 50 HiveLogs and 20 of each asset
-
-
 func updateMemoryDB(objtype string){
 
+    //fmt.Println("Entering Update Object:"+ objtype)
     switch objtype{
         case "jobs":
-            err,data := getJobsDataDB()
-            if err != nil {
-                time := time.Now().Format("02/01/2006 15:04:05 MST")
-                elog := fmt.Sprintf("%s%s","Error Extracting GUI Jobs DB:",err.Error())
-                addLogDB("Hive",time,elog)
-                return
-            }
-            jobsDB.mux.Lock()
-            jobsDB.Jobs = data
-            jobsDB.mux.Unlock()
+            
+            readLock.mux.Lock()
+            readLock.Jobs = true
+            readLock.mux.Unlock()   
 
         case "logs":
-            err,data := getLogsDataDB()
-            if err != nil {
-                time := time.Now().Format("02/01/2006 15:04:05 MST")
-                elog := fmt.Sprintf("%s%s","Error Extracting GUI Logs DB:",err.Error())
-                addLogDB("Hive",time,elog)
-                return
-            }
-            logsDB.mux.Lock()
-            logsDB.Logs = data
-            logsDB.mux.Unlock()
+            readLock.mux.Lock()
+            readLock.Logs = true
+            readLock.mux.Unlock() 
 
         case "implants":
-            err,data := getImplantsDataDB()
-            if err != nil {
-                time := time.Now().Format("02/01/2006 15:04:05 MST")
-                elog := fmt.Sprintf("%s%s","Error Extracting GUI Implants DB:",err.Error())
-                addLogDB("Hive",time,elog)
-                return
-            }
-            implantsDB.mux.Lock()
-            implantsDB.Implants = data
-            implantsDB.mux.Unlock()
+            readLock.mux.Lock()
+            readLock.Implants = true
+            readLock.mux.Unlock() 
 
         case "vps":
-            err,data := getVpsDataDB()
-            if err != nil {
-                time := time.Now().Format("02/01/2006 15:04:05 MST")
-                elog := fmt.Sprintf("%s%s","Error Extracting GUI Vps DB:",err.Error())
-                addLogDB("Hive",time,elog)
-                return
-            }
-            vpsDB.mux.Lock()
-            vpsDB.Vpss = data
-            vpsDB.mux.Unlock()
+            readLock.mux.Lock()
+            readLock.Vps = true
+            readLock.mux.Unlock() 
 
         case "domains":
-            err,data := getDomainsDataDB()
-            if err != nil {
-                time := time.Now().Format("02/01/2006 15:04:05 MST")
-                elog := fmt.Sprintf("%s%s","Error Extracting GUI Domains DB:",err.Error())
-                addLogDB("Hive",time,elog)
-                return
-            }
-            domainsDB.mux.Lock()
-            domainsDB.Domains = data
-            domainsDB.mux.Unlock()
+            readLock.mux.Lock()
+            readLock.Domains = true
+            readLock.mux.Unlock() 
             
         case "redirectors":
-            err,data := getRedDataDB()
-            if err != nil {
-                time := time.Now().Format("02/01/2006 15:04:05 MST")
-                elog := fmt.Sprintf("%s%s","Error Extracting GUI Reds DB:",err.Error())
-                addLogDB("Hive",time,elog)
-                return
-            }
-            redsDB.mux.Lock()
-            redsDB.Redirectors = data
-            redsDB.mux.Unlock()
+            readLock.mux.Lock()
+            readLock.Redirectors = true
+            readLock.mux.Unlock() 
             
         case "bichitos":
-            err,data := getBiDataDB()
-            if err != nil {
-                time := time.Now().Format("02/01/2006 15:04:05 MST")
-                elog := fmt.Sprintf("%s%s","Error Extracting GUI Bichitos DB:",err.Error())
-                addLogDB("Hive",time,elog)
-                return
-            }
-            bisDB.mux.Lock()
-            bisDB.Bichitos = data
-            bisDB.mux.Unlock()
+            readLock.mux.Lock()
+            readLock.Bichitos = true
+            readLock.mux.Unlock() 
             
         case "stagings":
-            err,data := getStagDataDB()
-            if err != nil {
-                time := time.Now().Format("02/01/2006 15:04:05 MST")
-                elog := fmt.Sprintf("%s%s","Error Extracting GUI Stagings DB:",err.Error())
-                addLogDB("Hive",time,elog)
-                return
-            }
-            stagingsDB.mux.Lock()
-            stagingsDB.Stagings = data
-            stagingsDB.mux.Unlock()
+            readLock.mux.Lock()
+            readLock.Stagings = true
+            readLock.mux.Unlock() 
             
         case "reports":
-            err,data := getReportsDataDB()
-            if err != nil {
-                time := time.Now().Format("02/01/2006 15:04:05 MST")
-                elog := fmt.Sprintf("%s%s","Error Extracting GUI Reports DB:",err.Error())
-                addLogDB("Hive",time,elog)
-                return
-            }
-            reportsDB.mux.Lock()
-            reportsDB.Reports = data
-            reportsDB.mux.Unlock()
+            readLock.mux.Lock()
+            readLock.Reports = true
+            readLock.mux.Unlock() 
+        case "operatorsAuth":
+            readLock.mux.Lock()
+            readLock.OperatorsAuth = true
+            readLock.mux.Unlock() 
+        case "implantsAuth":
+            readLock.mux.Lock()
+            readLock.ImplantsAuth = true
+            readLock.mux.Unlock() 
             
         default:
             time := time.Now().Format("02/01/2006 15:04:05 MST")
             elog := "Uknown objtype on Get User Request"
-            addLogDB("Hive",time,elog)
+            go addLogDB("Hive",time,elog)
             return
     }
 
+    go updateMemoryDBQueue()
     return
 
+}
+
+func updateMemoryDBQueue(){
+
+
+    if (readLock.Working || bichitosjobqueue.Working || hivejobqueue.Working){
+        return
+    }
+
+    readLock.mux.Lock()
+    readLock.Working = true
+    readLock.mux.Unlock() 
+
+
+    if readLock.Jobs {
+        err,data := getJobsDataDB()
+        if err != nil {
+            time := time.Now().Format("02/01/2006 15:04:05 MST")
+            elog := fmt.Sprintf("%s%s","Error Extracting GUI Jobs DB:",err.Error())
+            go addLogDB("Hive",time,elog)
+            return
+        }
+        jobsDB.mux.Lock()
+        jobsDB.Jobs = data
+        jobsDB.mux.Unlock()
+        
+        readLock.mux.Lock()
+        readLock.Jobs = false
+        readLock.Working = false
+        readLock.mux.Unlock() 
+        
+        go updateMemoryDBQueue()
+        return 
+    
+    }else if readLock.Logs {
+        err,data := getLogsDataDB()
+        if err != nil {
+            time := time.Now().Format("02/01/2006 15:04:05 MST")
+            elog := fmt.Sprintf("%s%s","Error Extracting GUI Jobs DB:",err.Error())
+            go addLogDB("Hive",time,elog)
+            return
+        }
+        logsDB.mux.Lock()
+        logsDB.Logs = data
+        logsDB.mux.Unlock()
+        
+        readLock.mux.Lock()
+        readLock.Logs = false
+        readLock.Working = false
+        readLock.mux.Unlock() 
+        
+        go updateMemoryDBQueue()
+        return 
+    }else if readLock.Implants {
+        err,data := getImplantsDataDB()
+        if err != nil {
+            time := time.Now().Format("02/01/2006 15:04:05 MST")
+            elog := fmt.Sprintf("%s%s","Error Extracting GUI Jobs DB:",err.Error())
+            go addLogDB("Hive",time,elog)
+            return
+        }
+        implantsDB.mux.Lock()
+        implantsDB.Implants = data
+        implantsDB.mux.Unlock()
+        
+        readLock.mux.Lock()
+        readLock.Implants = false
+        readLock.Working = false
+        readLock.mux.Unlock() 
+        
+        go updateMemoryDBQueue()
+        return 
+    }else if readLock.Bichitos {
+        err,data := getBiDataDB()
+        if err != nil {
+            time := time.Now().Format("02/01/2006 15:04:05 MST")
+            elog := fmt.Sprintf("%s%s","Error Extracting GUI Jobs DB:",err.Error())
+            go addLogDB("Hive",time,elog)
+            return
+        }
+        bisDB.mux.Lock()
+        bisDB.Bichitos = data
+        bisDB.mux.Unlock()
+        
+        readLock.mux.Lock()
+        readLock.Bichitos = false
+        readLock.Working = false
+        readLock.mux.Unlock() 
+        
+        go updateMemoryDBQueue()
+        return 
+    }else if readLock.Vps {
+        err,data := getVpsDataDB()
+        if err != nil {
+            time := time.Now().Format("02/01/2006 15:04:05 MST")
+            elog := fmt.Sprintf("%s%s","Error Extracting GUI Jobs DB:",err.Error())
+            go addLogDB("Hive",time,elog)
+            return
+        }
+        vpsDB.mux.Lock()
+        vpsDB.Vpss = data
+        vpsDB.mux.Unlock()
+        
+        readLock.mux.Lock()
+        readLock.Vps = false
+        readLock.Working = false
+        readLock.mux.Unlock() 
+        
+        go updateMemoryDBQueue()
+        return 
+    }else if readLock.Domains {
+        err,data := getDomainsDataDB()
+        if err != nil {
+            time := time.Now().Format("02/01/2006 15:04:05 MST")
+            elog := fmt.Sprintf("%s%s","Error Extracting GUI Jobs DB:",err.Error())
+            go addLogDB("Hive",time,elog)
+            return
+        }
+        domainsDB.mux.Lock()
+        domainsDB.Domains = data
+        domainsDB.mux.Unlock()
+        
+        readLock.mux.Lock()
+        readLock.Domains = false
+        readLock.Working = false
+        readLock.mux.Unlock() 
+        
+        go updateMemoryDBQueue()
+        return 
+    }else if readLock.Stagings {
+        err,data := getStagDataDB()
+        if err != nil {
+            time := time.Now().Format("02/01/2006 15:04:05 MST")
+            elog := fmt.Sprintf("%s%s","Error Extracting GUI Jobs DB:",err.Error())
+            go addLogDB("Hive",time,elog)
+            return
+        }
+        stagingsDB.mux.Lock()
+        stagingsDB.Stagings = data
+        stagingsDB.mux.Unlock()
+        
+        readLock.mux.Lock()
+        readLock.Stagings = false
+        readLock.Working = false
+        readLock.mux.Unlock() 
+        
+        go updateMemoryDBQueue()
+        return 
+    }else if readLock.Redirectors {
+        err,data := getRedDataDB()
+        if err != nil {
+            time := time.Now().Format("02/01/2006 15:04:05 MST")
+            elog := fmt.Sprintf("%s%s","Error Extracting GUI Jobs DB:",err.Error())
+            go addLogDB("Hive",time,elog)
+            return
+        }
+        redsDB.mux.Lock()
+        redsDB.Redirectors = data
+        redsDB.mux.Unlock()
+        
+        readLock.mux.Lock()
+        readLock.Redirectors = false
+        readLock.Working = false
+        readLock.mux.Unlock() 
+        
+        go updateMemoryDBQueue()
+        return 
+    }else if readLock.Reports {
+        err,data := getReportsDataDB()
+        if err != nil {
+            time := time.Now().Format("02/01/2006 15:04:05 MST")
+            elog := fmt.Sprintf("%s%s","Error Extracting GUI Jobs DB:",err.Error())
+            go addLogDB("Hive",time,elog)
+            return
+        }
+        reportsDB.mux.Lock()
+        reportsDB.Reports = data
+        reportsDB.mux.Unlock()
+        
+        readLock.mux.Lock()
+        readLock.Reports = false
+        readLock.Working = false
+        readLock.mux.Unlock() 
+        
+        go updateMemoryDBQueue()
+        return 
+    }else if readLock.OperatorsAuth {
+        err,data := getOperatorsAuthDataDB()
+        if err != nil {
+            time := time.Now().Format("02/01/2006 15:04:05 MST")
+            elog := fmt.Sprintf("%s%s","Error Extracting GUI Jobs DB:",err.Error())
+            go addLogDB("Hive",time,elog)
+            return
+        }
+        operatorsAuthDB.mux.Lock()
+        operatorsAuthDB.Operators = data
+        operatorsAuthDB.mux.Unlock()
+        
+        readLock.mux.Lock()
+        readLock.OperatorsAuth = false
+        readLock.Working = false
+        readLock.mux.Unlock() 
+        
+        go updateMemoryDBQueue()
+        return 
+    }else if readLock.ImplantsAuth {
+        err,data := getImplantsAuthDataDB()
+        if err != nil {
+            time := time.Now().Format("02/01/2006 15:04:05 MST")
+            elog := fmt.Sprintf("%s%s","Error Extracting GUI Jobs DB:",err.Error())
+            go addLogDB("Hive",time,elog)
+            return
+        }
+        implantsAuthDB.mux.Lock()
+        implantsAuthDB.Implants = data
+        implantsAuthDB.mux.Unlock()
+        
+        readLock.mux.Lock()
+        readLock.ImplantsAuth = false
+        readLock.Working = false
+        readLock.mux.Unlock() 
+        
+        go updateMemoryDBQueue()
+        return 
+    }
+
+    readLock.mux.Lock()
+    readLock.Working = false
+    readLock.mux.Unlock() 
+
+    return
 }
 
 
@@ -701,6 +945,67 @@ func getReportsDataDB() (error,[]*Report) {
     return err,reports
 }
 
+
+func getOperatorsAuthDataDB() (error,[]*OperatorAuth) {
+
+    var operators []*OperatorAuth
+    
+    rowsR, err := db.Query("SELECT cid,username,hash,admin FROM users")
+    defer rowsR.Close()
+
+    if err != nil {
+        return err,operators
+    }
+    for rowsR.Next() {
+        var cid,username,hash,admin string
+        err = rowsR.Scan(&cid,&username,&hash,&admin)
+        if err != nil {
+            return err,operators
+        }
+        operator := OperatorAuth{cid,username,hash,admin}
+        operators = append(operators,&operator)
+    }
+
+    
+    err = rowsR.Err()
+    if err != nil {
+        return err,operators
+    }
+
+    return err,operators
+}
+
+
+func getImplantsAuthDataDB() (error,[]*ImplantAuth) {
+
+    var implants []*ImplantAuth
+    
+    rowsR, err := db.Query("SELECT name,redtoken FROM implants")
+    defer rowsR.Close()
+
+    if err != nil {
+        return err,implants
+    }
+    for rowsR.Next() {
+        var name,redtoken string
+        err = rowsR.Scan(&name,&redtoken)
+        if err != nil {
+            return err,implants
+        }
+        implant := ImplantAuth{name,redtoken}
+        implants = append(implants,&implant)
+    }
+
+    
+    err = rowsR.Err()
+    if err != nil {
+        return err,implants
+    }
+
+    return err,implants
+}
+
+/*
 func getGUIDataDB() (error,*GuiData){
 
     var result *GuiData
@@ -951,7 +1256,7 @@ func getGUIDataDB() (error,*GuiData){
     result = &GuiData{Jobs:jobs,Logs:logs,Implants:implants,Vps:vpss,Domains:domains,Stagings:stagings,Reports:reports,Redirectors:redirectors,Bichitos:bichitos}
     return err,result
 }
-
+*/
 
 //// Sqlite Connection Functions for DB objects, Adders,getters,setters,diverse queries...
 
@@ -1136,7 +1441,20 @@ func addUserDB(cid string,username string,password string) error{
 	stmt,_ := db.Prepare("INSERT INTO users (cid,username,hash,admin) VALUES (?,?,?,?)")
     defer stmt.Close()
 	_,err2 := stmt.Exec(cid,username,hash,"No")
+    go updateMemoryDB("operatorssAuth")
 	return err2
+}
+
+
+
+func isUserAdminDBMem(cid string) string{
+
+    for _,op := range operatorsAuthDB.Operators {
+        if (op.Cid == cid){
+            return op.Admin
+        }
+    }
+    return ""
 }
 
 
@@ -1148,6 +1466,27 @@ func isUserAdminDB(cid string) string{
     db.QueryRow(stmt,cid).Scan(&admin)
     
     return admin
+}
+
+
+func getCidbyAuthDBMem(username string,password string) (string,error){
+
+    //Check if username exists
+    var err error
+
+    for _,op := range operatorsAuthDB.Operators {
+        if (op.Username == username){
+            err = bcrypt.CompareHashAndPassword([]byte(op.Hash), []byte(password))
+            if (err != nil){
+                return "",err
+            }
+
+            return op.Cid,err
+        }
+    }
+
+    err = errors.New("No Operator Found")
+    return "",err
 }
 
 func getCidbyAuthDB(username string,password string) (string,error){
@@ -1162,17 +1501,33 @@ func getCidbyAuthDB(username string,password string) (string,error){
 	err2 := db.QueryRow(stmt,username).Scan(&cid,&hash)
 	errh := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	
-	if (cid == "") || (errh != nil){
-		return "",err2
-	}else{
+	if (cid == "") {
+        return "",err2
+    }
 
-		return cid,err2
+    if (errh != nil){
+		return "",errh
 	}
+
+	return cid,err2
 }
 
 
 
 //Logs
+
+type LogSync struct {
+    Type string   `json:"type"`
+    Time string   `json:"time"`
+    Error string   `json:"error"`
+}
+type hiveLogQueue struct {
+    mux  sync.RWMutex
+    Working bool
+    Logs []*LogSync
+}
+
+var hivelogqueue *hiveLogQueue
 
 func getLogDB(id string) *Log{
     
@@ -1185,14 +1540,75 @@ func getLogDB(id string) *Log{
     return &log
 }
 
-func addLogDB(pid string,time string,error string) error{
+
+func hiveLogFin(){
+
+    hivelogqueue.mux.Lock()
+    hivelogqueue.Logs = append(hivelogqueue.Logs[:0],hivelogqueue.Logs[1:]...)
+    hivelogqueue.Working = false
+    hivelogqueue.mux.Unlock()
+    if (len(hivelogqueue.Logs) != 0){
+        go addLogDBQueue()
+    }
+
+    return
+}
+
+func addLogDBQueue(){
+    //Hive Log Queue: Put Hive Jobs on a queue to avoid DB Write Locks
+
+    if (hivelogqueue.Working){
+        return
+    }else{
+        hivelogqueue.mux.Lock()
+        hivelogqueue.Working = true
+        hivelogqueue.mux.Unlock()   
+    }
+
+    defer hiveLogFin()
+
+    pid := hivelogqueue.Logs[0].Type
+    time := hivelogqueue.Logs[0].Time
+    error := hivelogqueue.Logs[0].Error
 
     stmt,_ := db.Prepare("INSERT INTO logs (pid,time,error) VALUES (?,?,?)")
     defer stmt.Close()
-    _,err2 := stmt.Exec(pid,time,error)
+    stmt.Exec(pid,time,error)
 
     go updateMemoryDB("logs")
-    return err2
+    return
+}
+
+
+func addLogDB(pid string,time string,error string){
+    
+    //Hive Log Queue: Put Hive Jobs on a queue to avoid DB Write Locks
+    log := &LogSync{Type:pid,Time:time,Error:error}
+    
+    hivelogqueue.mux.Lock()
+    hivelogqueue.Logs = append(hivelogqueue.Logs,log)
+    hivelogqueue.mux.Unlock()
+
+    if (hivelogqueue.Working){
+        return
+    }else{
+        hivelogqueue.mux.Lock()
+        hivelogqueue.Working = true
+        hivelogqueue.mux.Unlock()   
+    }
+
+    defer hiveLogFin()
+
+    pid = hivelogqueue.Logs[0].Type
+    time = hivelogqueue.Logs[0].Time
+    error = hivelogqueue.Logs[0].Error
+
+    stmt,_ := db.Prepare("INSERT INTO logs (pid,time,error) VALUES (?,?,?)")
+    defer stmt.Close()
+    stmt.Exec(pid,time,error)
+
+    go updateMemoryDB("logs")
+    return
 }
 
 
@@ -1281,10 +1697,31 @@ func addImplantDB(implant *Implant) error{
     defer stmt.Close()
 	_,err = stmt.Exec(implant.Name,implant.Ttl,implant.Resptime,implant.RedToken,implant.BiToken,implant.Modules)
     go updateMemoryDB("implants")
+    go updateMemoryDB("implantsAuth")
 	return err
 
 }
 
+func getDomainTokenDBMem(domain string) (error,string){
+
+    //Check if username exists
+    var err error
+    var implantToken string
+    for _,domainO := range domainsDB.Domains {
+        if (domainO.Domain == domain){
+            for _,red := range redsDB.Redirectors {
+                if (red.DomainName == domainO.Name){
+                    err,implantToken = getImplantTokenDBMem(red.ImplantName)
+                    return err,implantToken
+                }
+            }
+        }
+    }
+
+    err = errors.New("No Implant/Token Found for target redirector")
+    return err,"" 
+
+}
 
 //Get the redirector token assigned to a target used domain
 func getDomainTokenDB(domain string) (error,string){
@@ -1309,6 +1746,22 @@ func getDomainTokenDB(domain string) (error,string){
 
 }
 
+
+func getImplantTokenDBMem(implantName string) (error,string){
+
+    //Check if username exists
+    var err error
+    for _,implant := range implantsAuthDB.Implants {
+        if (implant.Name == implantName){
+            return err,implant.RedToken
+        }
+    }
+
+    err = errors.New("No Implant Found")
+    return err,"" 
+}
+
+
 //Get the redirector token from Implant Name
 func getImplantTokenDB(implantName string) (error,string){
 
@@ -1322,7 +1775,6 @@ func getImplantTokenDB(implantName string) (error,string){
     err = db.QueryRow(stmt,implantName).Scan(&redtoken)
     
     return err,redtoken   
-
 }
 
 
@@ -1364,6 +1816,7 @@ func rmImplantDB(name string) error{
     defer stmt.Close()
 	_,err = stmt.Exec(name)
     go updateMemoryDB("implants")
+    go updateMemoryDB("implantsAuth")
 	return err
 
 }
@@ -1798,6 +2251,32 @@ func getAllRidDB() []string{
 	return result
 }
 
+
+
+
+
+
+func getRedRidbyDomainMem(domain string) (error,string){
+
+
+    //Check if username exists
+    var err error
+    for _,domainO := range domainsDB.Domains {
+        if (domainO.Domain == domain){
+            for _,red := range redsDB.Redirectors {
+                if (red.DomainName == domainO.Name){
+                    return err,red.Rid
+                }
+            }
+        }
+    }
+
+    err = errors.New(" No Red found")
+    return err,"" 
+
+}
+
+
 func getRedRidbyDomain(domainName string) (string,error){
 
 	var id int
@@ -1812,6 +2291,22 @@ func getRedRidbyDomain(domainName string) (string,error){
     fmt.Println(result)
 
 	return result,err
+
+}
+
+
+func getRedRidbyImplantNameMem(implantName string) (string,error){
+
+    //Check if username exists
+    var err error
+    for _,red := range redsDB.Redirectors {
+        if (red.ImplantName == implantName){
+            return red.Rid,err
+        }
+    }
+
+    err = errors.New("No Red found")
+    return "",err 
 
 }
 

@@ -962,7 +962,7 @@ $('#stype').change(function(){
     </form>   
     `);
       break;
-      loadFormDataDomains();
+      //loadFormDataDomains();
     case 'https_msft_letsencrypt':
       $("#params").empty();
       $("#params").append(`
@@ -974,7 +974,7 @@ $('#stype').change(function(){
     </form> 
       `); 
       break; 
-      loadFormDataDomains();
+      //loadFormDataDomains();
     case 'https_empire_letsencrypt':
       $("#params").empty();
       $("#params").append(`
@@ -985,7 +985,7 @@ $('#stype').change(function(){
     </div>
     </form> 
       `); 
-      loadFormDataDomains();
+      //loadFormDataDomains();
       break; 
     case 'ssh_rev_shell':
       $("#params").empty();
@@ -993,7 +993,7 @@ $('#stype').change(function(){
     <form role="form" id="stagingparamsform">
     </form> 
       `); 
-      loadFormDataDomains();
+      //loadFormDataDomains();
       break; 
   }
 });

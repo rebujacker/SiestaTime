@@ -30,6 +30,7 @@ rm -rf ../src/google.golang.org/
 rm -rf ../src/go.opencensus.io/
 rm -rf ../src/cloud.google.com/
 rm -rf ../pkg 
+rm -rf npm-debug.log
         ;;
     "install" )
 
