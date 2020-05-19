@@ -49,11 +49,8 @@ Offline
 ----------------------
 
 .. prompt:: bash $
-
     ./hive.sh installOffline 0.0.0.0 6232 /usr/local/ admin admin
-
     ./stime.sh install admin admin 0.0.0.0 6232 8000 $(openssl x509 -fingerprint -sha256 -noout -in ./installConfig/hive.pem | cut -d '=' -f2)
-
     ./stime.sh
 
 
@@ -78,11 +75,8 @@ Online
 
 
 .. prompt:: bash $
-
     ./hive.sh installaws
-
     ./stime.sh install admin admin 0.0.0.0 6232 8000 $(openssl x509 -fingerprint -sha256 -noout -in ./installConfig/hive.pem | cut -d '=' -f2)
-
     ./stime.sh
 
 
@@ -90,21 +84,18 @@ Online
 Available features
 ==================================
 
-**This is a Beta*
+**This is a Beta**
 
     The tool miss yet a lot of work and, most importantly, **bug fixing**
 
 Currently Modules/Abilities:
 
 Hive:
-
-    - VPS: 
+    - VPS 
         - AWS
-
-    - Domain:
+    - Domain
         - GO Daddy
-
-    - SaaS:
+    - SaaS
         - Gmail API
 
 Stagings:
@@ -142,6 +133,7 @@ Documentation
 ==============================
 
 User Guide: https://siestatime.readthedocs.io
+
 Developer Guide: TBD
 
 Presented at Defcon 27 Red Team Village.
