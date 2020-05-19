@@ -51,7 +51,9 @@ Offline
 
 
 ``./hive.sh installOffline 0.0.0.0 6232 /usr/local/ admin admin``
+
 ``./stime.sh install admin admin 0.0.0.0 6232 8000 $(openssl x509 -fingerprint -sha256 -noout -in ./installConfig/hive.pem | cut -d '=' -f2)``
+
 ``./stime.sh``
 
 
@@ -77,7 +79,9 @@ Online
 
 
 ``./hive.sh installaws``
+
 ``./stime.sh install admin admin 0.0.0.0 6232 8000 $(openssl x509 -fingerprint -sha256 -noout -in ./installConfig/hive.pem | cut -d '=' -f2)``
+
 ``./stime.sh``
 
 
