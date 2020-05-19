@@ -1,0 +1,25 @@
+Darwin Dependencies (Optional)
+===========================
+
+.. meta::
+   :description lang=en: Get the dependencues from Darwin OS.
+
+
+To properly install Hive a set of dependencies extracted from Windows need to be in place first. This will be necessary to be able to compile some implant modules for darwin.
+
+
+
+Get Dependencies from Darwin (Mac OSX)
+-----------
+
+A. Install  XCode on MacOSX 10.13
+B. ``git clone https://github.com/tpoechtrager/osxcross``
+C. Run osxcross extract script
+.. prompt:: bash $
+    ./tools/gen_sdk_package.sh
+
+
+D. Copy output file to ``SiestaTime/installConfig/MacOSX10.13.sdk.tar.xz``
+.. note::
+    Since i386 has been dropped <= most ideally 10.13 of your Darwin OS should be used
+

@@ -1,0 +1,58 @@
+Windows Dependencies
+===========================
+
+.. meta::
+   :description lang=en: Get the dependencues from windows OS.
+
+
+To properly install Hive a set of dependencies extracted from Windows need to be in place first. This will be necessary to be able to compile some implant modules for windows. The result of this step should be a zipped folder with the folloing structure:
+
+.. prompt:: bash $
+
+    includes/
+        taskschd.h
+    libs/
+        x86/
+            comsupp.lib
+        x64/
+            comsupp.lib
+
+This zip needs to be placed:
+
+.. prompt:: bash $
+
+    ./SiestaTime/installConfig/windependencies.zip
+
+
+The command you can run for generating the resulting zip:
+
+.. prompt:: bash $
+
+    zip -r windependencies.zip *
+
+
+
+
+Get Dependencies from Windows 10
+-----------
+
+A. Perform a clean Windows 10 Installation (EG. virtual machine)
+B. Install microsoft visual studio community() with “C++ Console apps Development”
+
+.. figure:: ../_static/images/install/winsearch.png
+    :align: right
+    :figwidth: 300px
+    :target: ../_static/images/install/winsearch.png
+
+.. figure:: ../_static/images/install/vsc.png
+    :align: right
+    :figwidth: 300px
+    :target: ../_static/images/install/vsc.png
+
+
+
+B. Copy target files keeping previous folder structure. You can just find the files on windows after Visual Studio with C++ support is installed (listed at ``./SiestaTime/installConfig/implant_dependencies.txt`` )
+
+.. note::
+    A script will be provided in the future when dependency tree grow bigger
+

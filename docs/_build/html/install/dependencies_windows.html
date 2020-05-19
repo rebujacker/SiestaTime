@@ -1,0 +1,248 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta content="Get the dependencues from windows OS." lang="en" name="description" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Windows Dependencies &mdash; SiestaTime beta documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Darwin Dependencies (Optional)" href="dependencies_darwin.html" />
+    <link rel="prev" title="Siesta Time: User Guide" href="../index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> SiestaTime
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Installation</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Windows Dependencies</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#get-dependencies-from-windows-10">Get Dependencies from Windows 10</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="dependencies_darwin.html">Darwin Dependencies (Optional)</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">SiestaTime</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+      <li>Windows Dependencies</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/install/dependencies_windows.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="windows-dependencies">
+<h1>Windows Dependencies<a class="headerlink" href="#windows-dependencies" title="Permalink to this headline">¶</a></h1>
+<p>To properly install Hive a set of dependencies extracted from Windows need to be in place first. This will be necessary to be able to compile some implant modules for windows. The result of this step should be a zipped folder with the folloing structure:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><style type="text/css">
+span.prompt1:before {
+  content: "$ ";
+}
+</style><span class="prompt1">includes/</span>
+<span class="prompt1">    taskschd.h</span>
+<span class="prompt1">libs/</span>
+<span class="prompt1">    x86/</span>
+<span class="prompt1">        comsupp.lib</span>
+<span class="prompt1">    x64/</span>
+<span class="prompt1">        comsupp.lib</span>
+</pre></div></div><p>This zip needs to be placed:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span class="prompt1">./SiestaTime/installConfig/windependencies.zip</span>
+</pre></div></div><p>The command you can run for generating the resulting zip:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span class="prompt1">zip -r windependencies.zip *</span>
+</pre></div></div><div class="section" id="get-dependencies-from-windows-10">
+<h2>Get Dependencies from Windows 10<a class="headerlink" href="#get-dependencies-from-windows-10" title="Permalink to this headline">¶</a></h2>
+<ol class="upperalpha simple">
+<li>Perform a clean Windows 10 Installation (EG. virtual machine)</li>
+<li>Install microsoft visual studio community() with “C++ Console apps Development”</li>
+</ol>
+<div class="figure align-right" style="width: 300px">
+<a class="reference external image-reference" href="../_static/images/install/winsearch.png"><img alt="../_images/winsearch.png" src="../_images/winsearch.png" /></a>
+</div>
+<div class="figure align-right" style="width: 300px">
+<a class="reference external image-reference" href="../_static/images/install/vsc.png"><img alt="../_images/vsc.png" src="../_images/vsc.png" /></a>
+</div>
+<ol class="upperalpha simple" start="2">
+<li>Copy target files keeping previous folder structure. You can just find the files on windows after Visual Studio with C++ support is installed (listed at <code class="docutils literal notranslate"><span class="pre">./SiestaTime/installConfig/implant_dependencies.txt</span></code> )</li>
+</ol>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">A script will be provided in the future when dependency tree grow bigger</p>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="dependencies_darwin.html" class="btn btn-neutral float-right" title="Darwin Dependencies (Optional)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="../index.html" class="btn btn-neutral float-left" title="Siesta Time: User Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, Alvaro Folgado
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

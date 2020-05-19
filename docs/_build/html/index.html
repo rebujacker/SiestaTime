@@ -1,0 +1,381 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta content="Red Team, offensive security, automatic deployment,implants,reporting." lang="en" name="description" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Siesta Time: User Guide &mdash; SiestaTime beta documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Dependencies" href="install/dependencies.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="#" class="icon icon-home"> SiestaTime
+          
+
+          
+            
+            <img src="_static/STicon.png" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Installation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="install/dependencies.html">Dependencies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install/hive.html">Hive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install/client.html">Client</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Adding Ressources</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="resources/operators.html">Operators</a></li>
+<li class="toctree-l1"><a class="reference internal" href="resources/vpc.html">Virtual Private Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="resources/domains.html">Domains</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Hive Status</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="hive/jobslogs.html">Jobs,Logs</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Deployment</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="deployment/implants.html">Implants</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deployment/postservers.html">Post. Servers</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Interactions</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="interactions/implants.html">Implants</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interactions/bichitos.html">Bichitos</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interactions/postinteractions.html">Post. Servers</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Reporting</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="reporting/basicreport.html">Basic Reports</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Concepts,Bugs and Dependencies</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="misc/concepts.html">Theory: Why Siesta Time ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="misc/bugs.html">Known Bugs</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">SiestaTime</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="#">Docs</a> &raquo;</li>
+        
+      <li>Siesta Time: User Guide</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="siesta-time-user-guide">
+<h1>Siesta Time: User Guide<a class="headerlink" href="#siesta-time-user-guide" title="Permalink to this headline">¶</a></h1>
+<p><a class="reference external" href="https://github.com/rebujacker/SiestaTime">Siesta Time</a> is a red team framework with the purpose of automating and facilitating implants creation and their C2 Infrastructure.All these actions keeping trace of what your Operators are doing.</p>
+<dl class="docutils">
+<dt>Save your Different Network Infrastructure Elements</dt>
+<dd>Save units of virtual private cloud,domains and software as a service
+credentials to be able to deploy C2 infrastructure.</dd>
+<dt>Deploy Implants that adapt to your current target</dt>
+<dd>Select Implant configuration,modules and set of redirectors.
+The different modules available will define how the implant will egress, persist in target foothold…
+The output will be binaries for different devices and the working C2.</dd>
+<dt>Maintain Access and Interact with your foothold</dt>
+<dd>Once the delivery process is successful and the implant is executed, list your infected devices.
+Interact with them to send essentials commands or put them to sleep.</dd>
+<dt>Deploy Post. Exploitation Servers for Lateral Movement</dt>
+<dd>With the objective to achieve further target’s assets from their intranet, Siesta Time can use
+your ressource battery to deploy “shorted lived” handlers (ssh,msf,empire…)</dd>
+<dt>Document the whole Operation to provide insights to the target institution’s Blue Team or Stakeholders</dt>
+<dd>Reporting will focus on saving every framework job and action execute in footholds or Post.
+Exploitation handlers.</dd>
+</dl>
+<div class="section" id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<p>SiestaTime installation needs just two elements to work properly, the Hive, normally installed by the operations admin/manager, and the client, for the Operators.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Installation for both Hive and client is designed for the moment just
+for Ubuntu (tested on Ubuntu 18.04.4 LTS)</p>
+</div>
+<p>Everything related to the installation process for both Hive and client will be saved on:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><style type="text/css">
+span.prompt1:before {
+  content: "$ ";
+}
+</style><span class="prompt1">./SiestaTime/installConfig</span>
+</pre></div></div><div class="figure align-right" style="width: 300px">
+<a class="reference external image-reference" href="./_static/images/install/installconfig.png"><img alt="_images/installconfig.png" src="_images/installconfig.png" /></a>
+</div>
+<ul class="simple">
+<li><strong>Dependencies</strong>:
+<a class="reference internal" href="install/dependencies.html"><span class="doc">Windows</span></a> |
+<a class="reference internal" href="install/dependencies.html"><span class="doc">Darwin</span></a></li>
+<li><strong>Hive</strong>:
+<a class="reference internal" href="install/hive.html"><span class="doc">Online</span></a> |
+<a class="reference internal" href="install/hive.html"><span class="doc">Offline</span></a></li>
+<li><strong>Client</strong>:
+<a class="reference internal" href="install/client.html"><span class="doc">Install</span></a></li>
+</ul>
+<div class="toctree-wrapper compound">
+</div>
+</div>
+<div class="section" id="adding-ressources">
+<h2>Adding Ressources<a class="headerlink" href="#adding-ressources" title="Permalink to this headline">¶</a></h2>
+<p>Saving online infrastructure resources will be the first steps to use Siesta Time. If you don’t desire to use automatic deployment of implants you can always deploy an Offline version of them where just executables will be generated.</p>
+<ul class="simple">
+<li><strong>Virtual Private Clouds</strong>:
+<a class="reference internal" href="resources/vpc.html"><span class="doc">AWS</span></a></li>
+<li><strong>Domains</strong>:
+<a class="reference internal" href="resources/domains.html"><span class="doc">GoDaddy</span></a> |
+<a class="reference internal" href="resources/domains.html"><span class="doc">Gmail</span></a></li>
+<li><strong>Operators</strong>:
+<a class="reference internal" href="resources/operators.html"><span class="doc">Operators</span></a></li>
+</ul>
+<div class="toctree-wrapper compound">
+</div>
+</div>
+<div class="section" id="hive-status">
+<h2>Hive Status<a class="headerlink" href="#hive-status" title="Permalink to this headline">¶</a></h2>
+<p>The Hive Status provide red teamers a bunch of tabs where they can check every job processed by Hive.
+If any problem appears during the process of these, the Logs will show errors details.</p>
+<ul class="simple">
+<li><strong>Hive Jobs</strong>:
+<a class="reference internal" href="hive/jobslogs.html"><span class="doc">Jobs</span></a></li>
+<li><strong>Hive Logs</strong>:
+<a class="reference internal" href="hive/jobslogs.html"><span class="doc">Logs</span></a></li>
+</ul>
+<div class="toctree-wrapper compound">
+</div>
+</div>
+<div class="section" id="deployment">
+<h2>Deployment<a class="headerlink" href="#deployment" title="Permalink to this headline">¶</a></h2>
+<p>Once the red team has registered every resource that they want to use for their C2 infrastructure these can be use to generate it.
+Implants (redirectors and executables) and Post. Exploitation servers (droplets,handlers…)</p>
+<div class="figure align-right" style="width: 300px">
+<a class="reference external image-reference" href="./_static/images/deployment/craftimplant.png"><img alt="_images/craftimplant.png" src="_images/craftimplant.png" /></a>
+</div>
+<ul class="simple">
+<li><strong>Implants</strong>:
+<a class="reference internal" href="deployment/implants.html"><span class="doc">Basic Config.</span></a> |
+<a class="reference internal" href="deployment/implants.html"><span class="doc">Network Modules</span></a> |
+<a class="reference internal" href="deployment/implants.html"><span class="doc">Persistence Modules</span></a> |
+<a class="reference internal" href="deployment/implants.html"><span class="doc">Redirectors</span></a></li>
+<li><strong>Post. Servers</strong>:
+<a class="reference internal" href="deployment/postservers.html"><span class="doc">Droplets</span></a> |
+<a class="reference internal" href="deployment/postservers.html"><span class="doc">Handlers</span></a></li>
+</ul>
+<div class="toctree-wrapper compound">
+</div>
+</div>
+<div class="section" id="interactions">
+<h2>Interactions<a class="headerlink" href="#interactions" title="Permalink to this headline">¶</a></h2>
+<p>After the deployment the red team should design a kill-chain/attack that requires normally the delivery of the previous generated executable.
+Once the delivery is successful, Hive will start to receive connections from the foothold.
+Lateral movement may be required to acquire further target assets.
+Bichito has the capability to retrieve basic commands that will be used to persists or escalate privileges.
+If the operator needs a more complex connection to the foothold (ssh,remote desktop, tunnelization…) Post. Exploitation servers will be used. through new processes triggered from Bichito.</p>
+<div class="figure align-right" style="width: 300px">
+<a class="reference external image-reference" href="./_static/images/interactions/sshinteract.png"><img alt="_images/sshinteract.png" src="_images/sshinteract.png" /></a>
+</div>
+<ul class="simple">
+<li><strong>Implants</strong>:
+<a class="reference internal" href="interactions/implants.html"><span class="doc">Implant Info</span></a> |
+<a class="reference internal" href="interactions/implants.html"><span class="doc">Download</span></a></li>
+<li><strong>Bichitos</strong>:
+<a class="reference internal" href="interactions/bichitos.html"><span class="doc">Status</span></a> |
+<a class="reference internal" href="interactions/bichitos.html"><span class="doc">Console</span></a></li>
+<li><strong>Post. Exploitation</strong>:
+<a class="reference internal" href="interactions/postinteractions.html"><span class="doc">SSH</span></a> |
+<a class="reference internal" href="interactions/postinteractions.html"><span class="doc">MSF</span></a> |
+<a class="reference internal" href="interactions/postinteractions.html"><span class="doc">Empire</span></a></li>
+</ul>
+<div class="toctree-wrapper compound">
+</div>
+</div>
+<div class="section" id="reporting">
+<h2>Reporting<a class="headerlink" href="#reporting" title="Permalink to this headline">¶</a></h2>
+<p>Reports are a way to extract every action performed by Operators using the SiestaTIme framework.</p>
+<div class="toctree-wrapper compound">
+</div>
+</div>
+<div class="section" id="concepts-bugs-and-dependencies">
+<h2>Concepts,Bugs and Dependencies<a class="headerlink" href="#concepts-bugs-and-dependencies" title="Permalink to this headline">¶</a></h2>
+<p>SiestaTime is still in its Beta version, a lot of work and testing is still needed, these are common issues that you may encounter.
+Software compatibility List.</p>
+<ul class="simple">
+<li><strong>Theory</strong>:
+<a class="reference internal" href="misc/concepts.html"><span class="doc">Concepts</span></a></li>
+<li><strong>Known Bugs</strong>:
+<a class="reference internal" href="misc/bugs.html"><span class="doc">Bugs</span></a></li>
+</ul>
+<div class="toctree-wrapper compound">
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="install/dependencies.html" class="btn btn-neutral float-right" title="Dependencies" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, Alvaro Folgado
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

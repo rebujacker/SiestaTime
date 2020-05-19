@@ -1,0 +1,288 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Implants &mdash; SiestaTime beta documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Bichitos" href="bichitos.html" />
+    <link rel="prev" title="Post. Servers" href="../deployment/postservers.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> SiestaTime
+          
+
+          
+            
+            <img src="../_static/STicon.png" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Installation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../install/dependencies.html">Dependencies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install/hive.html">Hive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install/client.html">Client</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Adding Ressources</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../resources/operators.html">Operators</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../resources/vpc.html">Virtual Private Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../resources/domains.html">Domains</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Hive Status</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../hive/jobslogs.html">Jobs,Logs</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Deployment</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../deployment/implants.html">Implants</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deployment/postservers.html">Post. Servers</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Interactions</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Implants</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#information">Information</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#download-implant">Download Implant</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#delivery-attacks">Delivery - Attacks</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#drop-implant">Drop Implant</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#hta">HTA</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="bichitos.html">Bichitos</a></li>
+<li class="toctree-l1"><a class="reference internal" href="consolecommands.html">Job-Based Console</a></li>
+<li class="toctree-l1"><a class="reference internal" href="postinteractions.html">Post-Exploitation</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Reporting</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../reporting/basicreport.html">Basic Reports</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Concepts,Bugs and Dependencies</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../misc/concepts.html">Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/bugs.html">Bugs</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">SiestaTime</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+      <li>Implants</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/interactions/implants.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="implants">
+<h1>Implants<a class="headerlink" href="#implants" title="Permalink to this headline">¶</a></h1>
+<p>Once the Implants and Post. Servers are created and you already have the infrastructure ready to go on a Red team operation.
+Now you are ready to download them for delivery purposes.</p>
+<div class="section" id="information">
+<h2>Information<a class="headerlink" href="#information" title="Permalink to this headline">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">Implants</span> <span class="pre">--&gt;</span> <span class="pre">ImplantName</span></code></p>
+<div class="figure align-center" style="width: 600px">
+<a class="reference external image-reference" href="../_static/images/interactions/listimplant.png"><img alt="../_images/listimplant.png" src="../_images/listimplant.png" /></a>
+</div>
+</div>
+<div class="section" id="download-implant">
+<h2>Download Implant<a class="headerlink" href="#download-implant" title="Permalink to this headline">¶</a></h2>
+<p>Once the implant is listed, it is possible to download from hive both implant and redirector executables</p>
+<p><code class="docutils literal notranslate"><span class="pre">Implants</span> <span class="pre">--&gt;</span> <span class="pre">ImplantName</span> <span class="pre">--&gt;</span> <span class="pre">Download</span></code></p>
+<div class="figure align-center" style="width: 600px">
+<a class="reference external image-reference" href="../_static/images/interactions/downloadimplant.png"><img alt="../_images/downloadimplant.png" src="../_images/downloadimplant.png" /></a>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Every Download on Hive will be made to <code class="docutils literal notranslate"><span class="pre">SiestaTime/installConfig/downloads</span></code></p>
+</div>
+</div>
+<div class="section" id="delivery-attacks">
+<h2>Delivery - Attacks<a class="headerlink" href="#delivery-attacks" title="Permalink to this headline">¶</a></h2>
+<p>Once the implant is created some Delivery options or “Attacks” will be available. In the future, delivery options like phishing, macro… will be available.</p>
+<div class="section" id="drop-implant">
+<h3>Drop Implant<a class="headerlink" href="#drop-implant" title="Permalink to this headline">¶</a></h3>
+<p>To drop implant simply choose a previously created droplet</p>
+<div class="figure align-right" style="width: 300px">
+<a class="reference external image-reference" href="../_static/images/interactions/implantwithindroplet.png"><img alt="../_images/implantwithindroplet.png" src="../_images/implantwithindroplet.png" /></a>
+</div>
+</div>
+<div class="section" id="hta">
+<h3>HTA<a class="headerlink" href="#hta" title="Permalink to this headline">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">TBD</span></code></p>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="bichitos.html" class="btn btn-neutral float-right" title="Bichitos" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="../deployment/postservers.html" class="btn btn-neutral float-left" title="Post. Servers" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, Alvaro Folgado
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

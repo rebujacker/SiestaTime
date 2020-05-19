@@ -1,0 +1,256 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta content="Install,Client,Operator." lang="en" name="description" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Client &mdash; SiestaTime beta documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Hive" href="domains.html" />
+    <link rel="prev" title="Client" href="../install/client.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> SiestaTime
+          
+
+          
+            
+            <img src="../_static/STicon.png" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Installation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../install/dependencies.html">Dependencies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install/hive.html">Hive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install/client.html">Client</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Adding Ressources</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Client</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#what-this-does-what-is-the-client">What this does? What is the Client</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#install">Install</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#run-the-client">Run the Client</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#uninstall">Uninstall</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="domains.html">Hive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="operators.html">Dependencies</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">SiestaTime</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+      <li>Client</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/ressources/vpc.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="client">
+<h1>Client<a class="headerlink" href="#client" title="Permalink to this headline">¶</a></h1>
+<p>Once Hive is Online, operators can connect to it, but they need to install their client first</p>
+<div class="section" id="what-this-does-what-is-the-client">
+<h2>What this does? What is the Client<a class="headerlink" href="#what-this-does-what-is-the-client" title="Permalink to this headline">¶</a></h2>
+<p>GUI electron powered and Go application running in Operators’ devices. The go executable run a localhost server that feeds data to the electron app. In the same time, the go client executable authenticate against Hive with credentials passed in compiled time.
+Clients will authenticate against hive and send jobs to it. They can also interact with Post. Servers thanks to a Hive tunnelization.</p>
+<ul class="simple">
+<li>Install Client OS dependencies</li>
+<li>Download Go and dependencies to compile client</li>
+<li>Use config&lt;VPC&gt;.txt credentials to compile client</li>
+<li>Configure and install electron app</li>
+</ul>
+</div>
+<div class="section" id="install">
+<h2>Install<a class="headerlink" href="#install" title="Permalink to this headline">¶</a></h2>
+<p>Run <code class="docutils literal notranslate"><span class="pre">stime.sh</span></code> for client installation. This will compile stclient with provided credentials and configuration, and will generate the GUI folder.
+<code class="docutils literal notranslate"><span class="pre">stime.sh</span> <span class="pre">install</span> <span class="pre">&lt;username&gt;</span> <span class="pre">&lt;password&gt;</span> <span class="pre">&lt;Hive</span> <span class="pre">IP/Domain&gt;</span> <span class="pre">&lt;Hive</span> <span class="pre">Port&gt;</span> <span class="pre">&lt;Client</span> <span class="pre">Port&gt;</span> <span class="pre">&lt;Hive</span> <span class="pre">VPC</span> <span class="pre">certificate</span> <span class="pre">Fingerprint&gt;</span></code></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><style type="text/css">
+span.prompt1:before {
+  content: "$ ";
+}
+</style><span class="prompt1">./stime.sh install admin admin <span class="m">13</span>.57.31.79 <span class="m">6232</span> <span class="m">8000</span> <span class="k">$(</span>openssl x509 -fingerprint -sha256 -noout -in ./installConfig/hive.pem <span class="p">|</span> cut -d <span class="s1">&#39;=&#39;</span> -f2<span class="k">)</span></span>
+</pre></div></div></div>
+<div class="section" id="run-the-client">
+<h2>Run the Client<a class="headerlink" href="#run-the-client" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span class="prompt1">./stime.sh</span>
+</pre></div></div></div>
+<div class="section" id="uninstall">
+<h2>Uninstall<a class="headerlink" href="#uninstall" title="Permalink to this headline">¶</a></h2>
+<p>Will remove go dependencies
+<code class="docutils literal notranslate"><span class="pre">./stime.sh</span> <span class="pre">remove</span></code></p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="domains.html" class="btn btn-neutral float-right" title="Hive" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="../install/client.html" class="btn btn-neutral float-left" title="Client" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, Alvaro Folgado
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
