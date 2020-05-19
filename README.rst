@@ -49,12 +49,12 @@ Offline
 ----------------------
 
 
+.. code-block:: bash
 
-``./hive.sh installOffline 0.0.0.0 6232 /usr/local/ admin admin``
-
-``./stime.sh install admin admin 0.0.0.0 6232 8000 $(openssl x509 -fingerprint -sha256 -noout -in ./installConfig/hive.pem | cut -d '=' -f2)``
-
-``./stime.sh``
+    #Ubuntu
+    ./hive.sh installOffline 0.0.0.0 6232 /usr/local/ admin admin``
+    ./stime.sh install admin admin 0.0.0.0 6232 8000 $(openssl x509 -fingerprint -sha256 -noout -in ./installConfig/hive.pem | cut -d '=' -f2)``
+    ./stime.sh
 
 
 
@@ -78,11 +78,12 @@ Online
 * Copy AWS key to ``SiestaTime/installConfig/<keyname>.pem``
 
 
-``./hive.sh installaws``
+.. code-block:: bash
 
-``./stime.sh install admin admin 0.0.0.0 6232 8000 $(openssl x509 -fingerprint -sha256 -noout -in ./installConfig/hive.pem | cut -d '=' -f2)``
-
-``./stime.sh``
+    # Ubuntu
+    ./hive.sh installaws
+    ./stime.sh install admin admin 0.0.0.0 6232 8000 $(openssl x509 -fingerprint -sha256 -noout -in ./installConfig/hive.pem | cut -d '=' -f2)
+    ./stime.sh
 
 
 
@@ -91,9 +92,9 @@ Available features
 
 **This is a Beta**
 
-    The tool miss yet a lot of work and, most importantly, **bug fixing**
+The tool miss yet a lot of work and, most importantly, **bug fixing**
 
-Currently Modules/Abilities:
+**Current Modules/Abilities**
 
 Hive:
     - VPS 
@@ -139,7 +140,7 @@ Documentation
 
 User Guide: https://siestatime.readthedocs.io
 
-Developer Guide: TBD
+Developer Guide: **TBD**
 
 Presented at Defcon 27 Red Team Village.
 Slides from: https://redteamvillage.io/ --> https://www.slideshare.net/AlvaroFolgadoRueda1/siestatime-defcon27-red-team-village

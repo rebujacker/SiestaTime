@@ -1,7 +1,7 @@
 Domains
 ===========================
 
-Domains let the operator to add domain resources that can be used in the C2 deployment. Operators can list them to see if they are in use by any infraestructure already with the attribute ``active``
+Domains let the operator to add domain resources that can be used in the C2 deployment. Operators can list them to see if they are in use by any infrastructure already with the attribute ``active``
 
 
 List Domain Info/Remove: ``Domains/SaaS --> example.xyz``

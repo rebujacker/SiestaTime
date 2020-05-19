@@ -22,7 +22,7 @@ Maintain Access and Interact with your foothold
 
 Deploy Post. Exploitation Servers for Lateral Movement
     With the objective to achieve further target's assets from their intranet, Siesta Time can use
-    your ressource battery to deploy "shorted lived" handlers (ssh,msf,empire...) 
+    your resource battery to deploy "shorted lived" handlers (ssh,msf,empire...) 
 
 Document the whole Operation to provide insights to the target institution's Blue Team or Stakeholders
     Reporting will focus on saving every framework job and action execute in footholds or Post.
@@ -75,7 +75,7 @@ Everything related to the installation process for both Hive and client will be 
    install/client
 
 
-Adding Ressources
+Adding Resources
 -----------------------------------
 
 Saving online infrastructure resources will be the first steps to use Siesta Time. If you don’t desire to use automatic deployment of implants you can always deploy an Offline version of them where just executables will be generated.
@@ -94,7 +94,7 @@ Saving online infrastructure resources will be the first steps to use Siesta Tim
 .. toctree::
    :maxdepth: 2
    :hidden:
-   :caption: Adding Ressources
+   :caption: Adding Resources
 
    resources/operators
    resources/vpc

@@ -104,7 +104,7 @@ List target foothold Folder
 
 EG.: ``ls C:\\``
 
-accesscheck <pathFile>
+accesschk <pathFile>
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Provide target operating system’s file access control rules as an output
