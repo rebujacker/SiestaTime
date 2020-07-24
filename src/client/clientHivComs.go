@@ -1,12 +1,7 @@
-//{{{{{{{ Redirector Hive Coms }}}}}}}
-
-//// Every Function that Hives use to Communicate with the Hive
-// A. hiveConnection
-// B. redChecking
-// C. hiveComs
-
-
+//{{{{{{{ Client-Hive Coms  }}}}}}}
 //By Rebujacker - Alvaro Folgado Rueda as an open source educative project
+
+
 package main
 
 import (	
@@ -27,7 +22,10 @@ import (
 )
 
 
-//Auth Object
+/* 
+JSON DB Objects Definition for the Operator authenthicathion (basic).
+Hive will have the same definitions in: ./src/hive/hivRoaster.go
+*/
 
 type UserAuth struct {
     Username string  `json:"username"`  
@@ -36,8 +34,10 @@ type UserAuth struct {
 
 var authbearer string
 
-// JSON DB Objects
-//
+/* 
+JSON DB Objects Definitions. Used to receive HIVE DB data and tranform it into on memory arrays that can be consumed by electronGUI
+Hive will have the same definitions in: ./src/hive/hiveDB.go
+*/
 type Job struct {
     Cid  string   `json:"cid"`              // The client CID triggered the job
     Jid  string   `json:"jid"`              // The Job Id (J-<ID>), useful to avoid replaying attacks
@@ -56,7 +56,7 @@ type Log struct {
     Error  string   `json:"error"`
 }
 
-// JSON Ojects to encode/decode DB data from Client - Hive - Redirectors - Implants
+
 type Implant struct {
     Name string   `json:"name"`
     Ttl string   `json:"ttl"`
@@ -117,9 +117,6 @@ type Bichito struct {
 }
 
 
-
-//Object Parameters JSON fields
-
 type Modules struct {
     Coms string   `json:"coms"`
     Persistence string `json:"persistence"`  
@@ -163,40 +160,7 @@ type GuiData struct {
 }
 
 
-//Extra lock to avoid queue too many Get requests
-
-/*
-func connectHive(){
-	
-	//Debug: Chceck client is continuously trying to connect on clicks
-	fmt.Println("Connecting...")
-	fmt.Println(lock.Lock)
-
-    lock.mux.Lock()
-	lock.Lock = lock.Lock - 1
-    lock.mux.Unlock()
-	defer unlock()
-
-	//Get GUI data from Hive and update it
-	getHive("jobs")
-	jobsToSend.mux.Lock()
-	defer jobsToSend.mux.Unlock()
-	//Write all packages to Hive
-	for{
-		// Starting each iteraction first looks if there are any bichito
-		// packages to redirect,also implements the own timeout for it
-		if len(jobsToSend.Jobs) > 0 {
-			postHive(jobsToSend.Jobs[0])
-			jobsToSend.Jobs = append(jobsToSend.Jobs[:0], jobsToSend.Jobs[1:]...)
-
-		//Check if there are redirector Job finished to Send Back to Hive, is send, rset connT
-		}else{
-			break
-		}
-	}
-
-}
-*/
+//Functions that change the states of the locker exlained in "clientGUI.go"
 
 func unlock(){
     lock.mux.Lock()
@@ -210,22 +174,29 @@ func jobunlock(){
     joblock.mux.Unlock()
 }
 
+
+
+/*
+Description: Main Function to retrieve DB data from Hive, this will feed view data from the electronGUI
+Flow:
+A.Manage Lock
+B.Check Hive TLS and build HTTP Client
+C.Request the data for a target DB Column (Implant,Domains,...)
+D.Update on memory data
+*/
 func getHive(objtype string){
 	
-    //Debug:
-    fmt.Println("Lock Read:")
-    fmt.Println(lock.Lock)
+    //Reduce the read concurrency by 1
     lock.mux.Lock()
     lock.Lock = lock.Lock - 1
     lock.mux.Unlock()
     defer unlock()
 
 
-	//fmt.Println("Getting:" + objtype)
-
+    //Check target Hive TLS to avoid Hive Spoofing
 	checkTLSignature()
 	
-	//HTTP Clients Conf
+    //Build the HTTP client to GET data from Hive
 	client := &http.Client{
 		Transport: &http.Transport{
         	DialContext:(&net.Dialer{
@@ -266,14 +237,13 @@ func getHive(objtype string){
 		return
 	}
 
-	//Debug Client Get Hive Data	
-	//fmt.Println(string(body))
-
-
+    //Once the data is retrieved, update on memory arrays
 	go updateData(objtype,string(body))
 
 }
 
+
+//This function will update the target Objects' memory array that will be consumed by the electronGUI
 func updateData(objtype string,guidata string){
 
     reader := strings.NewReader(guidata)
@@ -378,20 +348,18 @@ func updateData(objtype string,guidata string){
 
 }
 
+
+//Same as "getHive", but POST a Job to Hive
 func postHive(job *Job){
 
-
+    //Manage Lock for sending Jobs
     defer jobunlock()
-
     joblock.mux.Lock()
     joblock.Lock = joblock.Lock - 1
     joblock.mux.Unlock()
     
-	
-    //job := jobsToSend.Jobs[0]
+	//Check Hive validity
 	checkTLSignature()
-	
-	
     bytesRepresentation := new(bytes.Buffer)
     err := json.NewEncoder(bytesRepresentation).Encode(job)
 	if err != nil {
@@ -399,8 +367,7 @@ func postHive(job *Job){
 		return
 	}    
 	
-
-	//HTTP Clients Conf
+	//Build the HTTP client to GET data from Hive
 	client := &http.Client{
 		Transport: &http.Transport{
         	DialContext:(&net.Dialer{
@@ -435,6 +402,7 @@ func postHive(job *Job){
 }
 
 
+//This function with Build a http client to get a target Implant from hive, and download it on the Operator's machine
 func getImplant(implantName string,osName string,arch string) string{
     
     checkTLSignature()
@@ -480,16 +448,6 @@ func getImplant(implantName string,osName string,arch string) string{
         return "CreateReport:" + err2.Error()
     }
 
-    //Debug Get Report
-    /*
-    requestDump, err2 := httputil.DumpRequest(req, true)
-    if err2 != nil {
-        fmt.Println(err2)
-    }
-    fmt.Println(string(requestDump))
-    fmt.Println(string(body))
-    */
-
 
     decodedDownload, errD := base64.StdEncoding.DecodeString(string(body))
     if errD != nil {
@@ -513,6 +471,7 @@ func getImplant(implantName string,osName string,arch string) string{
 
 }
 
+//This function with Build a http client to get a target Redirector binary from hive, and download it on the Operator's machine
 func getRedirector(implantName string) string{
     
     checkTLSignature()
@@ -555,17 +514,7 @@ func getRedirector(implantName string) string{
     if err2 != nil {
         return "CreateReport:" + err2.Error()
     }
-
-    //Debug Get Report
     
-    requestDump, err2 := httputil.DumpRequest(req, true)
-    if err2 != nil {
-        fmt.Println(err2)
-    }
-    fmt.Println(string(requestDump))
-    fmt.Println(string(body))
-    
-
 
     decodedDownload, errD := base64.StdEncoding.DecodeString(string(body))
     if errD != nil {
@@ -589,6 +538,8 @@ func getRedirector(implantName string) string{
 
 }
 
+
+// Build a http client and perform a Get request to Hive to get a target server PEM file
 func getKey(vpsName string) string{
 	
 	checkTLSignature()
@@ -632,20 +583,12 @@ func getKey(vpsName string) string{
 		return ""
 	}
 
-    //Debug GetKey
-    /*
-    requestDump, err2 := httputil.DumpRequest(req, true)
-    if err2 != nil {
-        fmt.Println(err2)
-    }
-    fmt.Println(string(requestDump))
-	fmt.Println(string(body))
-	*/
 
 	return string(body)
 
 }
 
+// Build a http client and perform a Get request to Hive to get a target Report
 func getReport(reportName string) string{
 	
 	checkTLSignature()
@@ -688,16 +631,6 @@ func getReport(reportName string) string{
 		return "CreateReport:" + err2.Error()
 	}
 
-    //Debug Get Report
-    /*
-    requestDump, err2 := httputil.DumpRequest(req, true)
-    if err2 != nil {
-        fmt.Println(err2)
-    }
-    fmt.Println(string(requestDump))
-	fmt.Println(string(body))
-	*/
-
 	report, err := os.Create("./reports/"+reportName+".txt")
 	if err != nil {
    	 	return "CreateReport:" + err.Error()
@@ -713,7 +646,7 @@ func getReport(reportName string) string{
 
 }
 
-
+// Build a http client and perform a Get request to Hive to get a target Job Result
 func getJIDResult(jid string) (string,string){
 	
 	checkTLSignature()

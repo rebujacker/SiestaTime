@@ -17,18 +17,22 @@ import (
     "sync"
 )
 
+// On-time Compiled Variable that defines Hive listening socket --> <IP:PORT>
 var (
 
-	// Core Variables to be defined at compiling time
+	
 	roasterString string
 )
 
+// Global Var for the DB connection
 var db *sql.DB
 
-//DB Objects JSON, This data format will be used all around SiestaTime for encoding reasons in communications
+/*
+JSON DB Objects Definitions. Used to receive data from both Operators and Implants and decode them in the right DB Objects.
+Client will have the same definitions in: ./src/client/clientHivComs.go
+Implant will have some of these definitions too: ./src/bichito/bichito.go 
+*/
 
-
-//
 type Job struct {
     Cid  string   `json:"cid"`              // The client CID triggered the job
     Jid  string   `json:"jid"`              // The Job Id (J-<ID>), useful to avoid replaying attacks
@@ -53,7 +57,15 @@ type Implant struct {
     Resptime string   `json:"resptime"`
     RedToken string   `json:"redtoken"`     // Authentication token for redirectors
     BiToken string   `json:"bitoken"`       // Authentication token for implants
-    Modules string   `json:"modules"`       // Loaded modules in the implant
+    Modules string   `json:"modules"`       // Loaded modules in the implant, JSON Encoded DATA "Modules"
+}
+
+//JSON Object to save on an implant DB Object the module configurations of target Implant
+type Modules struct {
+    Coms string   `json:"coms"`
+    PersistenceOSX string `json:"persistenceosx"`
+    PersistenceWindows string `json:"persistencewindows"`
+    PersistenceLinux string `json:"persistencelinux"`  
 }
 
 type Vps struct {
@@ -105,74 +117,6 @@ type Bichito struct {
     ImplantName        string   `json:"implantname"`   
 }
 
-//Bichito system JSON info
-
-type SysInfo struct {
-    Pid string  `json:"pid"`
-    Arch string  `json:"arch"`
-    Os string  `json:"os"`
-    OsV string  `json:"osv"`
-    Hostname string   `json:"hostname"` 
-    Mac string  `json:"mac"`
-    User        string   `json:"user"`   
-    Privileges string   `json:"privileges"`
-}
-
-
-//Object Parameters JSON fields
-
-type Modules struct {
-    Coms string   `json:"coms"`
-    PersistenceOSX string `json:"persistenceosx"`
-    PersistenceWindows string `json:"persistencewindows"`
-    PersistenceLinux string `json:"persistencelinux"`  
-}
-
-/// Vps Parameters
-type Amazon struct{
-    Accesskey string   `json:"accesskey"`
-    Secretkey string   `json:"secretkey"`
-    Region string   `json:"region"`
-    Ami string `json:"ami"`
-    Sshkeyname string   `json:"sshkeyname"`
-    Sshkey string   `json:"sshkey"`
-}
-
-/// Domain Parameters
-type Godaddy struct{
-    Domainkey string   `json:"domainkey"`
-    Domainsecret string   `json:"domainsecret"`
-}
-
-//Two different JSon to transform paramters to a data form with more info for red/bichito
-type GmailP struct {
-    Creds string   `json:"creds"`
-    Token string   `json:"token"`
-}
-
-type Gmail struct {
-    Name string   `json:"name"`    
-    Creds string   `json:"creds"`
-    Token string   `json:"token"`
-}
-
-/// Staging Parameters
-type Droplet struct{
-    HttpsPort string   `json:"httpsport"`
-    Path string `json:"path"`
-}
-
-type Msf struct{
-    HttpsPort string   `json:"httpsport"`
-}
-
-type Empire struct{
-    HttpsPort string   `json:"httpsport"`
-}
-
-
-//Outbound JSON data structures, this is the data users will pull out from the server to feed the GUI views
-
 type GuiData struct {
     Jobs            []*Job `json:"jobs"`
     Logs 			[]*Log `json:"logs"` 
@@ -184,6 +128,17 @@ type GuiData struct {
     Redirectors 			[]*Redirector `json:"redirectors"`
     Bichitos 			[]*Bichito `json:"bichitos"`
 }
+
+
+
+
+/*
+Hive on memory DB. These data structures will keep sqlite objects on Memory.
+Each Memory array will be updated when a change in their tables are performed.
+This will:
+ A. Reduce overhead in the DB (and get DB Locked errors), a lock system is implemented.
+ B. Spend less time to answer Operators request to refresh data on their GUI's
+*/
 
 type JobsMemoryDB struct {
     mux  sync.RWMutex
@@ -264,9 +219,13 @@ type ImplantsAuthMemoryDB struct {
 }
 var implantsAuthDB *ImplantsAuthMemoryDB
 
+/*
+This structure will keep a boolean set to rememeber which DB Table is being refreshed.
+In this way, if multiple refresh request come triggered by a DB modification, just one at a time will take place.
+*/
 type updateMemoryDBLockObject struct {
     mux  sync.RWMutex
-    Working bool
+    Working bool                            //Boolean value that indicates is there is an ongoing Object refreshment
     Jobs bool
     Domains bool
     Vps bool
@@ -283,12 +242,20 @@ type updateMemoryDBLockObject struct {
 var readLock *updateMemoryDBLockObject
 
 
+/*
+sartDB Hive
+Description: Initialize DB connection and prepare on memory data arrays
+Flow:
+A. Create a connection with local DB 
+    A1. If there is an error, panic will be needed to finish the process, since we don't want Hive running without DB
+B. Prepare on memory arrays for each object, the redlock object as well.
+C. Feed each on memory array with the DB content
+*/
 
 func startDB(){
 
 	var err error
-	db, err = sql.Open("sqlite3", "./ST.db?_busy_timeout=10000") //prev 1000
-	//db, err = sql.Open("sqlite3", "./ST.db:locked.sqlite?cache=shared")
+	db, err = sql.Open("sqlite3", "./ST.db?_busy_timeout=10000")
     if err != nil {
         //ErrorLog
         time := time.Now().Format("02/01/2006 15:04:05 MST")
@@ -297,10 +264,7 @@ func startDB(){
     	panic(err)
     }
 
-    //db.SetMaxOpenConns(1)
 
-    // To avoid panicquing with golang concurrency
-    //db.SetMaxOpenConns(20)
 
     //Initialize OnMem DB Data
     var (
@@ -359,10 +323,12 @@ func startDB(){
 }
 
 
-//Get the GUI data with limit of 50 HiveLogs and 20 of each asset
+/*
+Description: This method will be called each time Hive wants a on memory Object Set to be updated (to refresh Operator's GUI data)
+The method will simply change values on readLock(updateMemoryDBLockObject) to acknowledge wich Objects require refreshment.
+*/
 func updateMemoryDB(objtype string){
 
-    //fmt.Println("Entering Update Object:"+ objtype)
     switch objtype{
         case "jobs":
             
@@ -429,6 +395,13 @@ func updateMemoryDB(objtype string){
     return
 
 }
+
+/*
+Description: Start a process to refresh a whole on memory Array for a target Hive Object
+Flow:
+A. Check that there is no a memory refresh or Jobs being processed and modydying DB
+B. Check over the different bool states of readLock(updateMemoryDBLockObject) and trigger the refreshment of Objects if any
+*/
 
 func updateMemoryDBQueue(){
 
@@ -661,7 +634,9 @@ func updateMemoryDBQueue(){
     return
 }
 
-
+/*
+The following functions will query DB object tables, and give back an Data Object array for the target Object.
+*/
 
 func getJobsDataDB() (error,[]*Job) {
 
@@ -1005,263 +980,15 @@ func getImplantsAuthDataDB() (error,[]*ImplantAuth) {
     return err,implants
 }
 
+
+
 /*
-func getGUIDataDB() (error,*GuiData){
-
-    var result *GuiData
-	var (
-        jobs []*Job
-		logs []*Log
-		implants []*Implant
-		vpss []*Vps
-		domains []*Domain
-		redirectors []*Redirector
-        bichitos []*Bichito        
-        stagings []*Staging
-        reports []*Report
-	)
-
-
-    rowsJ, err := db.Query("SELECT jid FROM (SELECT jid,jobId FROM jobs ORDER BY jobId DESC LIMIT $1) ORDER BY jobId ASC",50)
-    if err != nil {
-        return err,result
-    }
-    defer rowsJ.Close()
-
-  
-    for rowsJ.Next() {
-        var jid string
-        err = rowsJ.Scan(&jid)
-        if err != nil {
-            return err,result
-        }
-
-        _,job := getJobDB(jid)
-
-        //Filter Jobs results with a huge amount of data to reduce GUI overhead
-        if (len(job.Result) > 1000){
-            job.Result = "Too Large Output - blob"
-        }
-        jobs = append(jobs,job)
-    }
-
-    err = rowsJ.Err()
-    if err != nil {
-        return err,result
-    }
-
-
-
-
-    rowsL, err := db.Query("SELECT logId FROM (SELECT logId FROM logs ORDER BY logId DESC LIMIT $1) ORDER BY logId ASC",50)
-    if err != nil {
-        return err,result
-    }
-    defer rowsL.Close()    
-
-    for rowsL.Next() {
-        var id string
-        err = rowsL.Scan(&id)
-        if err != nil {
-            return err,result
-        }
-        log := getLogDB(id)
-        //Filter Logs eror with a huge amount of data to reduce GUI overhead
-        if (len(log.Error) > 1000){
-            log.Error = "Too Large Error Log - blob"
-        }
-        logs = append(logs,log)
-    }
-
-    
-    err = rowsL.Err()
-    if err != nil {
-        return err,result
-    }
-
-
-
-
-    rowsI, err := db.Query("SELECT name FROM implants")
-    defer rowsI.Close()
-
-    if err != nil {
-        return err,result
-    }
-    for rowsI.Next() {
-        var name string
-        err = rowsI.Scan(&name)
-        if err != nil {
-            return err,result
-        }
-        _,implant := getImplantDB(name)
-        implants = append(implants,implant)
-    }
-
-    
-    err = rowsI.Err()
-    if err != nil {
-        return err,result
-    }
-
-
-
-
-    rowsV, err := db.Query("SELECT name FROM vps")
-    defer rowsV.Close()
-
-    if err != nil {
-        return err,result
-    }
-    for rowsV.Next() {
-        var name string
-        err = rowsV.Scan(&name)
-        if err != nil {
-            return err,result
-        }
-        vps := getVpsDB(name)
-        vpss = append(vpss,vps)
-    }
-
-    err = rowsV.Err()
-    if err != nil {
-        return err,result
-    }
-
-
-
-
-    rowsD, err := db.Query("SELECT name FROM domains")
-    defer rowsD.Close()
-
-    if err != nil {
-        return err,result
-    }
-    for rowsD.Next() {
-        var name string
-        err = rowsD.Scan(&name)
-        if err != nil {
-            return err,result
-        }
-        domain := getDomainDB(name)
-        domains = append(domains,domain)
-    }
-
-    err = rowsD.Err()
-    if err != nil {
-        return err,result
-    }
-
-
-
-
-    rowsRed, err := db.Query("SELECT rid FROM redirectors")
-    defer rowsRed.Close()
-
-    if err != nil {
-        return err,result
-    }
-    for rowsRed.Next() {
-        var rid string
-        err = rowsRed.Scan(&rid)
-        if err != nil {
-            return err,result
-        }
-
-        red := getRedirectorDB(rid)
-        redirectors = append(redirectors,red)
-    }
-
-    err = rowsRed.Err()
-    if err != nil {
-        return err,result
-    }
-
-
-
-
-
-    rowsB, err := db.Query("SELECT bid FROM bichitos")
-    defer rowsB.Close()
-
-    if err != nil {
-        return err,result
-    }
-
-    for rowsB.Next() {
-        var bid string
-        err = rowsB.Scan(&bid)
-        if err != nil {
-            return err,result
-        }
-        bichito := getBichitoDB(bid)
-        bichitos = append(bichitos,bichito)
-    }
-
-    
-    err = rowsB.Err()
-    if err != nil {
-        return err,result
-    }
-
-
-
-
-
-    rowsS, err := db.Query("SELECT name FROM stagings")
-    defer rowsS.Close()
-    if err != nil {
-        return err,result
-    }
-    for rowsS.Next() {
-        var name string
-        err = rowsS.Scan(&name)
-        if err != nil {
-            return err,result
-        }
-        staging := getStagingDB(name)
-        stagings = append(stagings,staging)
-    }
-
-    err = rowsS.Err()
-    if err != nil {
-        return err,result
-    }
-
-
-
-    rowsR, err := db.Query("SELECT name FROM reports")
-    defer rowsR.Close()
-
-    if err != nil {
-        return err,result
-    }
-    for rowsR.Next() {
-        var name string
-        err = rowsR.Scan(&name)
-        if err != nil {
-            return err,result
-        }
-        report := Report{name}
-        reports = append(reports,&report)
-    }
-
-    
-    err = rowsR.Err()
-    if err != nil {
-        return err,result
-    }
-
-
-    result = &GuiData{Jobs:jobs,Logs:logs,Implants:implants,Vps:vpss,Domains:domains,Stagings:stagings,Reports:reports,Redirectors:redirectors,Bichitos:bichitos}
-    return err,result
-}
+DB read/write/modify functions. The following methods are divided by Object.
+They are related to the use of the previously opened DB connection to read,modify,insert data... 
+They also perform data changes in "on-memory" slices
 */
 
-//// Sqlite Connection Functions for DB objects, Adders,getters,setters,diverse queries...
-
 //Hive DB Config
-
 func getRoasterStringDB() string{
 
     var ip,port string
@@ -1271,7 +998,11 @@ func getRoasterStringDB() string{
 }
 
 
-//Job
+/*
+
+Jobs DB Functions
+
+*/
 
 func getJobDB(jid string) (error,*Job){
     
@@ -1381,7 +1112,6 @@ func setJobStatusDB(jid string,status string) error{
     stmt,_ := db.Prepare("UPDATE jobs SET status=? where jid=?")
     defer stmt.Close()
     _,err = stmt.Exec(status,jid)
-    //go updateMemoryDB("jobs")
     return err
 
 }
@@ -1411,11 +1141,13 @@ func rmJobsbyChidDB(chid string) error{
 
 }
 
-//Users
+/*
 
+Users DB Functions
+
+*/
 func existUserDB(username string) (bool,error){
  	
-	//var rid string
 	stmt := "Select username from users where username=?"
 	err := db.QueryRow(stmt,username).Scan(&username)
 
@@ -1427,6 +1159,12 @@ func existUserDB(username string) (bool,error){
     }
     return true,err
 }
+
+/*
+Description: Add an Operator to Hive
+A. Generate a hash using bcrypt from the string password
+B. Insert username/hash
+*/
 
 func addUserDB(cid string,username string,password string) error{
 
@@ -1514,8 +1252,11 @@ func getCidbyAuthDB(username string,password string) (string,error){
 
 
 
-//Logs
+/*
 
+Logs DB Functions
+
+*/
 type LogSync struct {
     Type string   `json:"type"`
     Time string   `json:"time"`
@@ -1622,7 +1363,11 @@ func rmLogsbyPidDB(pid string) error{
 
 }
 
-//Implants
+/*
+
+Implants DB Functions
+
+*/
 
 func getImplantDB(name string) (error,*Implant){
     
@@ -1672,7 +1417,6 @@ func getImplantsNameDB() (error,[]string){
 
 func existImplantDB(name string) (bool,error){
  	
-	//var rid string
 	stmt := "Select name from implants where name=?"
 	err := db.QueryRow(stmt,name).Scan(&name)
 
@@ -1822,7 +1566,11 @@ func rmImplantDB(name string) error{
 }
 
 
-//Vps
+/*
+
+VPS DB Functions
+
+*/
 func getVpsDB(name string) *Vps{
 
     var nameI,vtype string
@@ -1937,8 +1685,12 @@ func getVpsPemDB(name string) (string,error){
 }
 
 
-//Domain
 
+/*
+
+Domains DB Functions
+
+*/
 func getDomainDB(name string) *Domain{
 
     var nameI,active,dtype,domain string
@@ -1995,8 +1747,7 @@ func addDomainDB(domain *Domain) error{
 	if ext{
 		return err
 	}
-	//Infra check -->
-	// checkDomain() --> Check if this Domain is correctly working by api calls
+
 	stmt,_ := db.Prepare("INSERT INTO domains (name,active,dtype,domain,parameters) VALUES (?,?,?,?,?)")
     defer stmt.Close()
 	_,err = stmt.Exec(domain.Name,"No",domain.Dtype,domain.Domain,domain.Parameters)
@@ -2097,7 +1848,11 @@ func setUsedDomainDB(name string,value string) error{
 }
 
 
-//Redirectors
+/*
+
+Redirectors Object Functions
+
+*/
 func getRedirectorDB(rid string) *Redirector{
 
     var vpsId,domainId,implantId int
@@ -2252,10 +2007,6 @@ func getAllRidDB() []string{
 }
 
 
-
-
-
-
 func getRedRidbyDomainMem(domain string) (error,string){
 
 
@@ -2369,7 +2120,11 @@ func setRedHiveTDB(rid string,value int) error{
 }
 
 
-//Bichito
+/*
+
+Bichito DB Functions
+
+*/
 
 func bichitoStatus(job *Job){
 
@@ -2390,102 +2145,6 @@ func bichitoStatus(job *Job){
 }
 
 
-/*
-func bichitoStatus(){
-
-    var bichito *Bichito
-    var bidToOffline []string
-    var bidToOnline []string
-
-    //Query all bids, per bid get Bi object, make respTIme diff with lastchecked, update status
-    rows, err := db.Query("SELECT bid FROM bichitos")
-    defer rows.Close()
-    if err != nil {
-            time := time.Now().Format("02/01/2006 15:04:05 MST")
-            elog := fmt.Sprintf("%s%s","DataSync(Error Querying Bichitos):",err.Error())
-            addLogDB("Hive",time,elog)
-    }
-    for rows.Next() {
-        var bid string
-        var timeNow,lastcheckedT time.Time
-        var  intresptime int
-        var tdiff time.Duration
-        err = rows.Scan(&bid)
-        if err != nil {
-            //ErrorLog
-            timeN := time.Now().Format("02/01/2006 15:04:05 MST")
-            elog := fmt.Sprintf("%s%s","DataSync(Error Querying Bichitos):",err.Error())
-            addLogDB("Hive",timeN,elog)
-        }
-
-        bichito = getBichitoDB(bid)
-
-        timeNowS := time.Now().Format("02/01/2006 15:04:05 MST")
-        timeNow, err := time.Parse("02/01/2006 15:04:05 MST", timeNowS)
-        if err != nil {
-            //ErrorLog
-            timeN := time.Now().Format("02/01/2006 15:04:05 MST")
-            elog := fmt.Sprintf("%s%s","DataSync(Error parsing time Now time):",err.Error())
-            addLogDB("Hive",timeN,elog)
-        }
-
-        lastcheckedT, err = time.Parse("02/01/2006 15:04:05 MST", bichito.LastChecked)
-        if err != nil {
-            //ErrorLog
-            timeN := time.Now().Format("02/01/2006 15:04:05 MST")
-            elog := fmt.Sprintf("%s%s","DataSync(Error parsing Bichito Lastchecked time):",err.Error())
-            addLogDB("Hive",timeN,elog)
-        }    
-
-        tdiff = timeNow.Sub(lastcheckedT)
-                
-        //String respTime tseconds o int
-        intresptime, err = strconv.Atoi(bichito.Resptime)
-
-        //Debug
-        //fmt.Println("Bichito:" + bid + "Time since last seen:")
-        //fmt.Println(tdiff.Seconds() - float64(5))
-        //fmt.Println((tdiff.Seconds() - float64(5)) > float64(intresptime))
-
-        //Let's give 5 second for close sharp errors
-        if ((tdiff.Seconds() - float64(5)) > float64(intresptime)){
-            //Debug
-            //fmt.Println("Chaning:"+bid+ " to offline")
-            bidToOffline = append(bidToOffline,bid)
-        }else{
-            bidToOnline = append(bidToOnline,bid)
-        }
-
-    }
-    err = rows.Err()
-    if err != nil {
-            time := time.Now().Format("02/01/2006 15:04:05 MST")
-            elog := fmt.Sprintf("%s%s","DataSync(Error Querying Bichitos):",err.Error())
-            addLogDB("Hive",time,elog)
-    }
-
-    //Loop out to avoid database lock
-    for _,bid := range bidToOffline{
-        setBichitoStatusDB(bid,"Offline")
-        if err != nil {
-            time := time.Now().Format("02/01/2006 15:04:05 MST")
-            elog := fmt.Sprintf("%s%s","DataSync(Error Changing Bichitos Status):",err.Error())
-            addLogDB("Hive",time,elog)
-        } 
-    }
-
-    for _,bid := range bidToOnline{
-        setBichitoStatusDB(bid,"Online")
-        if err != nil {
-            time := time.Now().Format("02/01/2006 15:04:05 MST")
-            elog := fmt.Sprintf("%s%s","DataSync(Error Changing Bichitos Status):",err.Error())
-            addLogDB("Hive",time,elog)
-        } 
-    }    
-
-}
-
-*/
 
 func getBichitoDB(bid string) *Bichito{
 
@@ -2752,8 +2411,12 @@ func rmBibyBidDB(bid string) error{
 }
 
 
-//Stagings
 
+/*
+
+Stagings DB Functions
+
+*/
 func getStagingDB(name string) *Staging{
 
     var vpsId,domainId int
@@ -2889,8 +2552,12 @@ func getStagingTunnelPortDB() (error,string){
 }
 
 
-//Reports
 
+/*
+
+Reports DB Functions
+
+*/
 func existReportDB(name string) (bool,error){
     
     stmt := "Select name from reports where name=?"

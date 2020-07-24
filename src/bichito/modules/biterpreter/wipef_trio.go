@@ -8,6 +8,11 @@ package biterpreter
     "strings"
  )
 
+/*
+Description: Wipe File--> Linux,Darwin,Windows.
+Flow:
+A.Wipe target PATH File.
+*/
 func Wipe(commands string) (bool,string){
 
     arguments := strings.Split(commands," ")

@@ -8,7 +8,11 @@ import (
     "syscall"
 )
 
-
+/*
+Description: AccessCheck --> Linux and Darwin
+Flow:
+A.Use Native golang libraries and sys calls to get key operating System data
+*/
 func Accesschk(filepath string) (bool,string){
 
     var result string

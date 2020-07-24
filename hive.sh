@@ -1,6 +1,8 @@
 #!/bin/sh
 
 case "$1" in
+
+	#Remove Previously deployed Hive and their components
     "remove" )
 		cd ./installConfig/
 		./terraform destroy -auto-approve
@@ -24,6 +26,7 @@ case "$1" in
 		exit 1
         ;;
 
+    #Install Hive using a AWS Instance
     "installaws" )
 		file="./installConfig/hive.tf"		
 		if [ -f "$file" ]
@@ -32,10 +35,11 @@ case "$1" in
 			exit 1;
 		fi
 
+		#Install needed software
 		sudo apt-get update
 		sudo apt-get install gcc apache2-utils sqlite3 libsqlite3-dev unzip git
 
-
+		#Parse Configurations File
 		VARS=()
 		file="./installConfig/configAWS.txt"
 		while IFS=':' read -r f1 f2
@@ -54,23 +58,17 @@ case "$1" in
 		AMI=${VARS[7]}
 		ITYPE=${VARS[8]}
 
-		#printf '%s\n' "${VARS[@]}"
 		
-		cp ./installConfig/hive_plan.txt ./installConfig/hive.tf
 
-		# Download GO and Compile Hive
+		#Download GO and Compile Hive
 		wget https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz -P ./installConfig/
 		tar xvf ./installConfig/go1.13.3.linux-amd64.tar.gz -C ./installConfig/
 		export GOROOT="$(pwd)/installConfig/go/"
 		export GOPATH="$(pwd)"
 		./installConfig/go/bin/go get "github.com/mattn/go-sqlite3"
 		./installConfig/go/bin/go get "github.com/gorilla/mux"
-		./installConfig/go/bin/go get "golang.org/x/crypto/blowfish"
 		./installConfig/go/bin/go get "golang.org/x/crypto/bcrypt"
-		./installConfig/go/bin/go get "golang.org/x/net/context"
-		./installConfig/go/bin/go get "golang.org/x/oauth2"
-		./installConfig/go/bin/go get "golang.org/x/oauth2/google"
-		./installConfig/go/bin/go get "google.golang.org/api/gmail/v1"
+
 		GOOS=linux GOARCH=amd64 ./installConfig/go/bin/go build --ldflags "-X main.roasterString=0.0.0.0:${PORT}" -o ./installConfig/hive hive
 
 		if [[ $AKEY == *"|"* ]] || [[ $SKEY == *"|"* ]] || [[ $AMI == *"|"* ]] || [[ $REGION == *"/"* ]] || [[ $KEYNAME == *"/"* ]]; then
@@ -78,17 +76,11 @@ case "$1" in
   			exit 1
 		fi
 
-openssl req -subj '/CN=hive.xyz/' -new -newkey rsa:4096 -days 3650 -nodes -x509 -keyout ./installConfig/hive.key -out ./installConfig/hive.pem
-cat ./installConfig/hive.key >> ./installConfig/hive.pem
+		#Generate Hive Self-Signed TLS Certificates
+		openssl req -subj '/CN=hive.xyz/' -new -newkey rsa:4096 -days 3650 -nodes -x509 -keyout ./installConfig/hive.key -out ./installConfig/hive.pem
+		cat ./installConfig/hive.key >> ./installConfig/hive.pem
 
-#sed -i -e "s/@port/${PORT}/g" ./installConfig/hive.tf
-sed -i -e 's|@access_key|'"$AKEY"'|g' ./installConfig/hive.tf
-sed -i -e 's|@secret_key|'"$SKEY"'|g' ./installConfig/hive.tf
-sed -i -e "s/@region/${REGION}/g" ./installConfig/hive.tf
-sed -i -e "s/@keyname/${KEYNAME}/g" ./installConfig/hive.tf
-sed -i -e 's|@ami|'"$AMI"'|g' ./installConfig/hive.tf
-sed -i -e 's|@instancetype|'"$ITYPE"'|g' ./installConfig/hive.tf
-
+	#Prepare Hive SqliteDB
 	sqlite3 ./installConfig/ST.db <<EOF
 	PRAGMA journal_mode = OFF;
 	create table logs (logId INTEGER PRIMARY KEY,pid TEXT,time TEXT,error TEXT);
@@ -108,18 +100,27 @@ sed -i -e 's|@instancetype|'"$ITYPE"'|g' ./installConfig/hive.tf
 EOF
 
 
-#Deploy Hive and get back public IP
+	
+	#Download Terraform, parse the layout "hive_plan.txt" to "hive.tf" with AWS Account and params.
+	cd installConfig
+	wget wget https://releases.hashicorp.com/terraform/0.11.13/terraform_0.11.13_linux_amd64.zip
+	unzip terraform_0.11.13_linux_amd64.zip
 
-cd installConfig
-#Download and unzip terraform
-wget wget https://releases.hashicorp.com/terraform/0.11.13/terraform_0.11.13_linux_amd64.zip
-unzip terraform_0.11.13_linux_amd64.zip
 
-./terraform init
-./terraform apply -auto-approve
+	cp hive_plan.txt hive.tf
+	sed -i -e 's|@access_key|'"$AKEY"'|g' hive.tf
+	sed -i -e 's|@secret_key|'"$SKEY"'|g' hive.tf
+	sed -i -e "s/@region/${REGION}/g" hive.tf
+	sed -i -e "s/@keyname/${KEYNAME}/g" hive.tf
+	sed -i -e 's|@ami|'"$AMI"'|g' hive.tf
+	sed -i -e 's|@instancetype|'"$ITYPE"'|g' hive.tf
 
-exit 1
-        ;;
+	#Apply the Plan to deploy Hive
+	./terraform init
+	./terraform apply -auto-approve
+
+	exit 1
+    ;;
 
     "installawsNoDarwin" )
 		file="./installConfig/hive.tf"		
@@ -129,10 +130,11 @@ exit 1
 			exit 1;
 		fi
 
+		#Install needed software
 		sudo apt-get update
 		sudo apt-get install gcc apache2-utils sqlite3 libsqlite3-dev unzip git
 
-
+		#Parse Configurations File
 		VARS=()
 		file="./installConfig/configAWS.txt"
 		while IFS=':' read -r f1 f2
@@ -150,24 +152,16 @@ exit 1
 		KEYNAME=${VARS[6]}
 		AMI=${VARS[7]}
 		ITYPE=${VARS[8]}
-
-		#printf '%s\n' "${VARS[@]}"
 		
-		cp ./installConfig/hive_planNoDarwin.txt ./installConfig/hive.tf
 
-		# Download GO and Compile Hive
+		#Download GO and Compile Hive
 		wget https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz -P ./installConfig/
 		tar xvf ./installConfig/go1.13.3.linux-amd64.tar.gz -C ./installConfig/
 		export GOROOT="$(pwd)/installConfig/go/"
 		export GOPATH="$(pwd)"
 		./installConfig/go/bin/go get "github.com/mattn/go-sqlite3"
 		./installConfig/go/bin/go get "github.com/gorilla/mux"
-		./installConfig/go/bin/go get "golang.org/x/crypto/blowfish"
 		./installConfig/go/bin/go get "golang.org/x/crypto/bcrypt"
-		./installConfig/go/bin/go get "golang.org/x/net/context"
-		./installConfig/go/bin/go get "golang.org/x/oauth2"
-		./installConfig/go/bin/go get "golang.org/x/oauth2/google"
-		./installConfig/go/bin/go get "google.golang.org/api/gmail/v1"
 		GOOS=linux GOARCH=amd64 ./installConfig/go/bin/go build --ldflags "-X main.roasterString=0.0.0.0:${PORT}" -o ./installConfig/hive hive
 
 		if [[ $AKEY == *"|"* ]] || [[ $SKEY == *"|"* ]] || [[ $AMI == *"|"* ]] || [[ $REGION == *"/"* ]] || [[ $KEYNAME == *"/"* ]]; then
@@ -175,17 +169,10 @@ exit 1
   			exit 1
 		fi
 
-openssl req -subj '/CN=hive.xyz/' -new -newkey rsa:4096 -days 3650 -nodes -x509 -keyout ./installConfig/hive.key -out ./installConfig/hive.pem
-cat ./installConfig/hive.key >> ./installConfig/hive.pem
+		openssl req -subj '/CN=hive.xyz/' -new -newkey rsa:4096 -days 3650 -nodes -x509 -keyout ./installConfig/hive.key -out ./installConfig/hive.pem
+		cat ./installConfig/hive.key >> ./installConfig/hive.pem
 
-#sed -i -e "s/@port/${PORT}/g" ./installConfig/hive.tf
-sed -i -e 's|@access_key|'"$AKEY"'|g' ./installConfig/hive.tf
-sed -i -e 's|@secret_key|'"$SKEY"'|g' ./installConfig/hive.tf
-sed -i -e "s/@region/${REGION}/g" ./installConfig/hive.tf
-sed -i -e "s/@keyname/${KEYNAME}/g" ./installConfig/hive.tf
-sed -i -e 's|@ami|'"$AMI"'|g' ./installConfig/hive.tf
-sed -i -e 's|@instancetype|'"$ITYPE"'|g' ./installConfig/hive.tf
-
+	#Prepare Hive SqliteDB
 	sqlite3 ./installConfig/ST.db <<EOF
 	PRAGMA journal_mode = OFF;
 	create table logs (logId INTEGER PRIMARY KEY,pid TEXT,time TEXT,error TEXT);
@@ -204,18 +191,24 @@ sed -i -e 's|@instancetype|'"$ITYPE"'|g' ./installConfig/hive.tf
 
 EOF
 
+	#Download Terraform, parse the layout "hive_planNoDarwin.txt" to "hive.tf" with AWS Account and params.
+	cd installConfig
+	wget wget https://releases.hashicorp.com/terraform/0.11.13/terraform_0.11.13_linux_amd64.zip
+	unzip terraform_0.11.13_linux_amd64.zip
 
-#Deploy Hive and get back public IP
 
-cd installConfig
-#Download and unzip terraform
-wget wget https://releases.hashicorp.com/terraform/0.11.13/terraform_0.11.13_linux_amd64.zip
-unzip terraform_0.11.13_linux_amd64.zip
+	cp hive_planNoDarwin.txt hive.tf
+	sed -i -e 's|@access_key|'"$AKEY"'|g' hive.tf
+	sed -i -e 's|@secret_key|'"$SKEY"'|g' hive.tf
+	sed -i -e "s/@region/${REGION}/g" hive.tf
+	sed -i -e "s/@keyname/${KEYNAME}/g" hive.tf
+	sed -i -e 's|@ami|'"$AMI"'|g' hive.tf
+	sed -i -e 's|@instancetype|'"$ITYPE"'|g' hive.tf
 
-./terraform init
-./terraform apply -auto-approve
-
-exit 1
+	#Apply the Plan to deploy Hive
+	./terraform init
+	./terraform apply -auto-approve
+	exit 1
         ;;
 
     "installOffline" )
@@ -283,7 +276,6 @@ exit 1
 	export GOPATH=$(pwd)/STHive/sources/
 	./STHive/sources/go/bin/go get "github.com/mattn/go-sqlite3"
 	./STHive/sources/go/bin/go get "github.com/gorilla/mux"
-	./STHive/sources/go/bin/go get "golang.org/x/crypto/blowfish"
 	./STHive/sources/go/bin/go get "golang.org/x/crypto/bcrypt"
 	./STHive/sources/go/bin/go get "golang.org/x/net/context"
 	./STHive/sources/go/bin/go get "golang.org/x/oauth2"
@@ -404,18 +396,8 @@ EOF
 	cp -r ./src/redirector/ ./STHive/sources/src/
 	cp -r ./src/hive/ ./STHive/sources/src/
 
-	#Objective-C/Cocoa Cross-Compilation:darwin - osxcross
-	#sudo wget https://github.com/tpoechtrager/osxcross/archive/master.zip
-	#sudo unzip master.zip
-	#sudo mv osxcross-master/ ./STHive/sources/osxcross
-	#sudo mv ./installConfig/MacOSX10.13.sdk.tar.xz ./STHive/sources/osxcross/tarballs/
-	#sudo rm master.zip
-	#cd ./STHive/sources/osxcross/
-	#sudo bash ./tools/get_dependencies.sh
-	#sudo yes | sudo ./build.sh
 
 	#Dependencies for windows c++ code
-	#sudo mkdir ./STHive/sources/winDependencies
 	unzip ./installConfig/windependencies.zip -d ./STHive/sources/winDependencies
 
 
@@ -425,7 +407,6 @@ EOF
 	export GOPATH=$(pwd)/STHive/sources/
 	./STHive/sources/go/bin/go get "github.com/mattn/go-sqlite3"
 	./STHive/sources/go/bin/go get "github.com/gorilla/mux"
-	./STHive/sources/go/bin/go get "golang.org/x/crypto/blowfish"
 	./STHive/sources/go/bin/go get "golang.org/x/crypto/bcrypt"
 	./STHive/sources/go/bin/go get "golang.org/x/net/context"
 	./STHive/sources/go/bin/go get "golang.org/x/oauth2"

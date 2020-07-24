@@ -1,3 +1,8 @@
+
+#After the "hive.tf" plan is finished, there are still some actions to prform within the Hive Server, this script will execute the
+#rest of needed commands
+
+
 #Terraform Configs
 sudo cp /usr/local/STHive/sources/src/infra/.terraformrc /root/.terraformrc
 

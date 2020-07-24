@@ -1,4 +1,4 @@
-
+//Load data on the header in every refresh of the component
 $(document).ready(function() {
 
   var binumber = 0;

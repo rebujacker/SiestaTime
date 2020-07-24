@@ -7,6 +7,11 @@ import (
     "strings"
 )
 
+/*
+Description: Read Files --> Linux,Darwin and Windows
+Flow:
+A.Use golang native ioutil library to read target PATH file, return the string content
+*/
 func Read(commands string) (bool,string){
 
     var result string

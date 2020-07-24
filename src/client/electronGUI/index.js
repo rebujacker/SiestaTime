@@ -15,7 +15,9 @@ var htmlencode = require('htmlencode');
   var reports = "";
   var username = "";
   
-//AJAX functions to pull data from client server
+//AJAX functions to pull data from client server, the data will come back in the shape of Array of JSON Encoded items
+//Struncture can be found in: SiestaTime/src/client/clientHivComs.go
+//Handlers of these Functions: SiestaTime/src/client/clientGUI.go 
 
 function getJobs() {
 
@@ -202,26 +204,26 @@ $(document).ready(function() {
   getReports();
   
 
-  
+  //Load Header
 
   $(".STheader").load('./components/header/header.html');
      
+  //Listener for clicks in each option of the main Menu   
   $("#sidebar-menu").on("click","a",function() {
 
         
         //Prepare Menu elements
         var link = $(this);
         var closestUpper_ul = link.closest("ul");
-        //var parallel_active_links = closestUpper_ul.find(".active")
         var closestUpper_li = link.closest("li");
         var lower_ul = closestUpper_li.children("ul")
-        //var link_status = closestUpper_li.hasClass("active");
+
         
         $(".STheader").load('./components/header/header.html');
 
         switch(link.attr("class")) {
           
-          //Hive Menu Options
+          //Hive Menu Options, just Load components for Hive Jobs and Logs on click
           case "hivJobs":
             $(".STmain").empty();
             $(".STmain").attr("id","Hive");
@@ -233,7 +235,7 @@ $(document).ready(function() {
             $(".STmain").load('./components/logs/logs.html')
             break;   
 
-          //Implant, bots sliding menu
+          //Implants: Once Clicked, inject new rows per number of implants, using its Name
           case "implantList":
             getImplants();
             getBichitos();
@@ -241,12 +243,14 @@ $(document).ready(function() {
 
             lower_ul.empty();
             for (i = 0; i < implants.length; i++){
-              //console.log("Adding implat");
               var row = implants[i];
               lower_ul.append("<li class=\"implantli\"><a href=\"#\" class=\"implant\" id=\""+htmlencode.htmlEncode(row.name)+"\">"+htmlencode.htmlEncode(row.name)+"<span class=\"fa fa-chevron-down\"></span></a><ul class=\"nav child_menu\" style=\"display: block;\"></ul></li>");
             }
             
             break;
+
+          //Implant: Render Implant information on the Right Panel. Inject new rows per "Host", the bot will be identified
+          //using Bichitos information (combination of mac Address and hostname) 
           case "implant":
             getBichitos();
             $(".STmain").empty();
@@ -257,7 +261,7 @@ $(document).ready(function() {
             var bidentities = [];
             for (i = 0; i < bichitos.length; i++){
               var row = bichitos[i];
-              //console.log(row.info)
+
               try{
               var infoJson = JSON.parse(row.info);
               } catch (e){
@@ -275,61 +279,65 @@ $(document).ready(function() {
               }
             }
             break;
+
+          //Host: Will Inject new rows for Online Bichitos. The first row is a tab for Offline Ones. 
+          //Set "BID" on the injected row ID so it can be determined which bichito is each row later on 
           case "host":
-            //$(".STmain").attr("id",link.attr("id"));
-            //$(".STmain").load('./components/host/host.html')
+
             lower_ul.empty();
             lower_ul.append("<li class=\"sub_menu\"><a href=\"#\" class=\"offline\" id=\""+this.id+"\">"+"Offlines"+"<span class=\"fa fa-chevron-down\"></span></a><ul class=\"nav child_menu\" style=\"display: block;\"></ul></li>");
+            
             //Get Parent Implant RespTime, compare it with "lastchecked" to see if it is online
             for (i = 0; i < bichitos.length; i++){
               var row = bichitos[i];
-              //console.log(row.info)
+
               try{
               var infoJson = JSON.parse(row.info);
               } catch (e){
                 console.log(e);
               }
               var bidentity = infoJson.mac.replace(/\n/g, '') + infoJson.hostname.replace(/\n/g, '');
-              //console.log("LInk:"+link.closest('.implantli').find('.implant').html());
-              //console.log(link.attr("id"));
+
               //Client side redirector organization
               if ((row.implantname == link.closest('.implantli').find('.implant').attr("id")) && (bidentity == link.attr("id")) && (row.status == "Online")){
                 lower_ul.append("<li class=\"sub_menu\"><a href=\"#\" class=\"bichito\" id=\""+htmlencode.htmlEncode(row.bid)+"\">"+htmlencode.htmlEncode(row.bid)+"</a></li>");
               }
             }
             break;
+
+          //Offline: Inject the rest of Offline, or previosly disconnected Bichtos  
           case "offline":
-            //$(".STmain").attr("id",link.attr("id"));
-            //$(".STmain").load('./components/host/host.html')
+
             lower_ul.empty();
+            
             //Get Parent Implant RespTime, compare it with "lastchecked" to see if it is online
             for (i = 0; i < bichitos.length; i++){
               var row = bichitos[i];
-              //console.log(row.info)
+ 
               try{
               var infoJson = JSON.parse(row.info);
               } catch (e){
                 console.log(e);
               }
               var bidentity = infoJson.mac.replace(/\n/g, '') + infoJson.hostname.replace(/\n/g, '');
-              //console.log("LInk:"+link.closest('.implantli').find('.implant').html());
-              //console.log(link.attr("id"));
+
               //Client side redirector organization
               if ((row.implantname == link.closest('.implantli').find('.implant').attr("id")) && (bidentity == link.attr("id")) && (row.status == "Offline")){
                 lower_ul.append("<li class=\"sub_menu\"><a href=\"#\" class=\"bichito\" id=\""+htmlencode.htmlEncode(row.bid)+"\">"+htmlencode.htmlEncode(row.bid)+"</a></li>");
               }
             }
             break;
+
+          //Bichito: Load main Bichito Component
           case "bichito":
             getBichitos();
             $(".STmain").attr("id",link.attr("id"));
-            //console.log($(".STmain").attr("id",link.attr("id")));
             $(".STmain").empty();
             $(".STmain").load('./components/bichito/bichito.html')
             lower_ul.empty();
             break;
 
-          // Vps,domains and Staging List/Menus
+          // Vps,domains,Staging List/Menus, its functionality is similar to the one commented for Implants
           case "vpsList":
             getVps();
             lower_ul.empty();
@@ -404,7 +412,7 @@ $(document).ready(function() {
             break;
 
 
-          //Creation Menus
+          //Creation Menus: Clicks on creation tabs, to load creation components
           case "createimplant":
             $(".STmain").load('./components/createforms/createImplant.html')
             break;

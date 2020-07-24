@@ -16,13 +16,6 @@
 		// Create a local echo controller
 		localEcho = new LocalEchoController(term);
 
-    /*
-		// Read a single line from the user
-		localEcho.read("[bichito]> ")
-    		.then(input => alert(`User entered: ${input}`))
-    		.catch(error => alert(`Error reading: ${error}`));
-        */
-
 
     localEcho.read("[bichito]> ")
         .then(input => processCommand(input))
@@ -100,6 +93,8 @@ function help(){
   localEcho.println('Help: List of available commands: help,clear,respTime,ttl,exec,ls,accesschk,read,write,wipe,upload,download,kill,removeInfection');
 }
 
+//On console input feed check if a job got an sucessful output and print it on JS console
+
 function checkJobsOutput(){
 
   //Load jobs
@@ -118,11 +113,12 @@ function checkJobsOutput(){
 }
 
 
+//Serialize and Craft the Bichito-job to send to Hive 
 function sendBjob(id,jobT,argums){
     
   //Create Job to send with two elements
   var data = {cid:"",jid:"",pid:"",chid:id,job:jobT,time:"",status:"",result:"",parameters:argums.join(' ')};
-  //data.push();
+
   $.ajax({
         type: "POST",
         url: "http://127.0.0.1:8000/job",
@@ -130,9 +126,7 @@ function sendBjob(id,jobT,argums){
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (response){
-          //console.log("Response Job:"+response[0].jid);
           if (response != null){
-            //console.log("Response Job:"+response[0].jid);
             localEcho.println("Job with id:"+htmlencode.htmlEncode(response[0].jid)+" sent...");
             jids.push(response[0].jid);
             return

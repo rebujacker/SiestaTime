@@ -1,8 +1,9 @@
-//{{{{{{{ Main Function }}}}}}}
-
-
+//{{{{{{{ Client Main Function }}}}}}}
 //By Rebujacker - Alvaro Folgado Rueda as an open source educative project
+
+
 package main
+
 import (    
     "encoding/json"
     "bytes"
@@ -10,11 +11,23 @@ import (
     "sync"
 )
 
+
+// Define the Struct with a mutex to access the mem. shared Jobs to send to Hive
 type JobsToSend struct {
     mux  sync.RWMutex
     Jobs []*Job
 }
 
+
+//On Compile variables:
+/*
+    roasterString --> Domain/Ip of Hive
+    fingerPrint   --> TLS Fingerprint of target Hive Server TLS Certificate
+    username --> Operator Credential
+    password --> Operator Credential
+    jobsToSend *JobsToSend --> Jobs array
+    clientPort --> Port that will listen on localhost, and will receive electron requests
+*/
 var (
     roasterString string
     fingerPrint   string
@@ -25,10 +38,16 @@ var (
 )
 
 
-
+/*
+Description: Client Service Main Function
+Flow:
+A.Encode the Authenthication Header for login to Hive
+B.Initialize the "on-memory" Slice for the Jobs to be sent to Hive
+C.Start localhost handler for the GUI Interface
+*/
 func main() {
 
-    //Create Auth Bearer
+    //Create Auth Bearer with Operator credentials, that will be used in each request towards Hive
     tmp := UserAuth{username,password}
     bufA := new(bytes.Buffer)
     json.NewEncoder(bufA).Encode(tmp)    
@@ -38,8 +57,7 @@ func main() {
     var jobs []*Job
     jobsToSend  = &JobsToSend{Jobs:jobs}
 
-    //go connectHive()
-
+    //Start Client Listener
     guiHandler()
 
 }

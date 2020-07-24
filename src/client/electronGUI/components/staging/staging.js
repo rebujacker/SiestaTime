@@ -3,9 +3,8 @@ $(document).ready(function() {
 
   //Determine if elog is for hive,red or bichito, then load the logs for each case
   var name = $(".STmain").attr("id");
-  //console.log(name)
+
   $("#iname").text(htmlencode.htmlEncode(name));
-  //$("#delval").value = name
   $("#delval").attr("value",htmlencode.htmlEncode(name));
 
   for (i = 0; i < stagings.length; i++){
@@ -20,7 +19,15 @@ $(document).ready(function() {
 
 })
 
+/* Craft a Job with the following JSON Object towards client:
 
+type InteractObject struct {
+    StagingName string   `json:"staging"`
+    Handler string   `json:"handler"`
+    VpsName string   `json:"vpsname"`
+    TunnelPort string   `json:"tunnelport"`
+}
+*/
 $("#interact").on('click',function() {
 
   var stagingName = $(".STmain").attr("id");
@@ -53,7 +60,7 @@ $("#interact").on('click',function() {
 
   //Create Job to send with two elements
   var data = {staging:stagingName,handler:handlerN,vpsname:vpsName,tunnelport:tunnelPort};
-  //data.push();
+
   $.ajax({
         type: "POST",
         url: "http://127.0.0.1:8000/interact",
@@ -61,13 +68,17 @@ $("#interact").on('click',function() {
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (response){
-          //console.log("Interact Sent!");
 
         }
 
     });
 });
 
+/*
+type DeleteStaging struct{
+    Name string `json:"name"`
+}
+*/
 
 $("#submitdelstaging").on('click',function() {
 
@@ -82,11 +93,10 @@ $("#submitdelstaging").on('click',function() {
   //Serialize form in the correct way
 
   var submitdelstagingJSON = objectifyForm($("#delstagingform").serializeArray());
-  //console.log(submitdelstagingJSON);
     
   //Create Job to send with two elements
   var data = {cid:"",jid:"",pid:"Hive",chid:"None",job:"deleteStaging",time:"",status:"",result:"",parameters:"["+JSON.stringify(submitdelstagingJSON)+"]"};
-  //data.push();
+
   $.ajax({
         type: "POST",
         url: "http://127.0.0.1:8000/job",
@@ -94,9 +104,9 @@ $("#submitdelstaging").on('click',function() {
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (response){
-          //console.log("Response Job:"+response[0].jid);
+
           if (response != null){
-            //console.log("Response Job:"+response[0].jid);
+
             return
           }
         }

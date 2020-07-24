@@ -7,6 +7,11 @@ import (
     "strings"
 )
 
+/*
+Description: Write to File --> Linux,Darwin,Windows.
+Flow:
+A.Append input string to target PATH File
+*/
 func Write(commands string) (bool,string){
 
     arguments := strings.Split(commands," ")

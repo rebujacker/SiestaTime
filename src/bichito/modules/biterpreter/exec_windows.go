@@ -10,7 +10,12 @@ import (
 	"bytes"
 )
 
-
+/*
+Description: Exec --> Windows
+Flow:
+A.Spawn a cmd process, and interprete the provided string
+B.Set the spawn as HideWindow, so the cmd box doesn't appear when spawning cmd
+*/
 func Exec(commands string) (bool,string){
 	
 	var outbuf,errbuf bytes.Buffer

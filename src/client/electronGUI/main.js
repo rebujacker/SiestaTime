@@ -9,9 +9,15 @@ let mainWindow
 function createWindow () {
   // Create the browser window.
   mainWindow = new BrowserWindow({
+    //Activate Node Integration ofr load "require" libraries    
+    webPreferences: {
+      nodeIntegration: true
+    },
+
     width: 1800, 
     height: 1200,
     icon: path.join(__dirname, 'static/icons/png/STicon.png')
+    
     })
 
   // and load the index.html of the app.

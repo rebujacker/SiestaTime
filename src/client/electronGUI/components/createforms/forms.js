@@ -502,7 +502,7 @@ $('#coms').change(function(){
 
 // The Implant form Submission, will massage the data to adapt itself to the Hive createImplant Format:
 
-/*
+/*This Job will respect the following JSON Structure on "parameters":
 type CreateImplant struct {
     Offline string   `json:"offline"`
     Name string   `json:"name"`
@@ -516,14 +516,19 @@ type CreateImplant struct {
     PersistenceWindowsP string `json:"persistencewindowsp"`
     PersistenceLin string `json:"persistencelin"`
     PersistenceLinP string `json:"persistencelinp"`
-    Redirectors  []Red `json:"redirectors"`
+    Redirectors  []Red `json:"redirectors"` //Array of Serialized "Red" JSON Objects Strings
 }
+
+type Red struct{
+    Vps string `json:"vps"`
+    Domain string `json:"domain"`
+}
+
 */
 $("#netParams").on('click','#submitcreationImplantDomain',function () {
 
-  //Serialize form in the correct way
-
-
+  
+  //Simple HTML-JSON Serialization: input1,input1 to {key:"value"}
   function objectifySimpleForm(formArray) {
     var returnArray = {};
 
@@ -535,17 +540,19 @@ $("#netParams").on('click','#submitcreationImplantDomain',function () {
   }
 
 
-  //Transform the array in one JSON STRING
+  //Custom HTML-JSON Serialization: input1,input1 to {key:"value"}
   function objectifyImplantForm(formArray) {
     var returnArray = {};
     var arrayComsParam = [];
     var arrayRedirectors = [];
 
+    //Loop over the provided array
     var vps = "";
     for (var i = 0; i < formArray.length; i++){
+
+      //Create a new inner array for the selected redirectors
       if (formArray[i]['name'] == 'vps'){
         vps = formArray[i]['value']
-        //returnArray[formArray[i]['name']] = formArray[i]['value'];
       }else if (formArray[i]['name'] == 'domain'){
         var tempObject = {};
         tempObject['vps'] = vps;
@@ -562,9 +569,8 @@ $("#netParams").on('click','#submitcreationImplantDomain',function () {
       }
     }
 
-
+    //In relation to the coms params, determine if it is an Offline Implant or not
     if (returnArray['coms'] == "selfsignedhttpsgoOffline") {
-
       returnArray['coms'] = "selfsignedhttpsgo"
       returnArray['offline'] = "Yes"
     }else if (returnArray['coms'] == "paranoidhttpsgoOffline"){
@@ -599,9 +605,7 @@ $("#netParams").on('click','#submitcreationImplantDomain',function () {
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (response){
-          ////console.log("Response Job:"+response[0].jid);
           if (response != null){
-            ////console.log("Response Job:"+response[0].jid);
             return
           }
         }
@@ -611,7 +615,7 @@ $("#netParams").on('click','#submitcreationImplantDomain',function () {
 });
 
 
-
+// When the network module selected is SaaS , function to send commands need to change because redirections have a different massaging
 $("#netParams").on('click','#submitcreationImplantSaaS',function () {
 
   //Serialize form in the correct way
@@ -658,12 +662,9 @@ $("#netParams").on('click','#submitcreationImplantSaaS',function () {
   }
 
   var createImplantJSON = objectifyForm($("#createimplantform").serializeArray());
-  ////console.log(createImplantJSON);
-
 
   //Create Job to send with two elements
   var data = {cid:"",jid:"",pid:"Hive",chid:"None",job:"createImplant",time:"",status:"",result:"",parameters:"["+JSON.stringify(createImplantJSON)+"]"};
-  //data.push();
   $.ajax({
         type: "POST",
         url: "http://127.0.0.1:8000/job",
@@ -671,9 +672,7 @@ $("#netParams").on('click','#submitcreationImplantSaaS',function () {
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (response){
-          ////console.log("Response Job:"+response[0].jid);
           if (response != null){
-            ////console.log("Response Job:"+response[0].jid);
             return
           }
         }
@@ -733,12 +732,19 @@ $('#vtype').change(function(){
   }
 });
 
+
+/*This Job will respect the following JSON Structure on "parameters":
+type Vps struct {
+    Name string   `json:"name"`
+    Vtype  string   `json:"vtype"`          // Aamazon, Azure, Lineage...
+    Parameters string   `json:"parameters"` // Parameters will be JSON serialized to provide flexibility
+}
+*/
+
 $("#submitcreationvps").on('click',function(){
 
-  //TO-DO: Serializing logic for variable parameter field...
 
-  //Transform the array in one JSON STRING
-  // [{}]
+  //Custom HTML-JSON Serialization for VPS
   function objectifyForm(formArrayVps,formArrayParameters) {
     var returnArray = {};
     var arrayParameters = {};
@@ -760,11 +766,11 @@ $("#submitcreationvps").on('click',function(){
   //Serialize form in the correct way
   var createVpsJSON = objectifyForm($("#createvpsform").serializeArray(),$("#vpsparamsform").serializeArray());
 
-  ////console.log(JSON.stringify(createVpsJSON));
+  
 
   //Create Job to send with two elements
   var data = {cid:"",jid:"",pid:"Hive",chid:"None",job:"createVPS",time:"",status:"",result:"",parameters:"["+JSON.stringify(createVpsJSON)+"]"};
-  //data.push();
+
   $.ajax({
         type: "POST",
         url: "http://127.0.0.1:8000/job",
@@ -772,9 +778,7 @@ $("#submitcreationvps").on('click',function(){
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (response){
-          ////console.log("Response Job:"+response[0].jid);
           if (response != null){
-            ////console.log("Response Job:"+response[0].jid);
             return
           }
         }
@@ -834,12 +838,19 @@ $('#dtype').change(function(){
   }
 });
 
+
+/*This Job will respect the following JSON Structure on "parameters":
+type Domain struct {
+    Name string   `json:"name"`
+    Active   string `json:"active"`         // It is being used by an Implant or not    
+    Dtype string `json:"dtype"`             // Godaddy,Facebook,...
+    Domain string   `json:"domain"`         // Just for domain providers
+    Parameters string   `json:"parameters"`
+}
+*/
 $("#params").on('click','#submitcreationdomain',function(){
 
-  //TO-DO: Serializing logic for variable parameter field...
 
-  //Transform the array in one JSON STRING
-  // [{}]
   function objectifyForm(formArrayDomain,formArrayParameters) {
     var returnArray = {};
     var arrayParameters = {};
@@ -869,7 +880,6 @@ $("#params").on('click','#submitcreationdomain',function(){
 
   //Create Job to send with two elements
   var data = {cid:"",jid:"",pid:"Hive",chid:"None",job:"createDomain",time:"",status:"",result:"",parameters:"["+JSON.stringify(createDomainJSON)+"]"};
-  //data.push();
   $.ajax({
         type: "POST",
         url: "http://127.0.0.1:8000/job",
@@ -877,9 +887,7 @@ $("#params").on('click','#submitcreationdomain',function(){
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (response){
-          //console.log("Response Job:"+response[0].jid);
           if (response != null){
-            //console.log("Response Job:"+response[0].jid);
             return
           }
         }
@@ -888,12 +896,10 @@ $("#params").on('click','#submitcreationdomain',function(){
 
 });
 
+//Different Creation form for SaaS
 $("#params").on('click','#submitcreationdomainSaaS',function(){
 
-  //TO-DO: Serializing logic for variable parameter field...
 
-  //Transform the array in one JSON STRING
-  // [{}]
   function objectifyForm(formArrayDomain,formArrayParameters) {
     var returnArray = {};
     var arrayParameters = {};
@@ -921,7 +927,7 @@ $("#params").on('click','#submitcreationdomainSaaS',function(){
 
   //Create Job to send with two elements
   var data = {cid:"",jid:"",pid:"Hive",chid:"None",job:"createDomain",time:"",status:"",result:"",parameters:"["+JSON.stringify(createDomainJSON)+"]"};
-  //data.push();
+
   $.ajax({
         type: "POST",
         url: "http://127.0.0.1:8000/job",
@@ -929,9 +935,7 @@ $("#params").on('click','#submitcreationdomainSaaS',function(){
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (response){
-          //console.log("Response Job:"+response[0].jid);
           if (response != null){
-            //console.log("Response Job:"+response[0].jid);
             return
           }
         }
@@ -962,7 +966,6 @@ $('#stype').change(function(){
     </form>   
     `);
       break;
-      //loadFormDataDomains();
     case 'https_msft_letsencrypt':
       $("#params").empty();
       $("#params").append(`
@@ -974,7 +977,6 @@ $('#stype').change(function(){
     </form> 
       `); 
       break; 
-      //loadFormDataDomains();
     case 'https_empire_letsencrypt':
       $("#params").empty();
       $("#params").append(`
@@ -985,7 +987,6 @@ $('#stype').change(function(){
     </div>
     </form> 
       `); 
-      //loadFormDataDomains();
       break; 
     case 'ssh_rev_shell':
       $("#params").empty();
@@ -993,19 +994,24 @@ $('#stype').change(function(){
     <form role="form" id="stagingparamsform">
     </form> 
       `); 
-      //loadFormDataDomains();
       break; 
   }
 });
 
-
+/*This Job will respect the following JSON Structure on "parameters":
+type Staging struct {
+    Name string   `json:"name"`
+    Stype string  `json:"stype"`
+    TunnelPort string  `json:"tunnelport"`            // Interactive stager, dropplet, Tunneler...
+    Parameters string   `json:"parameters"` // Parameters will be JSON serialized to provide flexibility
+    VpsName        string   `json:"vpsname"`
+    DomainName        string   `json:"domainame"`
+}
+*/
 
 $("#submitcreationstaging").on('click',function(){
 
-  //TO-DO: Serializing logic for variable parameter field...
 
-  //Transform the array in one JSON STRING
-  // [{}]
   function objectifyForm(formArrayStaging,formArrayParameters) {
     var returnArray = {};
     var arrayParameters = {};
@@ -1026,7 +1032,7 @@ $("#submitcreationstaging").on('click',function(){
   //Serialize form in the correct way
 
   var createStagingJSON = objectifyForm($("#createstagingform").serializeArray(),$("#stagingparamsform").serializeArray());
-  //console.log($("#createstagingform").serializeArray());
+
   
   //Create Job to send with two elements
   var data = {cid:"",jid:"",pid:"Hive",chid:"None",job:"createStaging",time:"",status:"",result:"",parameters:"["+JSON.stringify(createStagingJSON)+"]"};
@@ -1038,9 +1044,7 @@ $("#submitcreationstaging").on('click',function(){
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (response){
-          //console.log("Response Job:"+response[0].jid);
           if (response != null){
-            //console.log("Response Job:"+response[0].jid);
             return
           }
         }
@@ -1049,33 +1053,29 @@ $("#submitcreationstaging").on('click',function(){
 
 });
 
+/*This Job will respect the following JSON Structure on "parameters":
+type Report struct {
+    Name string   `json:"name"`
+}
+*/
 
 
 $("#submitcreationreport").on('click',function(){
 
-  //TO-DO: Serializing logic for variable parameter field...
-
-  //Transform the array in one JSON STRING
-  // [{}]
   function objectifyForm(formArrayVps) {
     var returnArray = {};
     for (var i = 0; i < formArrayVps.length; i++){
-
         returnArray[formArrayVps[i]['name']] = formArrayVps[i]['value'];
-
     }
-
     return returnArray;
   }
 
   //Serialize form in the correct way
-
   var createVpsJSON = objectifyForm($("#createreportform").serializeArray());
-
 
   //Create Job to send with two elements
   var data = {cid:"",jid:"",pid:"Hive",chid:"None",job:"createReport",time:"",status:"",result:"",parameters:"["+JSON.stringify(createVpsJSON)+"]"};
-  //data.push();
+
   $.ajax({
         type: "POST",
         url: "http://127.0.0.1:8000/job",
@@ -1083,9 +1083,7 @@ $("#submitcreationreport").on('click',function(){
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (response){
-          //console.log("Response Job:"+response[0].jid);
           if (response != null){
-            //console.log("Response Job:"+response[0].jid);
             return
           }
         }
@@ -1094,31 +1092,30 @@ $("#submitcreationreport").on('click',function(){
 
 });
 
+/* This Job will respect the following JSON Structure on "parameters":
+type AddOperator struct {
+    Username string   `json:"username"`
+    Password string   `json:"password"`
+}
+*/
+
+
 $("#submitaddOperator").on('click',function(){
 
-  //TO-DO: Serializing logic for variable parameter field...
-
-  //Transform the array in one JSON STRING
-  // [{}]
   function objectifyForm(formArrayVps) {
     var returnArray = {};
     for (var i = 0; i < formArrayVps.length; i++){
-
         returnArray[formArrayVps[i]['name']] = formArrayVps[i]['value'];
-
     }
-
     return returnArray;
   }
 
   //Serialize form in the correct way
-
   var addOperatorJSON = objectifyForm($("#addoperatorform").serializeArray());
-
 
   //Create Job to send with two elements
   var data = {cid:"",jid:"",pid:"Hive",chid:"None",job:"addOperator",time:"",status:"",result:"",parameters:"["+JSON.stringify(addOperatorJSON)+"]"};
-  //data.push();
+
   $.ajax({
         type: "POST",
         url: "http://127.0.0.1:8000/job",
@@ -1126,9 +1123,7 @@ $("#submitaddOperator").on('click',function(){
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (response){
-          //console.log("Response Job:"+response[0].jid);
           if (response != null){
-            //console.log("Response Job:"+response[0].jid);
             return
           }
         }

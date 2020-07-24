@@ -1,7 +1,7 @@
-//{{{{{{{ Main Function }}}}}}}
-
-
+//{{{{{{{ GUI Servlet }}}}}}}
 //By Rebujacker - Alvaro Folgado Rueda as an open source educative project
+
+
 package main
 
 import (
@@ -21,33 +21,9 @@ import (
     "sync"
 )
 
-////Commands JSON, will fit in Job "parameter" field
 
-//CreateImplant
-type CreateImplant struct {
-    Name string   `json:"name"`
-    Ttl string   `json:"ttl"`
-    Resptime string   `json:"resptime"`
-    Coms string   `json:"coms"`
-    ComsParams string `json:"comsparams"`
-    Persistence string `json:"persistence"`
-    Redirectors  []Red `json:"redirectors"`
-}
 
-type Red struct{
-    Vps string `json:"vps"`
-    Domain string `json:"domain"`
-}
-
-// Drop Implant to Droplet
-type DropImplant struct {
-    Implant string   `json:"implant"`
-    Staging string   `json:"staging"`
-    Os string   `json:"os"`
-    Arch string   `json:"arch"`
-    Filename string   `json:"filename"`
-}
-
+//The following structs defines JSON commands that will be de-serialized between electronGUI and Client
 type InteractObject struct {
     StagingName string   `json:"staging"`
     Handler string   `json:"handler"`
@@ -65,29 +41,12 @@ type ImplantObject struct {
     Arch string   `json:"arch"`
 }
 
-type DeleteImplant struct{
-    Name string `json:"name"`
-}
-
-type DeleteVps struct{
-    Name string `json:"name"`
-}
-
-type DeleteDomain struct{
-    Name string `json:"name"`
-}
-
-type DeleteStaging struct{
-    Name string `json:"name"`
-}
 
 
-//Implant Checking
-type BiChecking struct{
-    Hostname string `json:"hostname"`
-}
-
-
+/*
+Similarly to JobsToSend mem. shared array, these arrays will be defined to store GUI data on the client memory.
+In this way, the response to feed/update electronGUI will be faster than waiting to receive the GUI data from Hive directly.
+*/
 type JobsMemoryDB struct {
     mux  sync.RWMutex
     Jobs []*Job
@@ -142,6 +101,16 @@ type ReportsMemoryDB struct {
 }
 var reportsDB *ReportsMemoryDB
 
+
+
+/*
+These two lock structs are used to limit the number of reads/jobs that client can receive per unit of time:
+
+lockObject --> When cliking buttons around the electronGUI, each request will trigger an update of data (implants,domains...)
+The "Update of data", will be a request issued from the client to Hive. This lock will limit is concurrency by 3 at a time.
+
+joblockObject --> Similarly to the previous idea, this lock will limit the issue of Jobs to Hive at a concurency of 3.
+*/
 type lockObject struct {
     mux  sync.RWMutex
     Lock int
@@ -156,10 +125,12 @@ type joblockObject struct {
 
 var joblock *joblockObject
 
+
+//Function to build the http server and start listening for electronGUI Requests
 func guiHandler() {
 
 
-    //Initialize OnMem DB Data
+    //Initialize On Mem shared arrays for GUI Data
     var (
         jobs        []*Job
         logs        []*Log
@@ -185,6 +156,7 @@ func guiHandler() {
     lock = &lockObject{Lock:3}
     joblock = &joblockObject{Lock:3}
 
+    //Before starting the listener, take a time to refresh the most updated Hive data for feeding the electronGUI
     getHive("jobs")
     getHive("logs")
     getHive("implants")
@@ -196,10 +168,11 @@ func guiHandler() {
     getHive("reports")
 
 
+    //Initialize the router
     router := mux.NewRouter()
     router.Use(commonMiddleware)
 
-    //GUI Get's Servlet
+    //GUI GET Servlet
     router.HandleFunc("/jobs", GetJobs).Methods("GET")
     router.HandleFunc("/logs", GetLogs).Methods("GET")
     router.HandleFunc("/implants", GetImplants).Methods("GET")
@@ -211,19 +184,24 @@ func guiHandler() {
     router.HandleFunc("/bichitos", GetBichitos).Methods("GET")
     router.HandleFunc("/username", GetUsername).Methods("GET")
 
+    //GUI POST Servlet
     router.HandleFunc("/job", CreateJob).Methods("POST")
     router.HandleFunc("/interact", Interact).Methods("POST")
     router.HandleFunc("/report", DownloadReport).Methods("POST")
     router.HandleFunc("/implant", DownloadImplant).Methods("POST")
     router.HandleFunc("/redirector", DownloadRedirector).Methods("POST")
 
+    //Initialize the server with previous router
     log.Fatal(http.ListenAndServe(":"+clientPort, router))
 }
 
-// Get methods for the GUI 
+/*
+Get methods for the GUI:
+A. The get methods will directly answer with an JSON encode data from the respective on memory shared array
+B. A "Update target array" process will start, if there are anough concurrency slots in the "readlock"
+*/
 func GetJobs(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(jobsDB.Jobs)
-    //if lock == 0 {go connectHive()}
     
     if(lock.Lock > -1){go getHive("jobs")}
 }
@@ -283,14 +261,26 @@ func GetUsername(w http.ResponseWriter, r *http.Request) {
 
 }
 
+
+/*
+Post methods for the GUI: CreateJob
+Description: This is the first electronGUI raw Jobs consumer. Its functionality is to prepare data received from the GUI
+(assign a JID and timestamp) to be correctly consumed by hive Job Processor (./src/hivJobs.go)
+Flow:
+A. Build a new Job object with the data that comes from electronGUI (a command that is already JSON encoded)
+    A1. Generate a JID
+    A2. Asign a time to the creation of the Job
+
+B.(Special Case) Upload --> 
+    If the command is an "upload", the client will read a file from the Operator's machine and encode it within the Job towards Hive
+C.(Special Case) Download -->
+    If the command is an "Download", a flow to download a file from Hive will be initiated
+D.Check if there is anough concurrency for an extra Job, if not drop it
+*/
 func CreateJob(w http.ResponseWriter, r *http.Request) {
     var(
         job Job
     )
-
-    //Debug
-    fmt.Println("Lock Write:")
-    fmt.Println(joblock.Lock)
 
 
     buf := new(bytes.Buffer)
@@ -299,7 +289,7 @@ func CreateJob(w http.ResponseWriter, r *http.Request) {
     jid := fmt.Sprintf("%s%s","J-",randomString(8))
     time := time.Now().Format("02/01/2006 15:04:05 MST")
     
-    //DEcode JSOn Job, add Jid, time and status
+    //Decode JSON Job, add Jid, time and status
     errDaws := json.Unmarshal([]byte(buf.String()),&job)
     if errDaws != nil {
         fmt.Println("Error Decoding Json"+ errDaws.Error())
@@ -339,7 +329,7 @@ func CreateJob(w http.ResponseWriter, r *http.Request) {
     }
 
 
-    
+    //Check if there is gap to queue more Jobs against Hive
     if joblock.Lock > 0 {
         go postHive(&job)
         fmt.Fprint(w, "[{\"jid\":\""+jid+"\"}]")
@@ -366,7 +356,7 @@ func downloadJID(jid string,chid string,filepath string){
         }
         
     } 
-    fmt.Println(resptime)
+
     //Try get result 3 times
     tries := 3
     for{
@@ -376,8 +366,6 @@ func downloadJID(jid string,chid string,filepath string){
             break
         }
 
-        //Debug
-        fmt.Println(errGetJob)
         tries--
         if tries == 0 {
             fmt.Println("Failed to download File from Bichito")
@@ -385,7 +373,6 @@ func downloadJID(jid string,chid string,filepath string){
         }
     }
 
-    fmt.Println(result)
     //If data, b64 decode it and write it in target operator filepath 
     decodedDownload, errD := base64.StdEncoding.DecodeString(result)
     if errD != nil {
@@ -412,8 +399,26 @@ func downloadJID(jid string,chid string,filepath string){
 }
 
 
+/*
+Post methods for the GUI: Interact
+Description: This function will be used to create connections of different kind with remote servers.
+Every connection will be tunneled through Hive, so the endpoint will be Hive always. These SSH connection have 30 seconds TTL (if non used).
+FLow:
+A. Decode the Job and extract data from the target object to interact with
+B. Since most of the connections will be ssh tunneled (pem auth.), first of all a pem for the target network object needs to be downloaded.
+    B1. Check if the pem key for the target server is in the Operator's folder
+    B2. If not,Download it.
+C. SSH connect to target object (through Hive), pop-up a terminal to the Operator, and:
+    C1."droplet" --> Simply open a interactive ssh with the target
+    C2."msfconsole/empire/[...]" --> SSH connect to the target, and attach the console to a running msf/empire/[...] process
+    C3."ssh" --> Listen to a receiving SSH shell triggered by the implant
+    [...]
+*/
+
 func Interact(w http.ResponseWriter, r *http.Request) {
     
+
+
     var(
         interact InteractObject
         sshPort string
@@ -437,7 +442,7 @@ func Interact(w http.ResponseWriter, r *http.Request) {
     vpsName = interact.VpsName
     hiveD = strings.Split(roasterString,":")[0]
 
-    //Check if vpsname.pem is on vpskeys
+    //Check if vpsname.pem is on vpskeys, if not download it from Hive.
     var outbuf, errbuf bytes.Buffer
     cmd_path := "/bin/sh"
     cmd := exec.Command(cmd_path, "-c","ls ./vpskeys")
@@ -475,7 +480,8 @@ func Interact(w http.ResponseWriter, r *http.Request) {
     }
 
 
-
+    // In relation with the kind of target, trigger a differnet set of commands to engage the connection.
+    // This will pop-up a new terminal
     var command string
 
     switch interact.Handler {
@@ -491,8 +497,6 @@ func Interact(w http.ResponseWriter, r *http.Request) {
 
     }
 
-    //Debug
-    fmt.Println(command)
 
     outbuf.Reset()
     errbuf.Reset()
@@ -509,6 +513,8 @@ func Interact(w http.ResponseWriter, r *http.Request) {
 
 }
 
+
+//Download a report File from Hive
 func DownloadReport(w http.ResponseWriter, r *http.Request) {
 
     var(
@@ -530,6 +536,7 @@ func DownloadReport(w http.ResponseWriter, r *http.Request) {
     }
 }
 
+//Download a Implant from Hive
 func DownloadImplant(w http.ResponseWriter, r *http.Request) {
 
     var(
@@ -551,6 +558,7 @@ func DownloadImplant(w http.ResponseWriter, r *http.Request) {
     }
 }
 
+//Download a Redirector from Hive
 func DownloadRedirector(w http.ResponseWriter, r *http.Request) {
 
     var(
@@ -575,6 +583,7 @@ func DownloadRedirector(w http.ResponseWriter, r *http.Request) {
 }
 
 
+//HTTP Configurations over the Client listener
 func commonMiddleware(next http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         header := w.Header()

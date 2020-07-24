@@ -15,7 +15,6 @@ function loadFormData(button) {
 $(document).ready(function() {
   //// Refresh on memory data and load it the sidetables for element creations
   getStagings();
-
   loadFormData();
 
   //Determine if elog is for hive,red or bichito, then load the logs for each case
@@ -34,6 +33,7 @@ $(document).ready(function() {
     }
   }
  
+ //Fetch Bichito Information to panel
   var infoJson = JSON.parse(bichito.info)
 
   $("#pid").text(htmlencode.htmlEncode(infoJson.pid.replace(/\n/g, '')));
@@ -50,13 +50,12 @@ $(document).ready(function() {
 
   $("#lastdomain").text(domain);
 
-  
+  //Load components options: Jobs,logs, console
   $(".btn").unbind().click(function() {
     console.log("happening")
     var link = $(this);
     switch(link.attr("id")) {
       case "jobs":
-        //console.log(link.attr("id"));
         $(".STmain").load('./components/jobs/jobs.html')
         break;
       case "logs":
@@ -72,6 +71,7 @@ $(document).ready(function() {
 });
 
 
+//Similarly to forms.js, inject a set of params in function of the type of injection
 $('#injectType').change(function(){
 
   //// Refresh on memory data and load it the sidetables for element creations
@@ -130,15 +130,20 @@ $('#injectType').change(function(){
 });
 
 
+
+
+/*This Job will respect the following JSON Structure on "parameters":
+type InjectEmpire struct {
+    Staging string   `json:"staging"`
+}
+*/
 $("#injectParams").on('click','#submitInject',function(){
 
   var attack = $('#injectType').val();
-  //console.log(attack);
-  //Create Job to send with two elements
 
   var createInjectJSON = {staging:$("#stagingOpt").val()}
   var data = {cid:"",jid:"",pid:"",chid:$(".STmain").attr("id"),job:attack,time:"",status:"",result:"",parameters:"["+JSON.stringify(createInjectJSON)+"]"};
-  //data.push();
+
   $.ajax({
         type: "POST",
         url: "http://127.0.0.1:8000/job",
@@ -146,9 +151,7 @@ $("#injectParams").on('click','#submitInject',function(){
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (response){
-          //console.log("Response Job:"+response[0].jid);
           if (response != null){
-            //console.log("Response Job:"+response[0].jid);
             return
           }
         }
@@ -157,7 +160,7 @@ $("#injectParams").on('click','#submitInject',function(){
 
 });
 
-
+//Special Command for Offline
 $("#injectParams").on('click','#submitInjectOffline',function(){
 
 
@@ -175,7 +178,7 @@ $("#injectParams").on('click','#submitInjectOffline',function(){
   var createInjectJSON = objectifySimpleForm($("#createInjectform").serializeArray());
 
   var data = {cid:"",jid:"",pid:"",chid:$(".STmain").attr("id"),job:attack,time:"",status:"",result:"",parameters:"["+JSON.stringify(createInjectJSON)+"]"};
-  //data.push();
+
   $.ajax({
         type: "POST",
         url: "http://127.0.0.1:8000/job",
@@ -183,9 +186,8 @@ $("#injectParams").on('click','#submitInjectOffline',function(){
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (response){
-          //console.log("Response Job:"+response[0].jid);
+
           if (response != null){
-            //console.log("Response Job:"+response[0].jid);
             return
           }
         }

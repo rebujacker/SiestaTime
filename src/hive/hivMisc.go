@@ -42,12 +42,17 @@ func rsaKeysInputWhite(input string) bool{
 
 
 func namesInputWhite(input string) bool{
-    var white = regexp.MustCompile(`^[a-zA-Z0-9]{1,200}$`).MatchString
+    var white = regexp.MustCompile(`^[a-zA-Z0-9]{1,20}$`).MatchString
+    return white(input)
+}
+
+func idsInputWhite(input string) bool{
+    var white = regexp.MustCompile(`^[a-zA-Z0-9\-]{1,20}$`).MatchString
     return white(input)
 }
 
 func filesInputWhite(input string) bool{
-    var white = regexp.MustCompile(`^[\w.-]{1,200}$`).MatchString
+    var white = regexp.MustCompile(`^[\w.-]{1,20}$`).MatchString
     return white(input)
 }
 

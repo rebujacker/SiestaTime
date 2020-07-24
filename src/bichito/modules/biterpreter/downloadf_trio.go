@@ -7,6 +7,11 @@ import (
     "encoding/base64"
 )
 
+/*
+Description: Download File from Foothold --> Linux and Darwin
+Flow:
+A.Read target PATH file and return its string
+*/
 func Download(target string) (bool,string){
     
 

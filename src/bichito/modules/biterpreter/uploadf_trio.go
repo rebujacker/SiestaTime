@@ -7,6 +7,12 @@ import (
     "encoding/base64"
 )
 
+
+/*
+Description: Upload File to Foothold --> Linux,Darwin,Windows.
+Flow:
+A.Write parameter string into a file on target PATH
+*/
 func Upload(target string,blob string) (bool,string){
     
     decoded, err := base64.StdEncoding.DecodeString(blob)

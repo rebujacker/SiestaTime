@@ -4,7 +4,7 @@
   <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>  
   <!-- Insert this line after script imports -->
   <script>if (window.module) module = window.module;</script>
-  <script>require('./renderer.js')</script>
+ <!-- <script>require('./renderer.js')</script> -->
     
   <!-- jQuery -->
   <script src="static/js/jquery-3.3.1.min.js"></script> 
@@ -40,16 +40,18 @@
             </div>
 
             <div class="clearfix"></div>
-            <!-- menu profile quick info -->
+            
+            <!-- Shows User Logged in Siesta Time (Fixed Top Left) -->
             <div class="profile clearfix">
               <div class="profile_info">
                 <h2 id="username"></h2>
               </div>
             </div>
             <!-- /menu profile quick info -->
+            
             <br />
 
-            <!-- sidebar menu -->
+            <!-- Left Stime sidebar menu (Fixed Left) -->
             <div id="sidebar-menu" class="main_menu_side hidden-print main_menu">
               <div class="menu_section">
                 <h3>Operations Servers</h3>
@@ -180,13 +182,13 @@
         <div class="right_col" role="main">
           <!-- top tiles -->
 
-            <!-- STime Header -->
+            <!-- STime Header (Fixed Top Panel): Number of Bichitos, domains...  -->
             <div class="STheader"></div>
             <!-- /STime Header -->
 
             <div class="clearfix"></div>
 
-            <!-- STime Main Page -->
+            <!-- STime Main Page (Fixed Right Panel): Main Contents will be rendered here (Hive Logs, Implants Information...) -->
             <div class="STmain"></div>
             <!-- /STime Main Page -->           
       </div>

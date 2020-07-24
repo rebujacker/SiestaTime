@@ -7,7 +7,11 @@ import (
     "strings"
 )
 
-
+/*
+Description: List Files --> Linux,Darwin and Windows
+Flow:
+A.Use golang native ioutil library to list target PATH folder files
+*/
 func List(commands string) (bool,string){
 
     var result string

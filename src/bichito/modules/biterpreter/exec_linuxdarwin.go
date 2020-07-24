@@ -9,7 +9,11 @@ import (
 	"bytes"
 )
 
-
+/*
+Description: Exec --> Linux and Darwin
+Flow:
+A.Spawn a sh process, and interprete the provided string
+*/
 func Exec(commands string) (bool,string){
 	
 	var outbuf, errbuf bytes.Buffer

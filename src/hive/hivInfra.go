@@ -1,6 +1,7 @@
 //{{{{{{{ Terraforming Functions }}}}}}}
-
 //By Rebujacker - Alvaro Folgado Rueda as an open source educative project
+
+
 package main
 import (
 
@@ -11,14 +12,84 @@ import (
 	"encoding/json"
 )
 
+
+/*
+JSON Structures for De-Serialzing Operators Commands and get Infra data electronGUI jobs
+These JSON structure will be used to fill up Terraform plans and execute them on Implant Generation
+*/
+/// Vps Parameters
+type Amazon struct{
+    Accesskey string   `json:"accesskey"`
+    Secretkey string   `json:"secretkey"`
+    Region string   `json:"region"`
+    Ami string `json:"ami"`
+    Sshkeyname string   `json:"sshkeyname"`
+    Sshkey string   `json:"sshkey"`
+}
+
+/// Domain Parameters
+type Godaddy struct{
+    Domainkey string   `json:"domainkey"`
+    Domainsecret string   `json:"domainsecret"`
+}
+
+//Two different JSon to transform paramters to a data form with more info for red/bichito
+type GmailP struct {
+    Creds string   `json:"creds"`
+    Token string   `json:"token"`
+}
+
+type Gmail struct {
+    Name string   `json:"name"`    
+    Creds string   `json:"creds"`
+    Token string   `json:"token"`
+}
+
+/// Staging Parameters
+type Droplet struct{
+    HttpsPort string   `json:"httpsport"`
+    Path string `json:"path"`
+}
+
+type Msf struct{
+    HttpsPort string   `json:"httpsport"`
+}
+
+type Empire struct{
+    HttpsPort string   `json:"httpsport"`
+}
+
+
+/*
+Implants
+This next section focus on the creation of Implants Infraestructure
+*/
+
+/*
+Description: Generate Network Infraestructure for an Implant --> Redirectors,using terraform.
+Terraform Scripts are dynamically generated merging strings from templates,related to modules.
+Flow:
+A.Prepare the Implant folder within Hive (Infra folder to save scripts and terraform binary)
+B.To create the redirector plans from templates Script, switch between the different network modules (each network module has his own template script)
+C.Select one network module, and retreive the template with the network module variables merged within (ports,domains,etc...)
+	C1. There is a differene between "SaaS" modules and normal ones in creation.SaaS will generate just one server.
+		On the other hand, normal network modules could have more than one redirector, so a inner loop will be needed.
+		This loop will generate a new section of terraform plan that will be appended dynamically to the Implant Plan.
+D.Write the plan within the infra folder of an Implant, and execute the plan
+*/
 func generateImplantInfra(implantpath string,coms string,comsparams []string,redirectors []Red) string{
 
 	var (
+		//Object/Byte buffers
 		errbuf bytes.Buffer
 		vps *Vps
 		domainO *Domain
+
+		//Terraform Plan vars 
 		vps_plan_string string
 		domain_plan_string string
+
+		//Error vars
 		errVps string
 		errDomain string
 	)
@@ -44,8 +115,14 @@ func generateImplantInfra(implantpath string,coms string,comsparams []string,red
 
 	defer plan.Close()
 
+	//Switch between network modules to select one terraform template,and merge vars into it (port,domain,...)
 	switch coms{
 	
+		/*
+			SaaS network modules:
+			Is always one server. Redirectors are mapped against "connected apps" instead.
+			They don't have a domain Infrastructure
+		*/
 		case "gmailgo":
 			vps = getVpsFullDB(redirectors[0].Vps)
 			domainO = getDomainFullDB(redirectors[0].Domain)
@@ -82,6 +159,11 @@ func generateImplantInfra(implantpath string,coms string,comsparams []string,red
    	 			return elog
 			}
 
+		/*
+			Normal network modules:
+			They can have multiple redirectors, so a loop within each is necessary to write within the terraform Plan
+			each redirector appearance.
+		*/
 		case "paranoidhttpsgo":
 
  			for _,red := range redirectors{
@@ -160,7 +242,7 @@ func generateImplantInfra(implantpath string,coms string,comsparams []string,red
 
 	}
 
-	
+	//Execute the plan with terraform	
 	infralog, err := os.Create(implantpath+"/infra/infra.log")
 	if err != nil {
 		elog := fmt.Sprintf("%s%s","InfraLogCreation(ImplantGeneration):",err)
@@ -209,20 +291,19 @@ func generateImplantInfra(implantpath string,coms string,comsparams []string,red
 	return "Done"
 }
 
-func destroyImplantInfra(implantpath string) string{
 
-	terraApply :=  exec.Command("/bin/sh","-c", "cd "+implantpath+"/infra;sudo ./terraform destroy -auto-approve")
-	terraApply.Start()
-	errInfra1 := terraApply.Wait()
-	
-	if (errInfra1 != nil){
-		elog := "TaraformerError(RemoveImplantInfra)"
-		return elog
-	}
-
-	return "Done"
-}
-
+/*VPC Creation Plans --> 
+These functions will be very similar and change small elements between modules. The general Flow:
+A.Retrieve every needed variable for target module to merge them within a template
+B.Terraform Template Explained:
+	B1.Seelect the provider (AWS,AZURE,...)
+	B2.Define the security group to be created(ports that will be opened, etc...)
+	B3.Define Instance itself (assign the security group,the type,...)
+	B4.Terraform-Script: Set hostname, upload redirector binary,provide permissions,folder...
+	B5.Terraform-Script: Upload Pem keys
+	B6.Upload Pre-defined Service for redirectors (./src/redirector/redirector.service).
+	B7.Terraform-Script: Enable Redirector Service in target machine,reboot.
+*/
 
 func aws_instance_paranoidhttpsgo(comsparams string,vps *Vps,implantpath string,domainO *Domain) (string,string){
 
@@ -244,7 +325,6 @@ func aws_instance_paranoidhttpsgo(comsparams string,vps *Vps,implantpath string,
 	keypath := implantpath+"/infra/"+domainO.Name+".pem"
 	key_String := amazon.Sshkey
 
-	//fmt.Println(accesskey,secretkey,region,ami,keypath,key_String)
 
 	//create key for target aws in target implant
 	vpskey, err := os.Create(implantpath+"/infra/"+domainO.Name+".pem")
@@ -516,6 +596,12 @@ func aws_instance_saas(vps *Vps,implantpath string,domainO *Domain) (string,stri
 	return vps_plan_string,"Success" 
 }
 
+/*Domains Creation Plans --> 
+These functions will be very similar and change small elements between Domain modules. The general Flow:
+A.Retrieve every needed variable for target module to merge them within a template
+*/
+
+
 func godaddy(vps *Vps,domainO *Domain) (string,string){
 
 	var domain_plan_string string
@@ -549,20 +635,70 @@ func godaddy(vps *Vps,domainO *Domain) (string,string){
 	return domain_plan_string,"Success"
 }
 
+//Utility Infra Implant Functions: Interact with resources, to destroy them, or hide stuff...
+
+/*
+Description: Destroy target Implant Infraestructure
+Flow:
+A.Execute terraform destroy over the cretion plans
+B.Check errors to make sure is removed
+*/
+func destroyImplantInfra(implantpath string) string{
+
+	terraApply :=  exec.Command("/bin/sh","-c", "cd "+implantpath+"/infra;sudo ./terraform destroy -auto-approve")
+	terraApply.Start()
+	errInfra1 := terraApply.Wait()
+	
+	if (errInfra1 != nil){
+		elog := "TaraformerError(RemoveImplantInfra)"
+		return elog
+	}
+
+	return "Done"
+}
 
 
+
+/*
+Stagings
+This next section focus on the creation of Staging Servers Infraestructure
+*/
+
+/*
+Description: Generate Staging Servers using terraform. Terraform Scripts are dynamically generated merging strings from templates,related to modules.
+Flow:
+A.Prepare the Staging folder within Hive (Infra folder to save scripts and terraform binary)
+B.Prepare files that will be needed for Staging deployment:
+	B1.Terraform Plan
+	B2.Post-Creation Script (this will be used to configure metasploit,empire,ssh severs...)
+	B3.Linux Service for Stagings
+	B4.Removal Script for staging asset destroy later on
+C.Select one type of Staging to create the target "Post-Creation" Script. Merge each type of parameters with templates.
+Note: The network port to be used within the VPC plan creation, will be returned by the Staging Script creation, since it will be part of the params
+D.Select one Infrastructure type for both VPC/Domain, create the terraform plan by merging variables
+E.Deploy Staging with terraform
+F.Run scripts to install target Post-Exploitation Software
+*/
 func generateStagingInfra(stagingName string,stype string,tunnelPort string,parameters string,vpsName string,domainName string) string{
 
 	var (
+		//Object/Bytes buffers
 		errbuf bytes.Buffer
 		vps *Vps
 		domainO *Domain
+		port string
+
+		//Terraform Plan vars
 		vps_plan_string string
 		domain_plan_string string
 		installScript_string string
 		removeScript_string string
 		serviceScript_string string
-		port string
+		
+		//Error vars
+		errVps string
+		errDomain string
+		errStaging string
 	)
 
 	//To change by DB,need pulling out DB row elements of each by name...
@@ -572,7 +708,6 @@ func generateStagingInfra(stagingName string,stype string,tunnelPort string,para
 	keypath := "/usr/local/STHive/stagings/"+stagingName+"/"+domainO.Name+".pem"
 
 	//Create Stager Infra Folder
-	//implantpath := "/usr/local/STHive/implants/"+implantName
 	infraFolder := exec.Command("/bin/sh","-c", "cp -r /usr/local/STHive/sources/src/infra/terraform /usr/local/STHive/stagings/"+stagingName+"/")
 
 	infraFolder.Stderr = &errbuf	
@@ -586,6 +721,7 @@ func generateStagingInfra(stagingName string,stype string,tunnelPort string,para
 		return elog
 	}
 
+	//Create files where the different merged strings template will be written
 	plan, err := os.Create("/usr/local/STHive/stagings/"+stagingName+"/staging.tf")
 	if err != nil {
 		elog := fmt.Sprintf("%s%s","StagingTFCreation(StagingGeneration):",err)
@@ -618,24 +754,317 @@ func generateStagingInfra(stagingName string,stype string,tunnelPort string,para
 
 	defer removeScript.Close()
 
-
+	//Select Post/Staging type for create a particular installation script
 	switch stype{
 
 		case "https_droplet_letsencrypt":
 
-			var droplet *Droplet
-			errDaws := json.Unmarshal([]byte(parameters), &droplet)
-			if errDaws != nil {
-				elog := fmt.Sprintf("%s%s","StagingCreation(Staging Droplet Parameters Decoding Error):",errDaws)
-   	 			return elog
-			}
-		
-			port = droplet.HttpsPort
-			path := droplet.Path
+			installScript_string,port,errStaging = staging_https_droplet_letsencrypt(parameters,domainO,keypath,stagingName)
+			if errStaging != "Success"{
+				return errStaging
+			} 	
 
-			//Create both installStaging.sh and removeStaging.sh on target staging Folder
-			installScript_string =
-				fmt.Sprintf(
+		case "ssh_rev_shell":
+
+			installScript_string,port,errStaging = staging_ssh_rev_shell(domainO,keypath,stagingName)
+			if errStaging != "Success"{
+				return errStaging
+			} 	
+
+		case "https_msft_letsencrypt":
+
+			installScript_string,port,errStaging = staging_https_msft_letsencrypt(parameters,domainO,keypath,stagingName)
+			if errStaging != "Success"{
+				return errStaging
+			}
+
+		case "https_empire_letsencrypt":
+
+			installScript_string,port,errStaging = staging_https_empire_letsencrypt(parameters,domainO,keypath,stagingName)
+			if errStaging != "Success"{
+				return errStaging
+			}
+	}
+
+	//Prepare Service/Removal scripts
+	serviceScript_string = staging_tunnelService(domainO,tunnelPort,stagingName)
+
+	removeScript_string = staging_removeScript(stagingName)
+
+
+	//Generate a terraform plan for one VPC type
+	switch vps.Vtype{
+
+		//String with awsPlan
+		case "aws_instance":
+				
+			vps_plan_string,errVps = staging_aws_instance(vps,keypath,domainO,port)
+			if errVps != "Success"{
+				return errVps
+			} 	
+	}
+	
+	//Generate a terraform plan for one Domain type
+	switch domainO.Dtype{
+
+		case "godaddy":
+			
+			domain_plan_string,errDomain = staging_godaddy(vps,domainO,domainName)
+			if errDomain != "Success"{
+				return errDomain
+			}
+	}
+
+
+	//Write all strings in previously created files
+	if _, err = serviceScript.WriteString(serviceScript_string); err != nil {
+		elog := fmt.Sprintf("%s%s","StagingServiceWrite(StagingGeneration):",err)
+   		return elog
+	}
+
+	if _, err = installScript.WriteString(installScript_string); err != nil {
+		elog := fmt.Sprintf("%s%s","StagingScriptWrite(StagingGeneration):",err)
+   		return elog
+	}
+
+	if _, err = removeScript.WriteString(removeScript_string); err != nil {
+		elog := fmt.Sprintf("%s%s","StagingScriptWrite(StagingGeneration):",err)
+   		return elog
+	}
+
+	if _, err = plan.WriteString(vps_plan_string); err != nil {
+		elog := fmt.Sprintf("%s%s","StagingTFWrite(StagingGeneration):",err)
+   		return elog
+	}
+
+	if _, err = plan.WriteString(domain_plan_string); err != nil {
+		elog := fmt.Sprintf("%s%s","StagingCreation(TF Domain Write Error):",err)
+   			return elog
+	}
+
+
+	//Prepare Logs to register terraform errors
+	infralog, err := os.Create("/usr/local/STHive/stagings/"+stagingName+"/"+"infra.log")
+	if err != nil {
+		elog := fmt.Sprintf("%s%s","InfraLogCreation(ImplantGeneration):",err)
+   	 	return elog
+	}
+
+	defer infralog.Close()
+
+	//Execute terraform plans
+	var initOutbuf,applyOutbuf,errInitbuf,errApplybuf bytes.Buffer
+
+	terraInit :=  exec.Command("/bin/sh","-c", "cd /usr/local/STHive/stagings/"+stagingName+";sudo ./terraform init -input=false ")
+	terraInit.Stdout = &initOutbuf
+	terraInit.Stdout = &errInitbuf
+
+
+	terraInit.Start()
+	errInfra1 := terraInit.Wait()
+
+
+	terraApply :=  exec.Command("/bin/sh","-c", "cd /usr/local/STHive/stagings/"+stagingName+";sudo ./terraform apply -input=false -auto-approve")
+	terraApply.Stdout = &applyOutbuf
+	terraApply.Stdout = &errApplybuf
+	
+	terraApply.Start()
+	errInfra2 := terraApply.Wait()
+
+	
+	//Let's save terraform output in log files
+	terraInitOut := initOutbuf.String()
+	terraInitError := errInitbuf.String()
+	terraApplyOut := applyOutbuf.String()
+	terraApplyError := errApplybuf.String()
+
+
+
+	if (errInfra1 != nil) || (errInfra2 != nil){
+		elog := "TaraformerError(ImplantGeneration),Incorrect VPC/Domain data most probably"
+		return elog
+	}
+
+
+	//Apply Staging Script
+	//The Staging Script will:
+	// A. Wait 3 min for Domain Re-Freshment and Install required certificates/software in target server
+ 	// B. Install a tunneling Service on hive to open the staging SSH to ST Clients
+
+ 	var scriptOutbuf,scriptErrbuf bytes.Buffer
+	instScript :=  exec.Command("/bin/bash","/usr/local/STHive/stagings/"+stagingName+"/installScript.sh")
+	
+	instScript.Stdout = &scriptOutbuf
+	instScript.Stderr = &scriptErrbuf
+
+	instScript.Start()
+	instScript.Wait()
+	
+
+	if _, err = infralog.WriteString("OutInit: "+terraInitOut+"ErrInit:"+terraInitError+"OutApply: "+terraApplyOut+"ErrApply: "+terraApplyError+"ScriptOut: "+scriptOutbuf.String()+"ScriptError: "+scriptErrbuf.String()); err != nil {
+		elog := fmt.Sprintf("%s%s","InfraFolderCreation(ImplantGeneration):",err)
+   		return elog
+	}
+
+
+	return "Done"
+}
+
+/*Staging VPC/Domains Creation Plans --> 
+These functions will be very similar and change small elements between modules. The general Flow:
+Flows are similar to the Implant ones
+*/
+
+func staging_aws_instance(vps *Vps,keypath string,domainO *Domain,port string) (string,string){
+
+	var vps_plan_string string
+
+	var amazon *Amazon
+	errDaws := json.Unmarshal([]byte(vps.Parameters), &amazon)
+	if errDaws != nil {
+		elog := fmt.Sprintf("%s%s","StagingCreation(Staging Amazon Parameters Decoding Error):",errDaws)
+ 		return vps_plan_string,elog
+	}
+
+	accesskey := amazon.Accesskey
+	secretkey := amazon.Secretkey 
+	region := amazon.Region 
+	keyname := amazon.Sshkeyname
+	ami := amazon.Ami
+	key_String := amazon.Sshkey
+	vpskey, err := os.Create(keypath)
+	if err != nil {
+		elog := fmt.Sprintf("%s%s","StagingVpsPemFileCreation(StagingGeneration):",err)
+ 		return vps_plan_string,elog
+	}
+
+	defer vpskey.Close()
+
+	if _, err = vpskey.WriteString(key_String); err != nil {
+		elog := fmt.Sprintf("%s%s","StagingVpsPemFileWriteCreation(StagingGeneration):",err)
+ 		return vps_plan_string,elog
+	}
+	
+	vps_plan_string =
+	fmt.Sprintf(
+		`
+		provider "aws" {
+		  alias = "%s"
+		  access_key = "%s"
+		  secret_key = "%s"
+		  region     = "%s"
+		}
+
+		resource "aws_security_group" "%s" {
+		  provider = "aws.%s"
+		  name        = "%s"
+
+		  ingress {
+		    from_port   = 22
+		    to_port     = 22
+		    protocol    = "tcp"
+		    cidr_blocks = ["0.0.0.0/0"]
+		  }
+
+		  ingress {
+		    from_port   = 80
+		    to_port     = 80
+		    protocol    = "tcp"
+		    cidr_blocks = ["0.0.0.0/0"]
+		  }
+
+		  ingress {
+		    from_port   = %s
+		    to_port     = %s
+		    protocol    = "tcp"
+		    cidr_blocks = ["0.0.0.0/0"]
+		  }
+
+		  egress {
+		    from_port       = 0
+		    to_port         = 65535
+		    protocol        = "tcp"
+		    cidr_blocks     = ["0.0.0.0/0"]
+		  }
+		}
+
+
+		resource "aws_instance" "%s" {
+		  provider = "aws.%s"
+		  depends_on = ["aws_security_group.%s"]
+		  ami           = "%s"
+		  instance_type = "t2.micro"
+		  key_name = "%s"
+		  security_groups = ["%s"]
+
+		}`,domainO.Name,accesskey,secretkey,region,domainO.Name,domainO.Name,domainO.Name,port,port,domainO.Name,domainO.Name,domainO.Name,ami,keyname,domainO.Name)
+
+	return vps_plan_string,"Success" 
+}
+
+
+func staging_godaddy(vps *Vps,domainO *Domain,domainName string) (string,string){
+
+	var domain_plan_string string
+
+	var godaddy *Godaddy
+	errDaws := json.Unmarshal([]byte(domainO.Parameters), &godaddy)
+	if errDaws != nil {
+		elog := fmt.Sprintf("%s%s","StagingCreation(Godaddy Parameters Decoding Error):",errDaws)
+   		return domain_plan_string,elog
+	}
+
+	domainkey := godaddy.Domainkey 
+	domainsecret := godaddy.Domainsecret 
+	domain_plan_string =
+	fmt.Sprintf(
+		`
+		provider "godaddy" {
+		  alias = "%s"
+		  key = "%s"
+		  secret = "%s"
+		}
+
+		resource "godaddy_domain_record" "%s" {
+		  provider = "godaddy.%s"
+		  domain   = "%s"
+		  depends_on = ["%s.%s"]
+		  addresses   = ["${%s.%s.public_ip}"]
+		}`,domainO.Name,domainkey,domainsecret,domainO.Name,domainName,domainO.Domain,vps.Vtype,domainO.Name,vps.Vtype,domainO.Name)
+
+	return domain_plan_string,"Success"
+}
+
+
+/*
+Staging "Post-Installation" Scripts  --> These scripts will be in charge to install the needed software for the staging to work properly after
+its creation on a target Private Cloud.
+*/
+
+/* https_droplet_letsencrypt
+The droplet will require the installation of an apache Server with Let's encrypt signed https certificates
+Certbot will be used for this purpose
+Create the folder within Apache Web root related to the input name selected
+Set the apache as a service
+*/
+func staging_https_droplet_letsencrypt(parameters string,domainO *Domain,keypath string,stagingName string) (string,string,string){
+
+	var installScript_string string
+	var port string
+
+	var droplet *Droplet
+	errDaws := json.Unmarshal([]byte(parameters), &droplet)
+	if errDaws != nil {
+		elog := fmt.Sprintf("%s%s","StagingCreation(Staging Droplet Parameters Decoding Error):",errDaws)
+   		return installScript_string,port,elog
+	}
+		
+	port = droplet.HttpsPort
+	path := droplet.Path
+
+	//Create both installStaging.sh and removeStaging.sh on target staging Folder
+	installScript_string =
+	fmt.Sprintf(
 `
 sleep 180
 sudo chmod 600 %s
@@ -670,12 +1099,28 @@ sudo service %s start
 `,keypath,keypath,domainO.Domain,domainO.Domain,port,port,domainO.Domain,domainO.Domain,domainO.Domain,path,stagingName,stagingName,stagingName,stagingName,stagingName)
 
 
-		case "ssh_rev_shell":
+	return installScript_string,port,"Success"
 
-			port = "22"
-			//Create both installStaging.sh and removeStaging.sh on target staging Folder
-			installScript_string =
-				fmt.Sprintf(
+}
+
+
+/* staging_ssh_rev_shell
+The rev_ssh module will create a server where a Implant can egress a ssh connection login as an anonymous user to tunnel out a 
+Operating System shell.
+SSH Server configurations with public key
+Configure the anonymous user without shell capabilities to avoid Counter-Attacks within our staging
+Set SSH as a service
+*/
+func staging_ssh_rev_shell(domainO *Domain,keypath string,stagingName string) (string,string,string){
+
+	var installScript_string string
+	var port string
+
+	port = "22"
+	
+	//Create both installStaging.sh and removeStaging.sh on target staging Folder
+	installScript_string =
+	fmt.Sprintf(
 `
 sleep 180
 sudo chmod 600 %s
@@ -707,21 +1152,32 @@ sudo service %s start
 
 `,keypath,stagingName,keypath,stagingName,domainO.Domain,keypath,domainO.Domain,stagingName,stagingName,stagingName,stagingName,stagingName)
 
+	return installScript_string,port,"Success"
 
+}
 
-		case "https_msft_letsencrypt":
-			var msf *Msf
-			errDaws := json.Unmarshal([]byte(parameters), &msf)
-			if errDaws != nil {
-				elog := fmt.Sprintf("%s%s","StagingCreation(Staging MSF Parameters Decoding Error):",errDaws)
-   	 			return elog
-			}
-		
-			port = msf.HttpsPort
+/* staging_https_msft_letsencrypt
+The https_msft_letsencrypt module will create a server where a Implant can egress with a meterpreter.
+Use certbot to sign a let'sencrypt pem keys to be used by metasploit https handler
+Install metasploit, and configure the https handler as a service in the Linux boc
+*/
+func staging_https_msft_letsencrypt(parameters string,domainO *Domain,keypath string,stagingName string) (string,string,string){
 
-			//Create both installStaging.sh and removeStaging.sh on target staging Folder
-			installScript_string =
-				fmt.Sprintf(
+	var installScript_string string
+	var port string
+
+	var msf *Msf
+	errDaws := json.Unmarshal([]byte(parameters), &msf)
+	if errDaws != nil {
+		elog := fmt.Sprintf("%s%s","StagingCreation(Staging MSF Parameters Decoding Error):",errDaws)
+   		return installScript_string,port,elog
+	}
+	
+	port = msf.HttpsPort
+
+	//Create both installStaging.sh and removeStaging.sh on target staging Folder
+	installScript_string =
+	fmt.Sprintf(
 `
 sleep 180
 sudo chmod 600 %s
@@ -793,21 +1249,34 @@ sudo service %s start
 
 `,keypath,keypath,domainO.Domain,domainO.Domain,domainO.Domain,domainO.Domain,domainO.Domain,port,stagingName,stagingName,stagingName,stagingName,stagingName)
 
-		case "https_empire_letsencrypt":
-			var empire *Empire
-			errDaws := json.Unmarshal([]byte(parameters), &empire)
-			if errDaws != nil {
-				elog := fmt.Sprintf("%s%s","StagingCreation(Staging Empire Parameters Decoding Error):",errDaws)
-   	 			return elog
-			}
+
+	return installScript_string,port,"Success"
+
+}
+
+/* staging_https_empire_letsencrypt
+Exactly same approach that metasploit, but configuring empire
+*/
+func staging_https_empire_letsencrypt(parameters string,domainO *Domain,keypath string,stagingName string) (string,string,string){
+
+	var installScript_string string
+	var port string
+
+	var empire *Empire
+	errDaws := json.Unmarshal([]byte(parameters), &empire)
+	if errDaws != nil {
+		elog := fmt.Sprintf("%s%s","StagingCreation(Staging Empire Parameters Decoding Error):",errDaws)
+   		return installScript_string,port,elog
+	}
 		
-			port = empire.HttpsPort
-			if port == "1234"{
-				return "StagingCreation(Staging Empire Port 1234 not allowed, is the port used for Empire Server)"
-			}
-			//Create both installStaging.sh and removeStaging.sh on target staging Folder
-			installScript_string =
-				fmt.Sprintf(
+	port = empire.HttpsPort
+	if port == "1234"{
+		return installScript_string,port,"StagingCreation(Staging Empire Port 1234 not allowed, is the port used for Empire Server)"
+	}
+	
+	//Create both installStaging.sh and removeStaging.sh on target staging Folder
+	installScript_string =
+	fmt.Sprintf(
 `
 sleep 180
 sudo chmod 600 %s
@@ -874,11 +1343,22 @@ sudo service %s start
 `,keypath,keypath,domainO.Domain,domainO.Domain,domainO.Domain,domainO.Domain,domainO.Domain,port,port,keypath,domainO.Domain,stagingName,stagingName,stagingName,stagingName,stagingName,stagingName)
 
 
-//Finish stype case
-	}
+	return installScript_string,port,"Success"
 
-			serviceScript_string =
-				fmt.Sprintf(
+}
+
+/*
+Generate a tunnel service for the target Staging, this Service is installed in Hive.
+This service will create a remote tunneling connection to Hive to expose its ssh Service
+In this way, operators will never connect directly to the staging server but to Hive
+This is a security in depth measure to keep Operators as anonymous as possible
+*/
+func staging_tunnelService(domainO *Domain,tunnelPort string,stagingName string) string {
+
+	var serviceScript_string string 
+
+	serviceScript_string =
+	fmt.Sprintf(
 `
 [Unit]
 Description=STime %s
@@ -900,8 +1380,18 @@ WantedBy=multi-user.target
 
 `,stagingName,stagingName,domainO.Name,tunnelPort,domainO.Domain,stagingName)
 
-			removeScript_string =
-				fmt.Sprintf(
+	return serviceScript_string
+}
+
+/*
+Generate a removal script for target Staging
+*/
+func staging_removeScript(stagingName string) string {
+
+	var removeScript_string string
+	
+	removeScript_string =
+	fmt.Sprintf(
 `
 sudo rm -f /root/.ssh/known_hosts
 sudo service %s stop
@@ -911,222 +1401,19 @@ sudo systemctl daemon-reload
 
 `,stagingName,stagingName,stagingName)
 
-	if _, err = serviceScript.WriteString(serviceScript_string); err != nil {
-		elog := fmt.Sprintf("%s%s","StagingServiceWrite(StagingGeneration):",err)
-   		return elog
-	}
+	return removeScript_string
 
-	if _, err = installScript.WriteString(installScript_string); err != nil {
-		elog := fmt.Sprintf("%s%s","StagingScriptWrite(StagingGeneration):",err)
-   		return elog
-	}
-
-	if _, err = removeScript.WriteString(removeScript_string); err != nil {
-		elog := fmt.Sprintf("%s%s","StagingScriptWrite(StagingGeneration):",err)
-   		return elog
-	}
-
-
-
-	switch vps.Vtype{
-
-		//String with awsPlan
-		case "aws_instance":
-				
-			//spottedError := "aws"
-			var amazon *Amazon
-			errDaws := json.Unmarshal([]byte(vps.Parameters), &amazon)
-			if errDaws != nil {
-				elog := fmt.Sprintf("%s%s","StagingCreation(Staging Amazon Parameters Decoding Error):",errDaws)
- 				return elog
-			}
-
-			//spottedError = "aws"
-			accesskey := amazon.Accesskey
-			secretkey := amazon.Secretkey 
-			region := amazon.Region 
-			keyname := amazon.Sshkeyname
-			ami := amazon.Ami
-			key_String := amazon.Sshkey
-			vpskey, err := os.Create(keypath)
-			if err != nil {
-				elog := fmt.Sprintf("%s%s","StagingVpsPemFileCreation(StagingGeneration):",err)
- 				return elog
-			}
-
-			defer vpskey.Close()
-
-			if _, err = vpskey.WriteString(key_String); err != nil {
-				elog := fmt.Sprintf("%s%s","StagingVpsPemFileWriteCreation(StagingGeneration):",err)
- 				return elog
-			}
-			vps_plan_string =
-				fmt.Sprintf(
-		`
-		provider "aws" {
-		  alias = "%s"
-		  access_key = "%s"
-		  secret_key = "%s"
-		  region     = "%s"
-		}
-
-		resource "aws_security_group" "%s" {
-		  provider = "aws.%s"
-		  name        = "%s"
-
-		  ingress {
-		    from_port   = 22
-		    to_port     = 22
-		    protocol    = "tcp"
-		    cidr_blocks = ["0.0.0.0/0"]
-		  }
-
-		  ingress {
-		    from_port   = 80
-		    to_port     = 80
-		    protocol    = "tcp"
-		    cidr_blocks = ["0.0.0.0/0"]
-		  }
-
-		  ingress {
-		    from_port   = %s
-		    to_port     = %s
-		    protocol    = "tcp"
-		    cidr_blocks = ["0.0.0.0/0"]
-		  }
-
-		  egress {
-		    from_port       = 0
-		    to_port         = 65535
-		    protocol        = "tcp"
-		    cidr_blocks     = ["0.0.0.0/0"]
-		  }
-		}
-
-
-		resource "aws_instance" "%s" {
-		  provider = "aws.%s"
-		  depends_on = ["aws_security_group.%s"]
-		  ami           = "%s"
-		  instance_type = "t2.micro"
-		  key_name = "%s"
-		  security_groups = ["%s"]
-
-		}`,domainO.Name,accesskey,secretkey,region,domainO.Name,domainO.Name,domainO.Name,port,port,domainO.Name,domainO.Name,domainO.Name,ami,keyname,domainO.Name)
-
-		
-	}
-	
-	if _, err = plan.WriteString(vps_plan_string); err != nil {
-		elog := fmt.Sprintf("%s%s","StagingTFWrite(StagingGeneration):",err)
-   		return elog
-	}
-	
-
-	switch domainO.Dtype{
-
-		case "godaddy":
-			
-			var godaddy *Godaddy
-			errDaws := json.Unmarshal([]byte(domainO.Parameters), &godaddy)
-			if errDaws != nil {
-				elog := fmt.Sprintf("%s%s","StagingCreation(Godaddy Parameters Decoding Error):",errDaws)
-   	 			return elog
-			}
-
-			domainkey := godaddy.Domainkey 
-			domainsecret := godaddy.Domainsecret 
-			domain_plan_string =
-				fmt.Sprintf(
-		`
-		provider "godaddy" {
-		  alias = "%s"
-		  key = "%s"
-		  secret = "%s"
-		}
-
-		resource "godaddy_domain_record" "%s" {
-		  provider = "godaddy.%s"
-		  domain   = "%s"
-		  depends_on = ["%s.%s"]
-		  addresses   = ["${%s.%s.public_ip}"]
-		}`,domainO.Name,domainkey,domainsecret,domainO.Name,domainName,domainO.Domain,vps.Vtype,domainO.Name,vps.Vtype,domainO.Name)
-
-	}
-
-	if _, err = plan.WriteString(domain_plan_string); err != nil {
-		elog := fmt.Sprintf("%s%s","StagingCreation(TF Domain Write Error):",err)
-   			return elog
-	}
-
-
-	infralog, err := os.Create("/usr/local/STHive/stagings/"+stagingName+"/"+"infra.log")
-	if err != nil {
-		elog := fmt.Sprintf("%s%s","InfraLogCreation(ImplantGeneration):",err)
-   	 	return elog
-	}
-
-	defer infralog.Close()
-
-	var initOutbuf,applyOutbuf,errInitbuf,errApplybuf bytes.Buffer
-
-	terraInit :=  exec.Command("/bin/sh","-c", "cd /usr/local/STHive/stagings/"+stagingName+";sudo ./terraform init -input=false ")
-	terraInit.Stdout = &initOutbuf
-	terraInit.Stdout = &errInitbuf
-
-
-	terraInit.Start()
-	errInfra1 := terraInit.Wait()
-
-
-	terraApply :=  exec.Command("/bin/sh","-c", "cd /usr/local/STHive/stagings/"+stagingName+";sudo ./terraform apply -input=false -auto-approve")
-	terraApply.Stdout = &applyOutbuf
-	terraApply.Stdout = &errApplybuf
-	
-	terraApply.Start()
-	errInfra2 := terraApply.Wait()
-
-	
-	//Let's save terraform output in log files
-	terraInitOut := initOutbuf.String()
-	terraInitError := errInitbuf.String()
-	terraApplyOut := applyOutbuf.String()
-	terraApplyError := errApplybuf.String()
-
-
-
-	if (errInfra1 != nil) || (errInfra2 != nil){
-		elog := "TaraformerError(ImplantGeneration),Incorrect VPC/Domain data most probably"
-		return elog
-	}
-
-
-	//Apply Staging Script
-	//The Staging Script will:
-	// A. Wait 3 min for Domain Re-Freshment and Install required certificates/software in target server
- 	// B. Install a tunneling Service on hive to open the staging SSH to ST Clients
-
- 	var scriptOutbuf,scriptErrbuf bytes.Buffer
-	instScript :=  exec.Command("/bin/bash","/usr/local/STHive/stagings/"+stagingName+"/installScript.sh")
-	
-	instScript.Stdout = &scriptOutbuf
-	instScript.Stderr = &scriptErrbuf
-
-	instScript.Start()
-	instScript.Wait()
-	
-	//Debug
-	//fmt.Println("ScriptOut: "+scriptOutbuf.String()+"ScriptError: "+scriptErrbuf.String())
-
-	if _, err = infralog.WriteString("OutInit: "+terraInitOut+"ErrInit:"+terraInitError+"OutApply: "+terraApplyOut+"ErrApply: "+terraApplyError+"ScriptOut: "+scriptOutbuf.String()+"ScriptError: "+scriptErrbuf.String()); err != nil {
-		elog := fmt.Sprintf("%s%s","InfraFolderCreation(ImplantGeneration):",err)
-   		return elog
-	}
-
-
-	return "Done"
 }
 
+
+//Utility Infra Staging Functions: Interact with resources, to destroy them, or hide stuff...
+
+/*
+Description: Destroy target Staging Infraestructure
+Flow:
+A.Execute terraform destroy over the cretion plans
+B.Execute removal script for clean Hive Staging tunnel Service
+*/
 func destroyStagingInfra(stagingName string) string{
 
 	//Go to folder apply deletes
@@ -1146,6 +1433,13 @@ func destroyStagingInfra(stagingName string) string{
 	return "Done"
 }
 
+
+/*
+Description: Drop an Implant in target Dropplet
+Flow:
+A.SCP the file
+B.Move the file to target apache web folder
+*/
 func dropImplant(implantName string,stagingName string,sDomainName string,path string,os string,arch string,filename string) string{
 	var errbuf bytes.Buffer
 

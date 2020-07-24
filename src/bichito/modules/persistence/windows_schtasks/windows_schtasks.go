@@ -128,12 +128,6 @@ func RemovePersistenceSchtasks(jsonPersistence string) (bool,string){
 		genError = "File Removed Already" + stringerr
 	}
 
-	/*
-	wipeErr,stringerr := biterpreter.Wipe(userPath)
-	if wipeErr != false {
-		genError = "File Removed Already" + stringerr
-	}	
-	*/
 
 
     if (error != 1) || (execErr != false){

@@ -17,8 +17,8 @@ $(document).ready(function() {
 
 //// Refresh on memory data and load it the sidetables for element creations
 getStagings();
-
 loadFormData();
+
 //// Staging Creation Form: Parameters and function
   var name = $(".STmain").attr("id");
   $(".STmain").find(".element").text(htmlencode.htmlEncode(name));
@@ -48,8 +48,7 @@ loadFormData();
   }
 
   var infoJson = JSON.parse(implant.modules)
-  //console.log(infoJson.coms);
-  //console.log(infoJson.persistence);
+  
   $("#network").text(htmlencode.htmlEncode(infoJson.coms.replace(/\n/g, '')));
   
   if (infoJson.persistence != undefined){
@@ -132,15 +131,17 @@ $('#attacks').change(function(){
   var name = $(".STmain").attr("id");
   $(".element").text(htmlencode.htmlEncode(name));
   
-  //$(".STmain").find(".jobs").attr("id",name);
-  //$(".STmain").find(".logs").attr("id",name);
-  
-  //$(".STmain").find('.jobs').load("./components/jobs/jobs.html");
-  //$(".STmain").find('.logs').load("./components/logs/logs.html");
+
   
   $("#delval").attr("value",htmlencode.htmlEncode(name));
 
 })
+
+/* This Job will respect the following JSON Structure on "parameters":
+type DeleteImplant struct{
+    Name string `json:"name"`
+}
+*/
 
 $("#submitdelimplant").on('click',function() {
 
@@ -159,7 +160,7 @@ $("#submitdelimplant").on('click',function() {
 
   //Create Job to send with two elements
   var data = {cid:"",jid:"",pid:"Hive",chid:"None",job:"deleteImplant",time:"",status:"",result:"",parameters:"["+JSON.stringify(submitdelimplantJSON)+"]"};
-  //data.push();
+
   $.ajax({
         type: "POST",
         url: "http://127.0.0.1:8000/job",
@@ -178,7 +179,15 @@ $("#submitdelimplant").on('click',function() {
 
 });
 
-
+/* This Job will respect the following JSON Structure on "parameters":
+type DropImplant struct {
+  Implant string   `json:"implant"`
+    Staging string   `json:"staging"`
+    Os string   `json:"os"`
+    Arch string   `json:"arch"`
+    Filename string   `json:"filename"`
+}
+*/
 
 $("#submitattack").on('click',function(){
 
@@ -188,7 +197,7 @@ $("#submitattack").on('click',function(){
 
   var createAttackJSON = {implant:implantName,staging:$("#stagingOpt").val(),os:$("#os").val(),arch:$("#arch").val(),filename:$("#filename").val()}
   var data = {cid:"",jid:"",pid:"Hive",chid:"None",job:attack,time:"",status:"",result:"",parameters:"["+JSON.stringify(createAttackJSON)+"]"};
-  //data.push();
+ 
   $.ajax({
         type: "POST",
         url: "http://127.0.0.1:8000/job",
@@ -207,14 +216,21 @@ $("#submitattack").on('click',function(){
 
 });
 
+/* Craft a Job with the following JSON Object towards client:
 
+type ImplantObject struct {
+    Name string   `json:"name"`
+    OsName string   `json:"osname"`
+    Arch string   `json:"arch"`
+}
+*/
 $("#downloadImplant").on('click',function() {
 
   var implantName = $(".STmain").attr("id");
 
   //Create Job to send with two elements
   var data = {name:implantName,osname:$("#osD").val(),arch:$("#archD").val()};
-  //data.push();
+
   $.ajax({
         type: "POST",
         url: "http://127.0.0.1:8000/implant",
@@ -230,14 +246,21 @@ $("#downloadImplant").on('click',function() {
 
 });
 
+/* Craft a Job with the following JSON Object towards client:
 
+type ImplantObject struct {
+    Name string   `json:"name"`
+    OsName string   `json:"osname"`
+    Arch string   `json:"arch"`
+}
+*/
 $("#downloadRedirector").on('click',function() {
 
   var implantName = $(".STmain").attr("id");
 
   //Create Job to send with two elements
   var data = {name:implantName,osname:"None",arch:"None"};
-  //data.push();
+
   $.ajax({
         type: "POST",
         url: "http://127.0.0.1:8000/redirector",

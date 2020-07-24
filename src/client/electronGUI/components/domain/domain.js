@@ -4,9 +4,9 @@ $(document).ready(function() {
 
   //Determine if elog is for hive,red or bichito, then load the logs for each case
   var name = $(".STmain").attr("id");
-  ////console.log(name)
+  
   $("#iname").text(htmlencode.htmlEncode(name));
-  //$("#delval").value = name
+
   $("#delval").attr("value",htmlencode.htmlEncode(name));
 
   for (i = 0; i < domains.length; i++){
@@ -21,6 +21,12 @@ $(document).ready(function() {
 
 })
 
+/* This Job will respect the following JSON Structure on "parameters":
+type DeleteDomain struct{
+    Name string `json:"name"`
+}
+*/
+
 $("#submitdeldomain").on('click',function() {
 
   //Transform the array in one JSON STRING
@@ -31,14 +37,13 @@ $("#submitdeldomain").on('click',function() {
       }
     return returnArray;
   }
-  //Serialize form in the correct way
 
+  //Serialize form in the correct way
   var submitdeldomainJSON = objectifyForm($("#deldomainform").serializeArray());
-  //console.log(submitdeldomainJSON);
 
   //Create Job to send with two elements
   var data = {cid:"",jid:"",pid:"Hive",chid:"None",job:"deleteDomain",time:"",status:"",result:"",parameters:"["+JSON.stringify(submitdeldomainJSON)+"]"};
-  //data.push();
+
   $.ajax({
         type: "POST",
         url: "http://127.0.0.1:8000/job",
@@ -46,9 +51,7 @@ $("#submitdeldomain").on('click',function() {
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (response){
-          //console.log("Response Job:"+response[0].jid);
           if (response != null){
-            //console.log("Response Job:"+response[0].jid);
             return
           }
         }

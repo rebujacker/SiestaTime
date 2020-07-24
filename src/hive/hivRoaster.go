@@ -1,6 +1,7 @@
 //{{{{{{{ Hive Roaster Functions }}}}}}}
-
 //By Rebujacker - Alvaro Folgado Rueda as an open source educative project
+
+
 package main
 
 import (
@@ -12,11 +13,7 @@ import (
     "crypto/tls"
     "encoding/json"
     "bytes"
-    //Debug
-    //"net/http/httputil"
-    //"strings"
     "sync"
-    //"strconv"
     "io/ioutil"
     "encoding/base64"
 )
@@ -40,6 +37,15 @@ type JobsToProcess struct {
 var jobsToProcess *JobsToProcess
 
 
+
+/*
+Description: Main Service http client server listener, and servlet/router of Hive.
+Flow:
+A.Initialize on memory arrays for Jobs to be processed by Hive job Processor (./src/hive/hivJobs.go)
+B.Start the router, and define GET Entry Points, and POST Entry Points
+C.Configure http client
+D.Start listening using self-signed TLS certificates
+*/
 func startRoaster(){
     
     //Initialize on memory slices for redirect Jobs
@@ -103,9 +109,15 @@ func commonMiddleware(next http.Handler) http.Handler {
 }
 
 
-////Users' Servlet
+////Users/Operators/Clients Servlet GET/POST
 
-// This will give back to GUI the data from the sqlite DB
+/*
+Description: GET Function for Operators/Clients to retrieve DB data from Hive (this data will feed the electronGUI views)
+Flow:
+A.Retrieve Authenthicathion header, and check if credentials are valid
+B.Retrieve GET parameter with the target object to refresh/retireve data from
+C.Craft a JSON payload with the on-memory array of target DB Objects and craft an http response
+*/
 func GetUser(w http.ResponseWriter, r *http.Request) {
     
 
@@ -125,49 +137,31 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 
     switch objtype[0]{
         case "jobs":
-            //jobsDB.mux.RLock()
             json.NewEncoder(w).Encode(jobsDB.Jobs)
-            //jobsDB.mux.RUnlock()
 
         case "logs":
-            //logsDB.mux.RLock()
             json.NewEncoder(w).Encode(logsDB.Logs)
-            //logsDB.mux.RUnlock()
 
         case "implants":
-            //jobsDB.mux.RLock()
             json.NewEncoder(w).Encode(implantsDB.Implants)
-            //jobsDB.mux.RUnlock()
             
         case "vps":
-            //jobsDB.mux.RLock()
             json.NewEncoder(w).Encode(vpsDB.Vpss)
-            //jobsDB.mux.RUnlock()
             
         case "domains":
-            //domainsDB.mux.RLock()
             json.NewEncoder(w).Encode(domainsDB.Domains)
-            //domainsDB.mux.RUnlock()
             
         case "redirectors":
-            //redsDB.mux.RLock()
             json.NewEncoder(w).Encode(redsDB.Redirectors)
-            //redsDB.mux.RUnlock()
             
         case "bichitos":
-            //bisDB.mux.RLock()
             json.NewEncoder(w).Encode(bisDB.Bichitos)
-            //bisDB.mux.RUnlock()
             
         case "stagings":
-            //stagingsDB.mux.RLock()
             json.NewEncoder(w).Encode(stagingsDB.Stagings)
-            //stagingsDB.mux.RUnlock()
             
         case "reports":
-            //reportsDB.mux.RLock()
             json.NewEncoder(w).Encode(reportsDB.Reports)
-            //reportsDB.mux.RUnlock()
             
         default:
             time := time.Now().Format("02/01/2006 15:04:05 MST")
@@ -179,7 +173,14 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 }
 
 
-// Give back pem key
+/*
+Description: GET Function for Operators/Clients to retrieve target network asset's VPC Key
+Flow:
+A.Retrieve Authenthicathion header, and check if credentials are valid
+B.Retrieve GET parameter with the target network asset's name
+C.Apply name white list over GET params
+D.Retrieve VPC key from DB and write the string on the http response body
+*/
 func GetVpsKey(w http.ResponseWriter, r *http.Request) {
     
 
@@ -198,6 +199,12 @@ func GetVpsKey(w http.ResponseWriter, r *http.Request) {
         return
     }
 
+    if !(namesInputWhite(keys[0])){
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
+        go addLogDB("Hive",time,"Bad getVpsKey GET Input params formatting:"+cid)
+        return
+    }
+
     //Change this to read file from staging? to reduce DB reads?
     key,err := getVpsPemDB(keys[0])
     if err != nil {
@@ -211,7 +218,15 @@ func GetVpsKey(w http.ResponseWriter, r *http.Request) {
     return
 }
 
-// Download target Implant
+/*
+Description: GET Functions for Operators/Clients to retrieve target Implant
+Flow:
+A.Retrieve Authenthicathion header, and check if credentials are valid
+B.Retrieve GET parameter with the target implant name,OS and architecture
+C.Apply name whitelist over GET params
+D.Using previous params, craft a string PATH  and read the target implant binary
+E.Encode it to b64 and put it within http body response
+*/
 func GetImplant(w http.ResponseWriter, r *http.Request) {
     
 
@@ -230,7 +245,7 @@ func GetImplant(w http.ResponseWriter, r *http.Request) {
     }
 
     osName, ok := r.URL.Query()["osName"]
-    if !ok || len(implantname[0]) < 1 {
+    if !ok || len(osName[0]) < 1 {
         //ErrorLog
         time := time.Now().Format("02/01/2006 15:04:05 MST")
         go addLogDB("Hive",time,"Bad osName Get Implant Query from:"+cid)
@@ -245,8 +260,13 @@ func GetImplant(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    //Debug
-    //fmt.Println("The file to read is: /usr/local/STHive/implants/"+implantname[0]+"/bichito"+osName[0]+arch[0])
+    if !(namesInputWhite(implantname[0]) && namesInputWhite(osName[0]) && namesInputWhite(arch[0])){
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
+        go addLogDB("Hive",time,"Bad getImplant GET Input params formatting:"+cid)
+        return
+    }
+
+
     content, err := ioutil.ReadFile("/usr/local/STHive/implants/"+implantname[0]+"/bichito"+osName[0]+arch[0])
     if err != nil {
         //ErrorLog
@@ -263,7 +283,15 @@ func GetImplant(w http.ResponseWriter, r *http.Request) {
 }
 
 
-// Download target Implant's Redirector
+/*
+Description: GET Functions for Operators/Clients o retrieve target Redirector Binary
+Flow:
+A.Retrieve Authenthicathion header, and check if credentials are valid
+B.Retrieve GET parameter with the target implant name
+C.Apply name whitelist over GET params
+D.Using previous params, craft a string PATH  and read the target Redirctor binary, from the Implant Folder Path
+E.Encode it to b64 and put it within http body response
+*/
 func GetRedirector(w http.ResponseWriter, r *http.Request) {
     
 
@@ -278,6 +306,12 @@ func GetRedirector(w http.ResponseWriter, r *http.Request) {
         //ErrorLog
         time := time.Now().Format("02/01/2006 15:04:05 MST")
         go addLogDB("Hive",time,"Bad implantname Get Redirector Query from:"+cid)
+        return
+    }
+
+    if !(namesInputWhite(implantname[0])){
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
+        go addLogDB("Hive",time,"Bad getRedirector GET Input params formatting:"+cid)
         return
     }
 
@@ -297,7 +331,14 @@ func GetRedirector(w http.ResponseWriter, r *http.Request) {
 }
 
 
-// Give back pem key
+/*
+Description: GET Function for Operators/Clients to retrieve target Report
+Flow:
+A.Retrieve Authenthicathion header, and check if credentials are valid
+B.Retrieve GET parameter with the target Report name
+C.Apply name whitelist over GET params
+D.Use a DB Function to retrieve the Report String, send into the response Body
+*/
 func GetReport(w http.ResponseWriter, r *http.Request) {
     
 
@@ -316,6 +357,12 @@ func GetReport(w http.ResponseWriter, r *http.Request) {
         return
     }
 
+    if !(namesInputWhite(keys[0]) ){
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
+        go addLogDB("Hive",time,"Bad getReport GET Input params formatting:"+cid)
+        return
+    }
+
 
     err,rbody := getReportBodyDB(keys[0])
     if err != nil {
@@ -330,7 +377,14 @@ func GetReport(w http.ResponseWriter, r *http.Request) {
 }
 
 
-// Give back pem key
+/*
+Description: GET Function for Operators/Clients to retrieve target Job Result from DB
+Flow:
+A.Retrieve Authenthicathion header, and check if credentials are valid
+B.Retrieve GET parameter with the target Job JID
+C.Apply name whitelist over GET params
+D.Use a DB Function to retrieve the Job Result String, send into the response Body
+*/
 func GetJobResult(w http.ResponseWriter, r *http.Request) {
     
 
@@ -349,6 +403,13 @@ func GetJobResult(w http.ResponseWriter, r *http.Request) {
         return
     }
 
+    if !(idsInputWhite(jid[0]) ){
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
+        go addLogDB("Hive",time,"Bad getJob GET Input params formatting:"+cid)
+        return
+    }
+
+
     err,rbody := getJobDB(jid[0])
     if err != nil {
         //ErrorLog
@@ -362,7 +423,16 @@ func GetJobResult(w http.ResponseWriter, r *http.Request) {
 }
 
 
-// This will let the GUI to send Jobs to Hive
+/*
+Description: POST Function for Clients/Operators to send a Job to Hive, or to a target running Implant (bichito)
+Flow:
+A.Retrieve Authenthicathion header, and check if credentials are valid
+B.Retrieve GET parameter with the target Job JID
+C.Retrieve the request's body and decode it into a Job Object
+D.Modify the Job CID with the extracted CID from the User authenticathion process
+E.Check that the Job data doesn't exceed 20 MB
+F.Send the job to the JobProcessor routine
+*/
 func PostUser(w http.ResponseWriter, r *http.Request) {
 
     //Do auth flow, get CID if valid
@@ -378,11 +448,7 @@ func PostUser(w http.ResponseWriter, r *http.Request) {
     buf := new(bytes.Buffer)
     buf.ReadFrom(r.Body)
     
-    //Debug
-    //fmt.Println("Bytes Body:")
-    //fmt.Println(buf.Len())
-    
-    
+  
     decoder := json.NewDecoder(buf)
     err := decoder.Decode(&job)
     if err != nil {
@@ -395,14 +461,10 @@ func PostUser(w http.ResponseWriter, r *http.Request) {
 
     job.Cid = cid
 
-
-
     //Check that the size of the Result doesn't exceed 20 MB
     bytesParameters := len(job.Parameters)
     bytesResult := len(job.Result)
-    //Debug for upload
-    //fmt.Println("Result Received after de-serialized:")
-    //fmt.Println(bytesResult)
+
     if ((bytesResult+bytesParameters) >= 20000000){
         //ErrorLog
         time := time.Now().Format("02/01/2006 15:04:05 MST")
@@ -411,63 +473,20 @@ func PostUser(w http.ResponseWriter, r *http.Request) {
         return 
     }
 
-
-
     go jobProcessor(job,false)
-
-    //Debug
-    /*
-    requestDump, err2 := httputil.DumpRequest(r, true)
-    if err2 != nil {
-        fmt.Println(err2)
-    }
-    fmt.Println(string(requestDump))
-    */
 
     return
 }
 
+
 /*
-func userAddJob(job *Job){
-
-    //Don't add Parameters in the Job Log to avoid unnecessary secrets logging
-    parameters := job.Parameters
-    job.Parameters = "" 
-
-    //check redundant Jid
-    errJ := addJobDB(job)
-    if errJ != nil {
-        //ErrorLog
-        time := time.Now().Format("02/01/2006 15:04:05 MST")
-        elog := fmt.Sprintf("%s%s","Jobs(Job Already Processed):",errJ.Error())
-        addLogDB("Hive",time,elog)
-        return
-    }
-
-    errS := setJobStatusDB(job.Jid,"Processing")
-    if errS != nil {
-        //ErrorLog
-        time := time.Now().Format("02/01/2006 15:04:05 MST")
-        elog := fmt.Sprintf("%s%s","Jobs(Error Setting Job Status to Processing):",errS.Error())
-        go addLogDB("Hive",time,elog)
-        return
-    }
-
-    job.Parameters = parameters
-
-    //Start a Routine to update bichito Status
-    if (job.Chid != "None"){
-        go bichitoStatus(job)
-    }
-
-    jobProcessor(job,false)
-
-}
+Description: Main Operator Authentication logic (Basic)
+Flow:
+A.Decode Bearer Header Sring into the JSON Auth Object {username,password}
+B.White-List Auth. Input Check
+C."getCidbyAuthDBMem" Query over the on-memory Operators Array and check if there is a hash that coincide with the Hashed Password
+D.Return the result of the previous function, which is the CID of the Operator interacting with Hive
 */
-
-// Check Authorization header for a JSON encoded object:
-// Authorization: JSON{username,password}
-// If valid, get back user CID
 
 func userAuth(authbearer string) string{
 
@@ -484,7 +503,7 @@ func userAuth(authbearer string) string{
 
 
     //TO-DO: Fine Grained white list on username/password
-    if !((len(userauth.Username) > 0 ) && (len(userauth.Password) > 0)){
+    if !( namesInputWhite(userauth.Username) && namesInputWhite(userauth.Password) ){
         time := time.Now().Format("02/01/2006 15:04:05 MST")
         elog := fmt.Sprintf("%s","User Auth(Bad Formatted Username/Password)")
         go addLogDB("Hive",time,elog)     
@@ -504,9 +523,16 @@ func userAuth(authbearer string) string{
 }
 
 
-////Redirector's Servlet
 
-//Retrieve all the Jobs that need to be sent to the requester redirector
+/////Redirector Servlet GET/POST
+
+/*
+Description: GET Function for redirectors to retrieve tje Jobs to be processed by the bichitos connected to him
+Flow:
+A.Retrieve redirector AUTH header and check Implant Credentials
+B.If credentials map an registered Implant/redirector, get the connected Redirector Rid by its domain/username (querying on memory array)
+C.Retrieve the Jobs prepared to be sent to the target Redirector (on memory "ready to be retireved" Job array)
+*/
 func GetRed(w http.ResponseWriter, r *http.Request) {
     
     //Auth
@@ -517,26 +543,24 @@ func GetRed(w http.ResponseWriter, r *http.Request) {
 
     _,rid := getRedRidbyDomainMem(domain)
 
-    //Debug
-    /*
-    requestDump, err2 := httputil.DumpRequest(r, true)
-    if err2 != nil {
-        fmt.Println(err2)
-    }
-    fmt.Println(string(requestDump))
-    */
-
     json.NewEncoder(w).Encode(getRedJobs(rid))
 }
 
-//Loop over job array and select the ones that has Rid + Bid connected
-func getRedJobs(rid string) []*Job{
-	var result []*Job
 
-    //Lock shared Slice
-    //jobsToProcess.mux.RLock()
+//Following to functions are designed to keep a coherent list on memory of Jobs waiting to be retrieved b their respective Implants.
+//Removing retrieved Jobs but keeping array integrity by making copies of the exsting array (avoiding race conditions)
+
+/*
+Description: Retrieve Jobs on memory array headed to a target Redirector (RID)
+Flow:
+A.Make a copy of the actual "to be retrieved" Jobs array
+B.Loop over the copied array, and detect the positions of the Jobs that map the target Redirector (RID)
+C.Start a go routine to remove the target positions, and in the same time return a copy of target Jobs
+*/
+func getRedJobs(rid string) []*Job{
+	
+    var result []*Job
     copyJobs := jobsToProcess.Jobs
-    //jobsToProcess.mux.RUnlock()
     removePos := make(map[int]int)
 
     for i,_ := range copyJobs {
@@ -548,24 +572,17 @@ func getRedJobs(rid string) []*Job{
         }
     }
 
-/*
-    j := 0
-    for i,_ := range jobsToProcess.Jobs {
-        if jobsToProcess.Jobs[i].Pid == rid{
-            result = append(result,jobsToProcess.Jobs[i])
-            
-        }else{
-            jobsToProcess.Jobs[j] = jobsToProcess.Jobs[i]
-            j++
-        }
-    }
-    jobsToProcess.Jobs = jobsToProcess.Jobs[:j]
-*/
-
     go removeRidJobs(removePos)
     return result
 }
 
+/*
+Description: Remove Jobs that have being already sent back to their respective Implant from the "on memory" Jobs array
+Flow:
+A.Lock the memory array
+B.Loop over the the locked array, and remove the positions received as a function input
+C.Once the removal is completed, Unlock the array
+*/
 func removeRidJobs(removePos map[int]int) {
 
     jobsToProcess.mux.Lock()
@@ -582,32 +599,24 @@ func removeRidJobs(removePos map[int]int) {
     jobsToProcess.Jobs = jobsToProcess.Jobs[:j]
     
     jobsToProcess.mux.Unlock()
-    //Debug
-    //fmt.Println(j)
-    //fmt.Println(len(jobsToProcess.Jobs))
-    //fmt.Println(removePos)
     return
 }
 
 
-//Redirector posting the jobs they have finished/unfinished
+/*
+Description:POST Function for Redirectors to send Jobs that are being finished by their connected bichitos, to be saved/processed by Hive
+Flow:
+A.Retrieve Authenthicathion header, and check if credentials are valid
+B.Decody the http body and decody into a struct Job object (from JSON)
+C.Send the job to Hive jobProcessor go routine
+*/
 func PostRed(w http.ResponseWriter, r *http.Request) {
-
-    //Debug
-    /*
-    requestDump, err3 := httputil.DumpRequest(r, true)
-    if err3 != nil {
-        fmt.Println(err3)
-    }
-    fmt.Println(string(requestDump))
-    */
 
     //Auth
     domain := redAuth(r.Header.Get("Authorization"))
     if domain == "Bad"{
         return
     }  
-
 
     decoder := json.NewDecoder(r.Body)
     var job *Job
@@ -626,123 +635,13 @@ func PostRed(w http.ResponseWriter, r *http.Request) {
 
 
 /*
-func redAddJob(job *Job){
-
-
-    ///List of Jobs that come from the Implant Itself
-    
-    //TO be deprecated
-    if job.Job == "BiChecking"{     
-        go jobProcessor(job,false)
-        return
-    }
-
-    if job.Job == "log"{    
-        go jobProcessor(job,false)
-        return
-    }
-
-    //Main Implant beacon status
-    if job.Job == "BiPing"{     
-        go jobProcessor(job,false)
-        return
-    }
-
-    if (job.Job == "sysinfo") && (job.Status == "Success") {      
-        //Debug:
-        //fmt.Println("Adding ssinfo...")
-        //Update Bid Info
-        err1 := setBiInfoDB(job.Chid,job.Result)
-        if err1 != nil {
-            //ErrorLog
-            time := time.Now().Format("02/01/2006 15:04:05 MST")
-            elog := fmt.Sprintf("%s%s","Jobs(Error Saving Bichito "+job.Chid+" Sysinfo to DB):",err1.Error())
-            go addLogDB("Hive",time,elog)
-            return
-        }
-
-        return
-    }
-
-    if (job.Job == "resptime") && (job.Status == "Success") {      
-        i, _ := strconv.Atoi(job.Parameters)
-        err2 := setBichitoRespTimeDB(job.Chid,i)
-        if err2 != nil {
-            //ErrorLog
-            time := time.Now().Format("02/01/2006 15:04:05 MST")
-            elog := fmt.Sprintf("%s%s","Jobs(Error Changing Bichito "+job.Chid+" Resptime to DB):",err2.Error())
-            go addLogDB("Hive",time,elog)
-            return
-        }
-
-    }
-
-    //Persistence Flows
-    if (job.Job == "persistence") && (job.Status == "Processing") {  
-   
-        go jobProcessor(job,false)
-        return
-    } 
-
-    if (job.Job == "persistence") && (job.Status == "Success") {  
-   
-        //TO-DO: Check Persistence Command result and note persistence in target Bot
-        return
-    }                 
-
-    if (job.Job == "removeInfection"){  
-   
-        //TO-DO: Check Persistence Command result and note persistence in target Bot
-        return
-    }   
-
-
-    //These Bichito jobs are the ones generated by Users, that came back to be updated with results
-    err2 := updateJobDB(job)
-    if err2 != nil {
-        //ErrorLog
-        time := time.Now().Format("02/01/2006 15:04:05 MST")
-        elog := fmt.Sprintf("Job "+job.Jid+"Type: "+job.Job+"(Not existent or already Finished,Possible Replay attack/Problem):"+err2.Error())
-        addLogDB("Hive",time,elog)
-        return
-    }
-
-    //Update Last Actives and Redirectors/Bichitos if PiggyBAcking Job is correct
-    time1 := time.Now().Format("02/01/2006 15:04:05 MST")
-    
-    errRLC := setRedLastCheckedDB(job.Pid,time1)
-    if errRLC != nil {
-        //ErrorLog
-        time := time.Now().Format("02/01/2006 15:04:05 MST")
-        elog := fmt.Sprintf("%s%s","Jobs(Error Setting "+job.Pid+" lastchecked to DB):",errRLC.Error())
-        go addLogDB("Hive",time,elog)
-        return
-    }    
-    
-    errRLB := setBiLastCheckedbyBidDB(job.Chid,time1)
-    if errRLB != nil {
-        //ErrorLog
-        time := time.Now().Format("02/01/2006 15:04:05 MST")
-        elog := fmt.Sprintf("%s%s","Jobs(Error Setting "+job.Chid+" lastchecked to DB):",errRLB.Error())
-        go addLogDB("Hive",time,elog)
-        return
-    }    
-    
-    errRB := setBiRidDB(job.Chid,job.Pid)
-    if errRB != nil {
-        //ErrorLog
-        time := time.Now().Format("02/01/2006 15:04:05 MST")
-        elog := fmt.Sprintf("%s%s","Jobs(Error Setting red: "+job.Pid+" to bi: "+job.Chid+" to DB):",errRB.Error())
-        go addLogDB("Hive",time,elog)
-        return
-    }    
-    
-    go updateMemoryDB("jobs")
-    return
-}
+Description:GET Function for Redirectors to check-in with Hive. Redirectors when they start their execution need to retrieve their RID 
+against Hive. If they fail on their RID retieval, they will not be able to redirect Jobs from/to Implants
+Flow:
+A.Retrieve Authenthicathion header, and check if credentials are valid
+B.Check if the "domain" field is a domain or a name (this will difference Online Implants from Offline ones)
+C.For both different scenarios, retrieve RID and send it back to the redirector on the http response
 */
-
-
 func CheckingRed(w http.ResponseWriter, r *http.Request) {
     
     //Auth
@@ -790,7 +689,14 @@ func CheckingRed(w http.ResponseWriter, r *http.Request) {
 // Check Authorization header for a JSON encoded object:
 // Authorization: JSON{domain,token}
 // If a valid token, process, if not drop connection and log
-
+/*
+Description: Main authenthicathion function for Implants.
+Flow:
+A.Decode Header (JSON{domain,token})
+B.Check if the "domain" field is a domain or a name (this will difference Online Implants from Offline ones)
+C.Retrieve the Implant token from DB related to the target Domain/Name
+D.Compare if they are the same to approve the connection by returning the Domain/Name
+*/
 func redAuth(authbearer string) string{
 
     var redauth *RedAuth
@@ -811,7 +717,6 @@ func redAuth(authbearer string) string{
         if err != nil{
             time := time.Now().Format("02/01/2006 15:04:05 MST")
             elog := "Red Auth(Not token found for target "+redauth.Domain+"):" + err.Error()
-            //fmt.Println("Happening Domain:"+redauth.Domain+"time:"+time+"error:"+err.Error())
             go addLogDB("Hive",time,elog)
             return "Bad"
         }
@@ -824,7 +729,6 @@ func redAuth(authbearer string) string{
             if err != nil{
                 time := time.Now().Format("02/01/2006 15:04:05 MST")
                 elog := "Red Auth(Not token found for target Offline Implant:"+redauth.Domain+"):" + err.Error()
-                //fmt.Println("Happening Domain:"+redauth.Domain+"time:"+time+"error:"+err.Error())
                 go addLogDB("Hive",time,elog)
                 return "Bad"
             }
@@ -835,8 +739,6 @@ func redAuth(authbearer string) string{
         go addLogDB("Hive",time,elog)     
         return "Bad"    
     }
-
-
 
 
     if redauth.Token == token{

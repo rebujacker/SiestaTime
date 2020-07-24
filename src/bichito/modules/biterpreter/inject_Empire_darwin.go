@@ -9,7 +9,11 @@ import (
 	"bytes"
 )
 
-
+/*
+Description: Inject Empire --> Darwin
+Flow:
+A.Send Empire string one liner to sh
+*/
 func InjectEmpire(payload string) (bool,string){
 	
 	var outbuf, errbuf bytes.Buffer

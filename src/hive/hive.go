@@ -1,30 +1,20 @@
-//{{{{{{{ Main Function }}}}}}}
-
-// Define Basic Flow of Hive Server:
-// 1. Support options for console (debugging)
-// 2. StartDB, perform the connection with the sqlite DB
-// 3. Start the http Handler for receive mensagges from Users and redirectors deployed
-
+//{{{{{{{ Hive Main Function }}}}}}}
 //By Rebujacker - Alvaro Folgado Rueda as an open source educative project /
+
 package main
 
-//import "os"
 
+/*
+Description: Hive Main Function
+Flow:
+A.Initialize on disk DB and "on-memory" data structures
+B.Initialize the main https handler for Hive (so Operators and redirectors can connect)
+*/
 func main() {
 
-	/*
-	//Flag to initiate console instead of the Hive service	
-	if len(os.Args) > 1{
-		startDB()
-		// Receive orders both from console/clients and perform those actions
-		console()
-		os.Exit(1)
-	}
-	*/
-
+	//Start the DB connection and feed on memory arrays
 	startDB()
 
-	//go dataSync()
-
+	//Configure http client and start listening connections from Operators and Implants
 	startRoaster()
 }

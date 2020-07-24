@@ -9,7 +9,11 @@ import (
 	"bytes"
 )
 
-
+/*
+Description: Inject Empire --> Windows
+Flow:
+A.Send Empire string one liner to python interpreter
+*/
 func InjectEmpire(payload string) (bool,string){
 	
 	var outbuf, errbuf bytes.Buffer

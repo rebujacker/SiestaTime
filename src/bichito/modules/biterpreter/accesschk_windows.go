@@ -9,7 +9,11 @@ import (
     "golang.org/x/sys/windows"
 )
 
-
+/*
+Description: AccessCheck --> Windows
+Flow:
+A.Use Native golang windows sys calls and go-acl libraries and to get key operating System data
+*/
 func Accesschk(filepath string) (bool,string){
 
     var result string

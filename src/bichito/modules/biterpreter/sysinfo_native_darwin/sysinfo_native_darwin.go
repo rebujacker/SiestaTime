@@ -42,7 +42,10 @@ int osv(char * res) {
 */
 import "C"
 
-
+/*
+This JSON Object definition is needed in some Implants Modules to decode parameters
+Hive will have the same definitions in: ./src/hive/hiveJobs.go
+*/
 type SysInfo struct {
     Pid string  `json:"pid"`
     Arch string  `json:"arch"`

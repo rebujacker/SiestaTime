@@ -23,6 +23,11 @@ type SysInfo struct {
 
 }
 
+/*
+Description: Sysinfo No Native --> Linux. Retrieve Operating System key information from the foothold.
+Flow:
+A.Use OS commands to retrieve foothold key info
+*/
 func Sysinfo() (bool,string){
 
 	var(

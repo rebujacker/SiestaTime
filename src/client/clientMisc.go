@@ -1,9 +1,6 @@
-//{{{{{{{ Hive Miscelanious Functions and external sources }}}}}}}
-
-//// Extra functions to help Hive with different tasks
-// A. randomString (from: https://www.calhoun.io/creating-random-strings-in-go/)
-
+//{{{{{{{ Client Miscelanious Functions and external sources }}}}}}}
 //By Rebujacker - Alvaro Folgado Rueda as an open source educative project
+
 package main
 
 import (
@@ -11,7 +8,8 @@ import (
 	"math/rand"
 )
 
-
+//// Extra functions to help Hive with different tasks:
+// A. randomString (from: https://www.calhoun.io/creating-random-strings-in-go/)
 func randomString(length int) string{
 
 	charset := "abcdefghijklmnopqrstuvwxyz" + "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"

