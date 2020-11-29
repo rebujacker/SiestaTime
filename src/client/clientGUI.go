@@ -479,6 +479,7 @@ func Interact(w http.ResponseWriter, r *http.Request) {
 
     }
 
+    timeLog := time.Now().Format("02/01/2006 15:04:05 MST")
 
     // In relation with the kind of target, trigger a differnet set of commands to engage the connection.
     // This will pop-up a new terminal
@@ -487,14 +488,13 @@ func Interact(w http.ResponseWriter, r *http.Request) {
     switch interact.Handler {
 
     case "droplet":
-        command = "gnome-terminal -- ssh -oStrictHostKeyChecking=no -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo printf \"\n\nInteractive Session started time,from:"+username+"\n\n\" >> "+interact.Handler+".log;sudo bash|tee -a "+interact.Handler+".log'" 
+        command = "gnome-terminal -- ssh -oStrictHostKeyChecking=no -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo printf \"\n\nInteractive Session started "+timeLog+",from:"+username+"\n\n\" >> "+interact.Handler+".log;sudo bash|tee -a "+interact.Handler+".log'" 
     case "msfconsole":
-        command = "gnome-terminal -- ssh -oStrictHostKeyChecking=no -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo printf \"\n\nInteractive Session started time,from:"+username+"\n\n\" >> "+interact.Handler+".log;sudo reptyr -s $(pgrep ruby)|tee -a "+interact.Handler+".log'" 
+        command = "gnome-terminal -- ssh -oStrictHostKeyChecking=no -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo printf \"\n\nInteractive Session started "+timeLog+",from:"+username+"\n\n\" >> "+interact.Handler+".log;sudo reptyr -s $(pgrep ruby)|tee -a "+interact.Handler+".log'" 
     case "empire":
-        command = "gnome-terminal -- ssh -oStrictHostKeyChecking=no -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo printf \"\n\nInteractive Session started time,from:"+username+"\n\n\" >> "+interact.Handler+".log;sudo reptyr -s $(pgrep python)|tee -a "+interact.Handler+".log'" 
+        command = "gnome-terminal -- ssh -oStrictHostKeyChecking=no -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo printf \"\n\nInteractive Session started "+timeLog+",from:"+username+"\n\n\" >> "+interact.Handler+".log;sudo reptyr -s $(pgrep python)|tee -a "+interact.Handler+".log'" 
     case "ssh":
-        command = "gnome-terminal -- ssh -oStrictHostKeyChecking=no -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo printf \"\n\nInteractive Session started time,from:"+username+"\n\n\" >> "+interact.Handler+".log;nc 127.0.0.1 2222|tee -a "+interact.Handler+".log'"
-
+        command = "gnome-terminal -- ssh -oStrictHostKeyChecking=no -t -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo printf \"\n\nInteractive Session started "+timeLog+",from:"+username+"\n\n\" >> "+interact.Handler+".log;./tools revsshclient 2222|tee -a "+interact.Handler+".log'"
     }
 
 

@@ -222,7 +222,7 @@ func jobProcessor(jobO *Job,queue bool){
 			hivejobqueue.mux.Unlock()
 		}
 		
-		//If working within another routine, just kill this one,if not set the queue field on "Working"
+		//If working within another routine, just kill this one,if not, set the queue field on "Working"
 		if (hivejobqueue.Working){
 			return
 		}else{
@@ -1320,7 +1320,7 @@ func jobProcessor(jobO *Job,queue bool){
 					}
 					return
 				}
-				jStatus = setJobStatusDB(jid,"Succes")
+				jStatus = setJobStatusDB(jid,"Success")
 				jResult = setJobResultDB(jid,"Hive-deleteStaging(Staging "+commandO.Name+" deleted)")
 					if (jStatus != nil){
         				time := time.Now().Format("02/01/2006 15:04:05 MST")

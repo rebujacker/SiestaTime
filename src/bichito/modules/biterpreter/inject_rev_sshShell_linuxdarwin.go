@@ -9,11 +9,9 @@ import (
 	//"log"
 	"net"
 	"os/exec"
-	"syscall"
 
 	"github.com/kr/pty"
 	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/terminal"
 
 	//Fixes
 	"time"
@@ -109,54 +107,35 @@ func handleConnection(c net.Conn) {
 	// Start the command
 	cmd := exec.Command("/bin/sh")
 
-	// Create PTY
-	pty, tty, err := pty.Open()
-	if err != nil {
-		return
-	}
-	defer tty.Close()
-	defer pty.Close()
+	// Start the command with a pty.
+    ptmx, err := pty.Start(cmd)
+    if err != nil {
+        return
+    }
+    // Make sure to close the pty at the end.
+    defer func() { 
+    	_ = ptmx.Close() 
+    	cmd.Process.Kill();
+    	cmd.Process.Wait();
 
-	// Put the TTY into raw mode
-	_, err = terminal.MakeRaw(int(tty.Fd()))
-	if err != nil {
-	}
+    }()
 
-	// Hook everything up
-	cmd.Stdout = tty
-	cmd.Stdin = tty
-	cmd.Stderr = tty
-	if cmd.SysProcAttr == nil {
-		cmd.SysProcAttr = &syscall.SysProcAttr{}
-	}
 
-	cmd.SysProcAttr.Setctty = true
-	cmd.SysProcAttr.Setsid = true
+    errs := make(chan error, 3)
 
-	// Start command
-	err = cmd.Start()
-	if err != nil {
-		return
-	}
-
-	errs := make(chan error, 3)
-
-	go func() {
-		_, err := io.Copy(c, pty)
+    go func() {
+    	 _, err = io.Copy(ptmx, c) 
 		errs <- err
 	}()
+
 	go func() {
-		_, err := io.Copy(pty, c)
-		errs <- err
-	}()
-	go func() {
-		errs <- cmd.Wait()
+    	_, err = io.Copy(c, ptmx)
+    	errs <- err
 	}()
 
-	// Wait for a single error, then shut everything down. Since returning from
-	// this function closes the connection, we just read a single error and
-	// then continue.
 	<-errs
+	
+    return
 }
 
 func loadPrivateKey(keyString string) (ssh.AuthMethod, error) {

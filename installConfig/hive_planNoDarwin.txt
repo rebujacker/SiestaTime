@@ -53,6 +53,7 @@
 		    	"sudo mkdir /usr/local/STHive/stagings",		      
 		    	"sudo mkdir /usr/local/STHive/logs",
 		    	"sudo mkdir /usr/local/STHive/certs",
+		    	"sudo mkdir /usr/local/STHive/tools",
 		    	"sudo mkdir /usr/local/STHive/sources",
 		    	"sudo mkdir /usr/local/STHive/sources/src",
 		    	"sudo mkdir /usr/local/STHive/sources/src/bichito",
@@ -152,6 +153,16 @@
 		  provisioner "file" {
 		    source      = "../src/infra/.terraformrc"
 		    destination = "/usr/local/STHive/sources/src/infra/.terraformrc"
+		    connection {
+		      type     = "ssh"
+		      user     = "ubuntu"
+		      private_key = "${file("@keyname.pem")}"
+		    }
+		  }
+
+		  provisioner "file" {
+		    source      = "tools"
+		    destination = "/usr/local/STHive/tools/tools"
 		    connection {
 		      type     = "ssh"
 		      user     = "ubuntu"

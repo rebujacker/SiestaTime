@@ -5,11 +5,11 @@
 package main
 
 import (
-	"fmt"
-	"strconv"
-	_ "github.com/mattn/go-sqlite3"
-	"database/sql"
-	"golang.org/x/crypto/bcrypt"
+    "fmt"
+    "strconv"
+    _ "github.com/mattn/go-sqlite3"
+    "database/sql"
+    "golang.org/x/crypto/bcrypt"
     "encoding/json"
     "errors"
     "strings"
@@ -20,8 +20,8 @@ import (
 // On-time Compiled Variable that defines Hive listening socket --> <IP:PORT>
 var (
 
-	
-	roasterString string
+    
+    roasterString string
 )
 
 // Global Var for the DB connection
@@ -119,14 +119,14 @@ type Bichito struct {
 
 type GuiData struct {
     Jobs            []*Job `json:"jobs"`
-    Logs 			[]*Log `json:"logs"` 
+    Logs            []*Log `json:"logs"` 
     Implants        []*Implant   `json:"implants"`   
-    Vps 			[]*Vps `json:"vps"`
-    Domains 			[]*Domain `json:"domains"`
+    Vps             []*Vps `json:"vps"`
+    Domains             []*Domain `json:"domains"`
     Stagings          []*Staging `json:"stagings"`
     Reports          []*Report `json:"reports"`     
-    Redirectors 			[]*Redirector `json:"redirectors"`
-    Bichitos 			[]*Bichito `json:"bichitos"`
+    Redirectors             []*Redirector `json:"redirectors"`
+    Bichitos            []*Bichito `json:"bichitos"`
 }
 
 
@@ -242,6 +242,14 @@ type updateMemoryDBLockObject struct {
 var readLock *updateMemoryDBLockObject
 
 
+//Experimental: Use write locks for writes
+type writeDBLockObject struct {
+    mux  sync.RWMutex
+    Working bool                            //Boolean value that indicates is there is an ongoing Object refreshment
+}
+
+var writeLock *writeDBLockObject
+
 /*
 sartDB Hive
 Description: Initialize DB connection and prepare on memory data arrays
@@ -254,14 +262,14 @@ C. Feed each on memory array with the DB content
 
 func startDB(){
 
-	var err error
-	db, err = sql.Open("sqlite3", "./ST.db?_busy_timeout=10000")
+    var err error
+    db, err = sql.Open("sqlite3", "./ST.db?_busy_timeout=10000")
     if err != nil {
         //ErrorLog
         time := time.Now().Format("02/01/2006 15:04:05 MST")
         elog := fmt.Sprintf("%s%s","Network(Error Starting DB):",err.Error())
         addLogDB("Hive",time,elog)
-    	panic(err)
+        panic(err)
     }
 
 
@@ -306,6 +314,7 @@ func startDB(){
 
     //Let's set a Lock on "memoryDB" reads to reduce t keep DB on lock too much time on data Modifications
     readLock = &updateMemoryDBLockObject{Working:false,Jobs:false,Logs:false,Domains:false,Vps:false,Implants:false,Redirectors:false,Bichitos:false,Stagings:false,Reports:false,OperatorsAuth:false,ImplantsAuth:false}
+    writeLock = &writeDBLockObject{Working:false}
 
     updateMemoryDB("operatorsAuth")
     updateMemoryDB("implantsAuth")
@@ -399,14 +408,22 @@ func updateMemoryDB(objtype string){
 /*
 Description: Start a process to refresh a whole on memory Array for a target Hive Object
 Flow:
-A. Check that there is no a memory refresh or Jobs being processed and modydying DB
-B. Check over the different bool states of readLock(updateMemoryDBLockObject) and trigger the refreshment of Objects if any
+A. Check that there is no a memory refresh or Jobs being processed and modydying DB (To avoid client reads to block jobs)
+B. Check over the different bool states of readLock(updateMemoryDBLockObject) and trigger the refreshment of Objects if any.
+    This is implemented instead of a queue to discard very close in time "memoryUpdate" client requests
 */
 
 func updateMemoryDBQueue(){
 
 
+    /*
     if (readLock.Working || bichitosjobqueue.Working || hivejobqueue.Working){
+        return
+    }
+    */
+
+    //Instead of blocking reads while entire jobs are processing, just block DB reads when there is a DB Write within Hive
+    if (readLock.Working || writeLock.Working){
         return
     }
 
@@ -1065,6 +1082,15 @@ func existJobDB(jid string) (bool,error){
 
 func addJobDB(job *Job) error{
 
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("jobs")
+    }()
+
     ext,err1 := existJobDB(job.Jid)
     if ext {
         return err1
@@ -1073,7 +1099,7 @@ func addJobDB(job *Job) error{
     stmt,_ := db.Prepare("INSERT INTO jobs (cid,pid,chid,jid,job,time,status,result,parameters) VALUES (?,?,?,?,?,?,?,?,?)")
     defer stmt.Close()
     _,err2 := stmt.Exec(job.Cid,job.Pid,job.Chid,job.Jid,job.Job,job.Time,job.Status,job.Result,job.Parameters)
-    go updateMemoryDB("jobs")
+    
     return err2
 }
 
@@ -1082,6 +1108,15 @@ func addJobDB(job *Job) error{
 // Check if Status contains "Finished" (to avoid replay attacks)
 // Update Status
 func updateJobDB(job *Job) error{
+
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("jobs")
+    }()
 
     ext,err1 := existJobDB(job.Jid)
     if !ext {
@@ -1098,11 +1133,20 @@ func updateJobDB(job *Job) error{
     stmt,_ := db.Prepare("UPDATE jobs SET status=?,result=? where jid=?")
     defer stmt.Close()
     _,err2 = stmt.Exec(job.Status,job.Result,job.Jid)
-    go updateMemoryDB("jobs")
+
     return err2
 }
 
 func setJobStatusDB(jid string,status string) error{
+
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("jobs")
+    }()
 
     ext,err := existJobDB(jid)
     if !ext{
@@ -1112,11 +1156,21 @@ func setJobStatusDB(jid string,status string) error{
     stmt,_ := db.Prepare("UPDATE jobs SET status=? where jid=?")
     defer stmt.Close()
     _,err = stmt.Exec(status,jid)
+
     return err
 
 }
 
 func setJobResultDB(jid string,result string) error{
+
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("jobs")
+    }()
 
     ext,err := existJobDB(jid)
     if !ext{
@@ -1126,17 +1180,26 @@ func setJobResultDB(jid string,result string) error{
     stmt,_ := db.Prepare("UPDATE jobs SET result=? where jid=?")
     defer stmt.Close()
     _,err = stmt.Exec(result,jid)
-    go updateMemoryDB("jobs")
+
     return err
 
 }
 
 func rmJobsbyChidDB(chid string) error{
 
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("jobs")
+    }()
+
     stmt,_ := db.Prepare("DELETE FROM jobs WHERE chid=?")
     defer stmt.Close()
     _,err := stmt.Exec(chid)
-    go updateMemoryDB("jobs")
+
     return err
 
 }
@@ -1147,9 +1210,9 @@ Users DB Functions
 
 */
 func existUserDB(username string) (bool,error){
- 	
-	stmt := "Select username from users where username=?"
-	err := db.QueryRow(stmt,username).Scan(&username)
+    
+    stmt := "Select username from users where username=?"
+    err := db.QueryRow(stmt,username).Scan(&username)
 
     if err != nil {
         if err != sql.ErrNoRows {
@@ -1168,19 +1231,28 @@ B. Insert username/hash
 
 func addUserDB(cid string,username string,password string) error{
 
-	//Check if username exists
-	ext,err := existUserDB(username)
-	if ext {
-		return err
-	}
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("operatorssAuth")
+    }()
 
-	bytes, _ := bcrypt.GenerateFromPassword([]byte(password), 14)
-	hash := string(bytes)
-	stmt,_ := db.Prepare("INSERT INTO users (cid,username,hash,admin) VALUES (?,?,?,?)")
+    //Check if username exists
+    ext,err := existUserDB(username)
+    if ext {
+        return err
+    }
+
+    bytes, _ := bcrypt.GenerateFromPassword([]byte(password), 14)
+    hash := string(bytes)
+    stmt,_ := db.Prepare("INSERT INTO users (cid,username,hash,admin) VALUES (?,?,?,?)")
     defer stmt.Close()
-	_,err2 := stmt.Exec(cid,username,hash,"No")
-    go updateMemoryDB("operatorssAuth")
-	return err2
+    _,err2 := stmt.Exec(cid,username,hash,"No")
+    
+    return err2
 }
 
 
@@ -1229,25 +1301,25 @@ func getCidbyAuthDBMem(username string,password string) (string,error){
 
 func getCidbyAuthDB(username string,password string) (string,error){
 
-	//Check if username exists
-	ext,err := existUserDB(username)
-	if !ext {
-		return "",err
-	}
-	var cid,hash string
-	stmt := "Select cid,hash from users where username=?"
-	err2 := db.QueryRow(stmt,username).Scan(&cid,&hash)
-	errh := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	
-	if (cid == "") {
+    //Check if username exists
+    ext,err := existUserDB(username)
+    if !ext {
+        return "",err
+    }
+    var cid,hash string
+    stmt := "Select cid,hash from users where username=?"
+    err2 := db.QueryRow(stmt,username).Scan(&cid,&hash)
+    errh := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+    
+    if (cid == "") {
         return "",err2
     }
 
     if (errh != nil){
-		return "",errh
-	}
+        return "",errh
+    }
 
-	return cid,err2
+    return cid,err2
 }
 
 
@@ -1312,11 +1384,19 @@ func addLogDBQueue(){
     time := hivelogqueue.Logs[0].Time
     error := hivelogqueue.Logs[0].Error
 
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("logs")
+    }()
+
     stmt,_ := db.Prepare("INSERT INTO logs (pid,time,error) VALUES (?,?,?)")
     defer stmt.Close()
     stmt.Exec(pid,time,error)
 
-    go updateMemoryDB("logs")
     return
 }
 
@@ -1344,21 +1424,38 @@ func addLogDB(pid string,time string,error string){
     time = hivelogqueue.Logs[0].Time
     error = hivelogqueue.Logs[0].Error
 
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("logs")
+    }()
+
     stmt,_ := db.Prepare("INSERT INTO logs (pid,time,error) VALUES (?,?,?)")
     defer stmt.Close()
     stmt.Exec(pid,time,error)
 
-    go updateMemoryDB("logs")
     return
 }
 
 
 func rmLogsbyPidDB(pid string) error{
 
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("logs")
+    }()
+
     stmt,_ := db.Prepare("DELETE FROM logs WHERE pid=?")
     defer stmt.Close()
     _,err := stmt.Exec(pid)
-    go updateMemoryDB("logs")
+
     return err
 
 }
@@ -1416,9 +1513,9 @@ func getImplantsNameDB() (error,[]string){
 }
 
 func existImplantDB(name string) (bool,error){
- 	
-	stmt := "Select name from implants where name=?"
-	err := db.QueryRow(stmt,name).Scan(&name)
+    
+    stmt := "Select name from implants where name=?"
+    err := db.QueryRow(stmt,name).Scan(&name)
 
     if err != nil {
         if err != sql.ErrNoRows {
@@ -1433,16 +1530,25 @@ func existImplantDB(name string) (bool,error){
 //DB need to have enough info to re-generate implant!
 func addImplantDB(implant *Implant) error{
 
-	ext,err := existImplantDB(implant.Name)
-	if ext {
-		return err
-	}
-	stmt,_ := db.Prepare("INSERT INTO implants (name,ttl,resptime,redtoken,bitoken,modules) VALUES (?,?,?,?,?,?)")
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("implants")
+        go updateMemoryDB("implantsAuth")
+    }()
+
+    ext,err := existImplantDB(implant.Name)
+    if ext {
+        return err
+    }
+    stmt,_ := db.Prepare("INSERT INTO implants (name,ttl,resptime,redtoken,bitoken,modules) VALUES (?,?,?,?,?,?)")
     defer stmt.Close()
-	_,err = stmt.Exec(implant.Name,implant.Ttl,implant.Resptime,implant.RedToken,implant.BiToken,implant.Modules)
-    go updateMemoryDB("implants")
-    go updateMemoryDB("implantsAuth")
-	return err
+    _,err = stmt.Exec(implant.Name,implant.Ttl,implant.Resptime,implant.RedToken,implant.BiToken,implant.Modules)
+
+    return err
 
 }
 
@@ -1524,10 +1630,10 @@ func getImplantTokenDB(implantName string) (error,string){
 
 func getImplantIdbyNameDB(name string) (int,error){
 
-	var id int
-	stmt := "Select implantId from implants where name=?"
-	err := db.QueryRow(stmt,name).Scan(&id)
-	return id,err
+    var id int
+    stmt := "Select implantId from implants where name=?"
+    err := db.QueryRow(stmt,name).Scan(&id)
+    return id,err
 
 }
 
@@ -1552,16 +1658,26 @@ func getImplantNamebyIdDB(id int) (string,error){
 
 func rmImplantDB(name string) error{
 
-	ext,err := existImplantDB(name)
-	if !ext {
-		return err
-	}
-	stmt,_ := db.Prepare("DELETE FROM implants where name=?")
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("implants")
+        go updateMemoryDB("implantsAuth")
+    }()
+
+    ext,err := existImplantDB(name)
+    if !ext {
+        return err
+    }
+
+    stmt,_ := db.Prepare("DELETE FROM implants where name=?")
     defer stmt.Close()
-	_,err = stmt.Exec(name)
-    go updateMemoryDB("implants")
-    go updateMemoryDB("implantsAuth")
-	return err
+    _,err = stmt.Exec(name)
+
+    return err
 
 }
 
@@ -1594,9 +1710,9 @@ func getVpsFullDB(name string) *Vps{
 }
 
 func existVpsDB(name string) (bool,error){
- 	
-	stmt := "Select name from vps where name=?"
-	err := db.QueryRow(stmt,name).Scan(&name)
+    
+    stmt := "Select name from vps where name=?"
+    err := db.QueryRow(stmt,name).Scan(&name)
 
     if err != nil {
         if err != sql.ErrNoRows {
@@ -1609,21 +1725,37 @@ func existVpsDB(name string) (bool,error){
 
 func addVpsDB(vps *Vps) error{
 
-    //Server Side Checks for VPS formatting
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("vps")
+    }()
 
-	ext,err := existVpsDB(vps.Name)
-	if ext {
-		return err
-	}
+    ext,err := existVpsDB(vps.Name)
+    if ext {
+        return err
+    }
 
-	stmt,_ := db.Prepare("INSERT INTO vps (name,vtype,parameters) VALUES (?,?,?)")
+    stmt,_ := db.Prepare("INSERT INTO vps (name,vtype,parameters) VALUES (?,?,?)")
     defer stmt.Close()
-	_,err = stmt.Exec(vps.Name,vps.Vtype,vps.Parameters)
-    go updateMemoryDB("vps")
-	return err
+    _,err = stmt.Exec(vps.Name,vps.Vtype,vps.Parameters)
+    
+    return err
 }
 
 func rmVpsDB(name string) error{
+
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("vps")
+    }()
 
     ext,err := existVpsDB(name)
     if !ext {
@@ -1632,17 +1764,17 @@ func rmVpsDB(name string) error{
     stmt,_ := db.Prepare("DELETE FROM vps where name=?")
     defer stmt.Close()
     _,err = stmt.Exec(name)
-    go updateMemoryDB("vps")
+
     return err
 
 }
 
 func getVpsIdbyNameDB(name string) (int,error){
 
-	var id int
-	stmt := "Select vpsId from vps where name=?"
-	err := db.QueryRow(stmt,name).Scan(&id)
-	return id,err
+    var id int
+    stmt := "Select vpsId from vps where name=?"
+    err := db.QueryRow(stmt,name).Scan(&id)
+    return id,err
 
 }
 
@@ -1715,8 +1847,8 @@ func getDomainFullDB(name string) *Domain{
 
 func existDomainDB(name string) (bool,error){
 
-	stmt := "Select name from domains where name=?"
-	err := db.QueryRow(stmt,name).Scan(&name)
+    stmt := "Select name from domains where name=?"
+    err := db.QueryRow(stmt,name).Scan(&name)
 
     if err != nil {
         if err != sql.ErrNoRows {
@@ -1743,16 +1875,25 @@ func existDomainDDB(domain string) (bool,error){
 
 func addDomainDB(domain *Domain) error{
 
-	ext,err := existDomainDB(domain.Name)
-	if ext{
-		return err
-	}
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("domains")
+    }()
 
-	stmt,_ := db.Prepare("INSERT INTO domains (name,active,dtype,domain,parameters) VALUES (?,?,?,?,?)")
+    ext,err := existDomainDB(domain.Name)
+    if ext{
+        return err
+    }
+
+    stmt,_ := db.Prepare("INSERT INTO domains (name,active,dtype,domain,parameters) VALUES (?,?,?,?,?)")
     defer stmt.Close()
-	_,err = stmt.Exec(domain.Name,"No",domain.Dtype,domain.Domain,domain.Parameters)
-    go updateMemoryDB("domains")
-	return err
+    _,err = stmt.Exec(domain.Name,"No",domain.Dtype,domain.Domain,domain.Parameters)
+    
+    return err
 
 }
 
@@ -1774,10 +1915,10 @@ func rmDomainDB(name string) error{
 
 func getDomainIdbyNameDB(name string) (int,error){
 
-	var id int
-	stmt := "Select domainId from domains where name=?"
-	err := db.QueryRow(stmt,name).Scan(&id)
-	return id,err
+    var id int
+    stmt := "Select domainId from domains where name=?"
+    err := db.QueryRow(stmt,name).Scan(&id)
+    return id,err
 }
 
 
@@ -1824,26 +1965,35 @@ func getDomainbyStagingDB(stagingname string) (string,error,error){
 
 func isUsedDomainDB(name string) (bool,error){
 
-	var used string
-	stmt := "Select active from domains where name=?"
-	err := db.QueryRow(stmt,name).Scan(&used)
-	result := (used == "Yes")
-	return result,err
+    var used string
+    stmt := "Select active from domains where name=?"
+    err := db.QueryRow(stmt,name).Scan(&used)
+    result := (used == "Yes")
+    return result,err
 
 }
 
 func setUsedDomainDB(name string,value string) error{
 
-	ext,err := existDomainDB(name)
-	if !ext{
-		return err
-	}
-	
-	stmt,_ := db.Prepare("UPDATE domains SET active=? where name=?")
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("domains")
+    }()
+
+    ext,err := existDomainDB(name)
+    if !ext{
+        return err
+    }
+    
+    stmt,_ := db.Prepare("UPDATE domains SET active=? where name=?")
     defer stmt.Close()
-	_,err = stmt.Exec(value,name)
-    go updateMemoryDB("domains")
-	return err
+    _,err = stmt.Exec(value,name)
+
+    return err
 
 }
 
@@ -1873,8 +2023,8 @@ func getRedirectorDB(rid string) *Redirector{
 
 func existRedDB(rid string) (bool,error){
 
-	stmt := "Select rid from redirectors where rid=?"
-	err := db.QueryRow(stmt,rid).Scan(&rid)
+    stmt := "Select rid from redirectors where rid=?"
+    err := db.QueryRow(stmt,rid).Scan(&rid)
     if err != nil {
         if err != sql.ErrNoRows {
             return false,err
@@ -1888,25 +2038,42 @@ func existRedDB(rid string) (bool,error){
 // Redirector will be created on implant generation
 func addRedDB(rid string,info string,lastChecked string,vpsId int,domainId int,implantId int) error{
 
-	ext,err := existRedDB(rid)
-	if ext{
-		return err
-	}
-	stmt,_ := db.Prepare("INSERT INTO redirectors (rid,info,lastchecked,vpsId,domainId,implantId) VALUES (?,?,?,?,?,?)")
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("redirectors")
+    }()
+
+    ext,err := existRedDB(rid)
+    if ext{
+        return err
+    }
+    stmt,_ := db.Prepare("INSERT INTO redirectors (rid,info,lastchecked,vpsId,domainId,implantId) VALUES (?,?,?,?,?,?)")
     defer stmt.Close()
-	_,err = stmt.Exec(rid,info,lastChecked,vpsId,domainId,implantId)
-    go updateMemoryDB("redirectors")
-	return err
+    _,err = stmt.Exec(rid,info,lastChecked,vpsId,domainId,implantId)
+    
+    return err
 }
 
 func rmRedbyRidDB(rid string) error{
 
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("redirectors")
+    }()
 
-	stmt,_ := db.Prepare("DELETE FROM redirectors where rid=?")
+    stmt,_ := db.Prepare("DELETE FROM redirectors where rid=?")
     defer stmt.Close()
-	_,err := stmt.Exec(rid)
-    go updateMemoryDB("redirectors")
-	return err
+    _,err := stmt.Exec(rid)
+
+    return err
 
 }
 
@@ -1914,96 +2081,96 @@ func rmRedbyRidDB(rid string) error{
 func getRedIdbyRidDB(rid string) (int,error){
 
     var id int
-	stmt := "Select redirectorId from redirectors where rid=?"
-	err := db.QueryRow(stmt,rid).Scan(&id)
-	return id,err
+    stmt := "Select redirectorId from redirectors where rid=?"
+    err := db.QueryRow(stmt,rid).Scan(&id)
+    return id,err
 
 }
 
 func getRedHivTbyRidDB(rid string) (int,error){
 
-	stmt := "Select hivetimeout from redirectors where rid=?"
-	err := db.QueryRow(stmt,rid).Scan(&rid)
-	timeout,_ := strconv.Atoi(rid) 
-	return timeout,err
+    stmt := "Select hivetimeout from redirectors where rid=?"
+    err := db.QueryRow(stmt,rid).Scan(&rid)
+    timeout,_ := strconv.Atoi(rid) 
+    return timeout,err
 
 }
 
 
 func getRedRidbydomainDB(domain string) (string,error){
 
-	domainId,_ := getDomainIdbyNameDB(domain)
-	stmt := "Select rid from redirectors where domainId=?"
-	err := db.QueryRow(stmt,domainId).Scan(&domain)
-	return domain,err
+    domainId,_ := getDomainIdbyNameDB(domain)
+    stmt := "Select rid from redirectors where domainId=?"
+    err := db.QueryRow(stmt,domainId).Scan(&domain)
+    return domain,err
 }
 
 
 func getAllRidbyImplantNameDB(implantName string) ([]string,error){
 
-	implantId,_ := getImplantIdbyNameDB(implantName)
+    implantId,_ := getImplantIdbyNameDB(implantName)
 
-	var rid string
-	var result []string
+    var rid string
+    var result []string
 
 
-	stmt := "SELECT rid FROM redirectors where implantId=?"
-	rows, err := db.Query(stmt,implantId)
+    stmt := "SELECT rid FROM redirectors where implantId=?"
+    rows, err := db.Query(stmt,implantId)
     if err != nil {
         return result,err
     }
     defer rows.Close()
 
-	for rows.Next(){
-		rows.Scan(&rid)
-		result = append(result,rid)
-	}
-	return result,err
+    for rows.Next(){
+        rows.Scan(&rid)
+        result = append(result,rid)
+    }
+    return result,err
 }
 
 
 func getDomainbyRidDB(rid string) (string,error){
 
-	var id int
-	stmt := "Select domainId from redirectors where rid=?"
-	err := db.QueryRow(stmt,rid).Scan(&id)
+    var id int
+    stmt := "Select domainId from redirectors where rid=?"
+    err := db.QueryRow(stmt,rid).Scan(&id)
 
-	stmt = "Select name from domains where domainId=?"
-	err = db.QueryRow(stmt,id).Scan(&rid)	
+    stmt = "Select name from domains where domainId=?"
+    err = db.QueryRow(stmt,id).Scan(&rid)   
 
-	return rid,err
+    return rid,err
 }
 
 func getRedLastbyRidDB(rid string) (string,error){
 
-	var status string
-	stmt := "SELECT lastchecked FROM redirectors where rid=?"
-	rows, err := db.Query(stmt,rid)
+    var status string
+    stmt := "SELECT lastchecked FROM redirectors where rid=?"
+    rows, err := db.Query(stmt,rid)
     if err != nil {
         return status,err
     }
     defer rows.Close()
-	for rows.Next(){
-		rows.Scan(&status)
-	}
-	return status,err
+    for rows.Next(){
+        rows.Scan(&status)
+    }
+    return status,err
 }
 
 func getAllRidDB() []string{
 
-	var rid string
-	var result []string
+    var rid string
+    var result []string
 
-	rows, err := db.Query("SELECT rid FROM redirectors")
+    rows, err := db.Query("SELECT rid FROM redirectors")
     if err != nil {
         return result
     }
     defer rows.Close()
-	for rows.Next(){
-		rows.Scan(&rid)
-		result = append(result,rid)
-	}
-	return result
+    for rows.Next(){
+        rows.Scan(&rid)
+        result = append(result,rid)
+    }
+    return result
 }
 
 
@@ -2030,18 +2197,18 @@ func getRedRidbyDomainMem(domain string) (error,string){
 
 func getRedRidbyDomain(domainName string) (string,error){
 
-	var id int
-	var result string
+    var id int
+    var result string
 
-	stmt := "Select domainId from domains where domain=?"
-	err := db.QueryRow(stmt,domainName).Scan(&id)
-	
+    stmt := "Select domainId from domains where domain=?"
+    err := db.QueryRow(stmt,domainName).Scan(&id)
+    
     fmt.Println(id)
-	stmt = "Select rid from redirectors where domainId=?"
-	err = db.QueryRow(stmt,id).Scan(&result)
+    stmt = "Select rid from redirectors where domainId=?"
+    err = db.QueryRow(stmt,id).Scan(&result)
     fmt.Println(result)
 
-	return result,err
+    return result,err
 
 }
 
@@ -2081,41 +2248,59 @@ func getRedRidbyImplantName(implantName string) (string,error){
 
 func getRedStatusDB(rid string) (string,error){
 
-	stmt := "Select status from redirectors where rid=?"
-	err := db.QueryRow(stmt,rid).Scan(&rid)
-	
-	return rid,err
+    stmt := "Select status from redirectors where rid=?"
+    err := db.QueryRow(stmt,rid).Scan(&rid)
+    
+    return rid,err
 
 }
 
 func setRedLastCheckedDB(rid string,value string) error{
 
-	ext,err := existRedDB(rid)
-	if !ext{
-		return err
-	}
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("redirectors")
+    }()
 
-	stmt,_ := db.Prepare("UPDATE redirectors SET lastchecked=? where rid=?")
+    ext,err := existRedDB(rid)
+    if !ext{
+        return err
+    }
+
+    stmt,_ := db.Prepare("UPDATE redirectors SET lastchecked=? where rid=?")
     defer stmt.Close()
-	_,err = stmt.Exec(value,rid)
-    go updateMemoryDB("redirectors")
-	return err
+    _,err = stmt.Exec(value,rid)
+
+    return err
 
 }
 
 
 func setRedHiveTDB(rid string,value int) error{
 
-	ext,err := existRedDB(rid)
-	if !ext{
-		return err
-	}
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("redirectors")
+    }()
 
-	stmt,_ := db.Prepare("UPDATE redirectors SET hivetimeout=? where rid=?")
+    ext,err := existRedDB(rid)
+    if !ext{
+        return err
+    }
+
+    stmt,_ := db.Prepare("UPDATE redirectors SET hivetimeout=? where rid=?")
     defer stmt.Close()
-	_,err = stmt.Exec(value,rid)
-    go updateMemoryDB("redirectors")
-	return err
+    _,err = stmt.Exec(value,rid)
+
+    return err
 
 }
 
@@ -2161,8 +2346,8 @@ func getBichitoDB(bid string) *Bichito{
 
 func existBiDB(bid string) (bool,error){
 
-	stmt := "Select bid from bichitos where bid=?"
-	err := db.QueryRow(stmt,bid).Scan(&bid)
+    stmt := "Select bid from bichitos where bid=?"
+    err := db.QueryRow(stmt,bid).Scan(&bid)
 
     if err != nil {
         if err != sql.ErrNoRows {
@@ -2175,6 +2360,15 @@ func existBiDB(bid string) (bool,error){
 
 func addBiDB(bid string,rid string,info string,lastChecked string,ttl string,resptime string,status string,redirectorId int,implantId int) error{
 
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("bichitos")
+    }()
+
     ext,err := existBiDB(bid)
     if ext{
         return err
@@ -2182,26 +2376,26 @@ func addBiDB(bid string,rid string,info string,lastChecked string,ttl string,res
     stmt,_ := db.Prepare("INSERT INTO bichitos (bid,rid,info,lastchecked,ttl,resptime,status,redirectorId,implantId) VALUES (?,?,?,?,?,?,?,?,?)")
     defer stmt.Close()
     _,err = stmt.Exec(bid,rid,info,lastChecked,ttl,resptime,status,redirectorId,implantId)
-    go updateMemoryDB("bichitos")
+    
     return err
 }
 
 
 func getAllBidDB() []string{
 
-	var bid string
-	var result []string
+    var bid string
+    var result []string
 
-	rows, err := db.Query("SELECT bid FROM bichitos")
+    rows, err := db.Query("SELECT bid FROM bichitos")
     if err != nil {
         return result
     }
     defer rows.Close()
-	for rows.Next(){
-		rows.Scan(&bid)
-		result = append(result,bid)
-	}
-	return result
+    for rows.Next(){
+        rows.Scan(&bid)
+        result = append(result,bid)
+    }
+    return result
 }
 
 func getBidsImplantDB(implant string) (error,[]string){
@@ -2231,18 +2425,18 @@ func getBidsImplantDB(implant string) (error,[]string){
 
 func getBiStatusbyBidDB(bid string) (string,error){
 
-	stmt := "Select status from bichitos where bid=?"
-	err := db.QueryRow(stmt,bid).Scan(&bid)
-	return bid,err
+    stmt := "Select status from bichitos where bid=?"
+    err := db.QueryRow(stmt,bid).Scan(&bid)
+    return bid,err
 
 }
 
 func getBiIdbyBidDB(bid string) (int,error){
 
-	var id int
-	stmt := "Select bichitoId from bichitos where bid=?"
-	err := db.QueryRow(stmt,bid).Scan(&id)
-	return id,err
+    var id int
+    stmt := "Select bichitoId from bichitos where bid=?"
+    err := db.QueryRow(stmt,bid).Scan(&id)
+    return id,err
 
 }
 
@@ -2279,68 +2473,96 @@ func getAllBidbyImplantNameDB(implantName string) ([]string,error){
 
 func getBiLasTbyBidDB(bid string) (string,error){
 
-	var status string
-	stmt := "SELECT lastchecked FROM bichitos where bid=?"
-	rows, err := db.Query(stmt,bid)
+    var status string
+    stmt := "SELECT lastchecked FROM bichitos where bid=?"
+    rows, err := db.Query(stmt,bid)
     if err != nil {
         return status,err
     }
     defer rows.Close()
-	for rows.Next(){
-		rows.Scan(&status)
-	}
-	return status,err
+    for rows.Next(){
+        rows.Scan(&status)
+    }
+    return status,err
 }
 
 func getBiResptbyBidDB(bid string) (int,error){
 
-	var status int
-	stmt := "SELECT resptime FROM bichitos where bid=?"
-	rows, err := db.Query(stmt,bid)
+    var status int
+    stmt := "SELECT resptime FROM bichitos where bid=?"
+    rows, err := db.Query(stmt,bid)
     if err != nil {
         return status,err
     }
     defer rows.Close()
-	for rows.Next(){
-		rows.Scan(&status)
-	}
-	return status,err
+    for rows.Next(){
+        rows.Scan(&status)
+    }
+    return status,err
 }
 
 
 func setBiRedirectorDB(bid string,rid string) error{
 
-	ext,err := existBiDB(bid)
-	if !ext{
-		return err
-	}
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("bichitos")
+    }()
 
-	redirectorId,_ := getRedIdbyRidDB(rid)
+    ext,err := existBiDB(bid)
+    if !ext{
+        return err
+    }
 
-	stmt,_ := db.Prepare("UPDATE bichitos SET rid=?,redirectorId=? where bid=?")
+    redirectorId,_ := getRedIdbyRidDB(rid)
+
+    stmt,_ := db.Prepare("UPDATE bichitos SET rid=?,redirectorId=? where bid=?")
     defer stmt.Close()
-	_,err = stmt.Exec(rid,redirectorId,bid)
-    go updateMemoryDB("bichitos")
-	return err
+    _,err = stmt.Exec(rid,redirectorId,bid)
+
+    return err
 
 }
 
 func setBiLastCheckedbyBidDB(bid string,value string) error{
 
-	ext,err := existBiDB(bid)
-	if !ext{
-		return err
-	}
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("bichitos")
+    }()
 
-	stmt,_ := db.Prepare("UPDATE bichitos SET lastchecked=? where bid=?")
+    ext,err := existBiDB(bid)
+    if !ext{
+        return err
+    }
+
+    stmt,_ := db.Prepare("UPDATE bichitos SET lastchecked=? where bid=?")
     defer stmt.Close()
-	_,err = stmt.Exec(value,bid)
-    go updateMemoryDB("bichitos")
-	return err
+    _,err = stmt.Exec(value,bid)
+
+    return err
 
 }
 
 func setBichitoStatusDB(bid string,value string) error{
+ 
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("bichitos")
+    }() 
+
     ext,err := existBiDB(bid)
     if !ext{
         return err
@@ -2349,12 +2571,21 @@ func setBichitoStatusDB(bid string,value string) error{
     stmt,_ := db.Prepare("UPDATE bichitos SET status=? where bid=?")
     defer stmt.Close()
     _,err = stmt.Exec(value,bid)
-    go updateMemoryDB("bichitos")
+
     return err
 
 }
 
 func setBichitoRespTimeDB(bid string,time int) error{
+
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("bichitos")
+    }()
     ext,err := existBiDB(bid)
     if !ext{
         return err
@@ -2363,13 +2594,22 @@ func setBichitoRespTimeDB(bid string,time int) error{
     stmt,_ := db.Prepare("UPDATE bichitos SET resptime=? where bid=?")
     defer stmt.Close()
     _,err = stmt.Exec(time,bid)
-    go updateMemoryDB("bichitos")
+
     return err
 
 }
 
 
 func setBiRidDB(bid string,pid string) error{
+
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("bichitos")
+    }()
 
     ext,err := existBiDB(bid)
     if !ext{
@@ -2379,12 +2619,21 @@ func setBiRidDB(bid string,pid string) error{
     stmt,_ := db.Prepare("UPDATE bichitos SET rid=? where bid=?")
     defer stmt.Close()
     _,err = stmt.Exec(pid,bid)
-    go updateMemoryDB("bichitos")
+
     return err
 
 }
 
 func setBiInfoDB(bid string,info string) error{
+
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("bichitos")
+    }()
 
     ext,err := existBiDB(bid)
     if !ext{
@@ -2394,7 +2643,7 @@ func setBiInfoDB(bid string,info string) error{
     stmt,_ := db.Prepare("UPDATE bichitos SET info=? where bid=?")
     defer stmt.Close()
     _,err = stmt.Exec(info,bid)
-    go updateMemoryDB("bichitos")
+
     return err
 
 }
@@ -2479,6 +2728,14 @@ func existStagingDB(name string) (bool,error){
 
 func addStagingDB(name string,stype string,tunnelPort string,parameters string,vpsId int,domainId int) error{
 
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("stagings")
+    }()
 
     ext,err := existStagingDB(name)
     if ext {
@@ -2488,11 +2745,20 @@ func addStagingDB(name string,stype string,tunnelPort string,parameters string,v
     stmt,_ := db.Prepare("INSERT INTO stagings (name,stype,tunnelPort,parameters,vpsId,domainId) VALUES (?,?,?,?,?,?)")
     defer stmt.Close()
     _,err = stmt.Exec(name,stype,tunnelPort,parameters,vpsId,domainId)
-    go updateMemoryDB("stagings")
+    
     return err
 }
 
 func rmStagingDB(name string) error{
+
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("stagings")
+    }()
 
     ext,err := existStagingDB(name)
     if !ext {
@@ -2501,7 +2767,7 @@ func rmStagingDB(name string) error{
     stmt,_ := db.Prepare("DELETE FROM stagings where name=?")
     defer stmt.Close()
     _,err = stmt.Exec(name)
-    go updateMemoryDB("stagings")
+
     return err
 
 }
@@ -2574,6 +2840,15 @@ func existReportDB(name string) (bool,error){
 
 func addReportDB(name string,report string) error{
 
+    
+    writeLock.mux.Lock()
+    writeLock.Working = true
+    defer func() {
+        writeLock.Working  = false 
+        writeLock.mux.Unlock()
+        go updateMemoryDB("reports")
+    }()
+
     ext,err := existReportDB(name)
     if ext {
         return err
@@ -2582,7 +2857,7 @@ func addReportDB(name string,report string) error{
     stmt,_ := db.Prepare("INSERT INTO reports (name,body) VALUES (?,?)")
     defer stmt.Close()
     _,err = stmt.Exec(name,report)
-    go updateMemoryDB("reports")
+    
     return err
 }
 

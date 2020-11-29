@@ -11,6 +11,7 @@ case "$1" in
 		rm hive.tf
 		rm hive.key
 		rm hive.pem
+		rm tools
 		rm -rf .terraform*
 		rm -rf terraform*
 		rm -rf go*
@@ -68,6 +69,8 @@ case "$1" in
 		./installConfig/go/bin/go get "github.com/mattn/go-sqlite3"
 		./installConfig/go/bin/go get "github.com/gorilla/mux"
 		./installConfig/go/bin/go get "golang.org/x/crypto/bcrypt"
+		./installConfig/go/bin/go get "golang.org/x/sys/unix"
+		./installConfig/go/bin/go get "golang.org/x/term"
 
 		GOOS=linux GOARCH=amd64 ./installConfig/go/bin/go build --ldflags "-X main.roasterString=0.0.0.0:${PORT}" -o ./installConfig/hive hive
 
@@ -79,6 +82,9 @@ case "$1" in
 		#Generate Hive Self-Signed TLS Certificates
 		openssl req -subj '/CN=hive.xyz/' -new -newkey rsa:4096 -days 3650 -nodes -x509 -keyout ./installConfig/hive.key -out ./installConfig/hive.pem
 		cat ./installConfig/hive.key >> ./installConfig/hive.pem
+
+		#Compile Tools
+		GOOS=linux GOARCH=amd64 ./installConfig/go/bin/go build -o ./installConfig/tools tools
 
 	#Prepare Hive SqliteDB
 	sqlite3 ./installConfig/ST.db <<EOF
@@ -162,6 +168,8 @@ EOF
 		./installConfig/go/bin/go get "github.com/mattn/go-sqlite3"
 		./installConfig/go/bin/go get "github.com/gorilla/mux"
 		./installConfig/go/bin/go get "golang.org/x/crypto/bcrypt"
+		./installConfig/go/bin/go get "golang.org/x/sys/unix"
+		./installConfig/go/bin/go get "golang.org/x/term"
 		GOOS=linux GOARCH=amd64 ./installConfig/go/bin/go build --ldflags "-X main.roasterString=0.0.0.0:${PORT}" -o ./installConfig/hive hive
 
 		if [[ $AKEY == *"|"* ]] || [[ $SKEY == *"|"* ]] || [[ $AMI == *"|"* ]] || [[ $REGION == *"/"* ]] || [[ $KEYNAME == *"/"* ]]; then
@@ -171,6 +179,12 @@ EOF
 
 		openssl req -subj '/CN=hive.xyz/' -new -newkey rsa:4096 -days 3650 -nodes -x509 -keyout ./installConfig/hive.key -out ./installConfig/hive.pem
 		cat ./installConfig/hive.key >> ./installConfig/hive.pem
+
+
+		#Compile Tools
+		GOOS=linux GOARCH=amd64 ./installConfig/go/bin/go build -o ./installConfig/tools tools
+
+		
 
 	#Prepare Hive SqliteDB
 	sqlite3 ./installConfig/ST.db <<EOF
@@ -243,6 +257,7 @@ EOF
 	mkdir ./STHive/stagings		      
 	mkdir ./STHive/logs
 	mkdir ./STHive/certs
+	mkdir ./STHive/tools
 	mkdir ./STHive/sources
 	mkdir ./STHive/sources/src
 	mkdir ./STHive/sources/src/infra
@@ -285,6 +300,8 @@ EOF
 	./STHive/sources/go/bin/go get "golang.org/x/crypto/ssh"
 	./STHive/sources/go/bin/go get "golang.org/x/crypto/ssh/terminal"
 	./STHive/sources/go/bin/go get "github.com/kr/pty"
+	./installConfig/go/bin/go get "golang.org/x/sys/unix"
+	./installConfig/go/bin/go get "golang.org/x/term"
 
 	#Modified Golang Source Code Dependencies (for certain capabilities like TLS mimic)
 	#crypto/tls
@@ -340,6 +357,8 @@ EOF
 	openssl req -subj '/CN=test.com/' -new -newkey rsa:4096 -days 3650 -nodes -x509 -keyout ./STHive/certs/hive.key -out ./STHive/certs/hive.pem
 	cat ./STHive/certs/hive.key >> ./STHive/certs/hive.pem
 
+	#Compile Tools
+	GOOS=linux GOARCH=amd64 ./STHive/sources/go/bin/go build -o ./STHive/tools/tools tools
 	
 	#Move Hive to selected folder and make it run as root
 	sudo chown root:root -R ./STHive/
@@ -384,6 +403,7 @@ EOF
 	mkdir ./STHive/stagings		      
 	mkdir ./STHive/logs
 	mkdir ./STHive/certs
+	mkdir ./STHive/tools
 	mkdir ./STHive/sources
 	mkdir ./STHive/sources/src
 	mkdir ./STHive/sources/src/infra
@@ -416,6 +436,8 @@ EOF
 	./STHive/sources/go/bin/go get "golang.org/x/crypto/ssh"
 	./STHive/sources/go/bin/go get "golang.org/x/crypto/ssh/terminal"
 	./STHive/sources/go/bin/go get "github.com/kr/pty"
+	./installConfig/go/bin/go get "golang.org/x/sys/unix"
+	./installConfig/go/bin/go get "golang.org/x/term"
 
 	#Modified Golang Source Code Dependencies (for certain capabilities like TLS mimic)
 	#crypto/tls
@@ -470,7 +492,9 @@ EOF
 	
 	openssl req -subj '/CN=test.com/' -new -newkey rsa:4096 -days 3650 -nodes -x509 -keyout ./STHive/certs/hive.key -out ./STHive/certs/hive.pem
 	cat ./STHive/certs/hive.key >> ./STHive/certs/hive.pem
-
+	
+	#Compile Tools
+	GOOS=linux GOARCH=amd64 ./STHive/sources/go/bin/go build -o ./STHive/tools/tools tools
 	
 	#Move Hive to selected folder and make it run as root
 	sudo chown root:root -R ./STHive/

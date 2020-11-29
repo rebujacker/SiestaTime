@@ -1126,6 +1126,7 @@ sleep 180
 sudo chmod 600 %s
 sudo ssh-keygen -N "" -f /usr/local/STHive/stagings/%s/implantkey
 scp -oStrictHostKeyChecking=no -i %s /usr/local/STHive/stagings/%s/implantkey.pub ubuntu@%s:/home/ubuntu/implantkey.pub
+scp -oStrictHostKeyChecking=no -i %s /usr/local/STHive/tools/tools ubuntu@%s:/home/ubuntu/tools
 sudo rm -f /root/.ssh/known_hosts
 ssh -oStrictHostKeyChecking=no -i %s ubuntu@%s /bin/bash <<EOF
 sudo apt-get update
@@ -1133,6 +1134,7 @@ sudo apt-get update
 sudo apt-get update
 sudo apt-get update
 touch /home/ubuntu/ssh.log
+sudo chmod +x /home/ubuntu/tools
 sudo useradd anonymous
 sudo usermod -s /bin/false anonymous
 sudo mkdir /home/anonymous
@@ -1140,6 +1142,13 @@ sudo mkdir /home/anonymous/.ssh
 sudo cp /home/ubuntu/implantkey.pub /home/anonymous/.ssh/authorized_keys
 echo "ClientAliveInterval 60" |sudo tee -a /etc/ssh/sshd_config
 echo "ClientAliveCountMax 0" |sudo tee -a /etc/ssh/sshd_config
+echo "Match User anonymous" |sudo tee -a /etc/ssh/sshd_config
+echo -e "\tAllowTcpForwarding remote" |sudo tee -a /etc/ssh/sshd_config
+echo -e "\tX11Forwarding no" |sudo tee -a /etc/ssh/sshd_config
+echo -e "\tPermitTunnel no" |sudo tee -a /etc/ssh/sshd_config
+echo -e "\tGatewayPorts no" |sudo tee -a /etc/ssh/sshd_config
+echo -e "\tAllowAgentForwarding no" |sudo tee -a /etc/ssh/sshd_config
+echo -e "\tAllowStreamLocalForwarding" no |sudo tee -a /etc/ssh/sshd_config
 sudo reboot
 EOF
 
@@ -1150,7 +1159,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable %s.service
 sudo service %s start
 
-`,keypath,stagingName,keypath,stagingName,domainO.Domain,keypath,domainO.Domain,stagingName,stagingName,stagingName,stagingName,stagingName)
+`,keypath,stagingName,keypath,stagingName,domainO.Domain,keypath,domainO.Domain,keypath,domainO.Domain,stagingName,stagingName,stagingName,stagingName,stagingName)
 
 	return installScript_string,port,"Success"
 
