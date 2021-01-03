@@ -138,6 +138,7 @@ func handleConnection(c net.Conn) {
     return
 }
 
+/*
 func loadPrivateKey(keyString string) (ssh.AuthMethod, error) {
 
 
@@ -147,3 +148,4 @@ func loadPrivateKey(keyString string) (ssh.AuthMethod, error) {
 	}
 	return ssh.PublicKeys(signer), nil
 }
+*/

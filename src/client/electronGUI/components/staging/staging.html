@@ -43,7 +43,19 @@
     <div class="form-group">
       <input type="hidden" class="form-control" name="name" id="delval" value="">
     </div>
-    <button type="button" class="btn btn-primary" id="interact">Interact</button>
+
+    <label for="heard"> Interact with Staging </label>
+        <select id="interactType" class="form-control" required>
+            <option value="fullinteractive">Receive Full Interactive Implant Shell</option>
+            <option value="socks5">Receive SOCKS5 in Operator Device</option>
+            <option value="kilssh">Kill Active SSH</option>
+            <option value="other">Other: Droplet, msf, Empire ...</option>
+        </select>
+        
+        <form id="interactform" data-parsley-validate>
+            <div id=interactParams></div>
+        </form>
+
     <button type="button" class="btn btn-primary" id="submitdelstaging">Delete Staging</button>
   </form>
              </div>

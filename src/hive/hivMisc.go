@@ -13,8 +13,7 @@ import (
     "regexp"
 )
 
-// User Inputs White Listing to avoid the crazy number of Dangerous Ops in Hive ¯\_(ツ)_/¯
-// TL;DR; Fixing all possible Injections in a such op-based server like hive is a pain on the arse (feeling like a dev. now (ﾾ︹ﾾ))
+// Some Input Sanitation Functions (to Improve...)
 
 func gmailInputWhite(input string) bool{
     

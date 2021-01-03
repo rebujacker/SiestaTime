@@ -15,7 +15,7 @@
   "author": "Rebujacker",
   "license": "GPLv3",
   "devDependencies": {
-    "electron": "^9.1.0"
+    "electron": "^11.1.1"
   },
   "dependencies": {
     "xterm": "^3.14.4",

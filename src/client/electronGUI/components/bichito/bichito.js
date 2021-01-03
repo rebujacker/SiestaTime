@@ -52,7 +52,7 @@ $(document).ready(function() {
 
   //Load components options: Jobs,logs, console
   $(".btn").unbind().click(function() {
-    console.log("happening")
+    //console.log("happening")
     var link = $(this);
     switch(link.attr("id")) {
       case "jobs":
@@ -79,7 +79,7 @@ $('#injectType').change(function(){
 
 
 
-  if ($('#injectType').val() == 'injectRevSshShellOffline'){
+  if (($('#injectType').val() == 'injectRevSshShellOffline') || ($('#injectType').val() == 'injectRevSshSocks5Offline')){
     $("#injectParams").empty();
     $("#injectParams").append(`
     
@@ -100,10 +100,10 @@ $('#injectType').change(function(){
         <label for="timeouts">SSH KEY </label>
         <textarea class="resizable_textarea" name="sshkey" rows="10" cols="30" placeholder="SSH PEM Key..."></textarea> 
       </div>
-      <button type="button" class="btn btn-primary" id="submitInjectOffline">Inject</button>
+      <button type="button" class="btn btn-primary" id="submitInjectRevSshShellOffline">Inject</button>
     `);
 
-  }else {
+  }else{
     $("#injectParams").empty();
     $("#injectParams").append(`
     
@@ -132,8 +132,10 @@ $('#injectType').change(function(){
 
 
 
-/*This Job will respect the following JSON Structure on "parameters":
-type InjectEmpire struct {
+/*
+This function is used to inject new channels of interation without further Input Attributes Needed.
+This Job will respect the following JSON Structure on "parameters":
+type InjectDefaultStaging struct {
     Staging string   `json:"staging"`
 }
 */
@@ -160,8 +162,17 @@ $("#injectParams").on('click','#submitInject',function(){
 
 });
 
-//Special Command for Offline
-$("#injectParams").on('click','#submitInjectOffline',function(){
+/*
+This function is used to inject new channels of interation without a previous created Infrastructure.
+This Job will respect the following JSON Structure on "parameters":
+type InjectRevSshShellBichito struct {
+    Domain string   `json:"domain"`
+    Sshkey string   `json:"sshkey"`
+    Port string   `json:"port"`
+    User string   `json:"user"`
+}
+*/
+$("#injectParams").on('click','#submitInjectRevSshShellOffline',function(){
 
 
   function objectifySimpleForm(formArray) {

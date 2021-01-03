@@ -285,7 +285,7 @@ $(document).ready(function() {
           case "host":
 
             lower_ul.empty();
-            lower_ul.append("<li class=\"sub_menu\"><a href=\"#\" class=\"offline\" id=\""+this.id+"\">"+"Offlines"+"<span class=\"fa fa-chevron-down\"></span></a><ul class=\"nav child_menu\" style=\"display: block;\"></ul></li>");
+            lower_ul.append("<li class=\"sub_menu\"><a href=\"#\" class=\"offline\" id=\""+htmlencode.htmlEncode(this.id)+"\">"+"Offlines"+"<span class=\"fa fa-chevron-down\"></span></a><ul class=\"nav child_menu\" style=\"display: block;\"></ul></li>");
             
             //Get Parent Implant RespTime, compare it with "lastchecked" to see if it is online
             for (i = 0; i < bichitos.length; i++){

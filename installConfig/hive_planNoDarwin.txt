@@ -78,6 +78,7 @@
 				"/usr/local/STHive/sources/go/bin/go get \"golang.org/x/crypto/ssh\"",
 				"/usr/local/STHive/sources/go/bin/go get \"golang.org/x/crypto/ssh/terminal\"",
 				"/usr/local/STHive/sources/go/bin/go get \"github.com/kr/pty\"",
+				"/usr/local/STHive/sources/go/bin/go get \"github.com/armon/go-socks5\"",
 		    	"cd /usr/local/STHive/sources/src/infra/.terraform/plugins",
 		    	"sudo wget https://github.com/n3integration/terraform-godaddy/releases/download/v1.6.4/terraform-godaddy_linux_amd64.tgz",
 		    	"sudo tar xvf terraform-godaddy_linux_amd64.tgz",

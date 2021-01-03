@@ -63,6 +63,7 @@ GOOS=linux GOARCH=amd64 ./go/bin/go build --ldflags "-X main.username=${USERNAME
 
 cp -r ../src/client/electronGUI/ .
 cd electronGUI/
+find . -type f | xargs sed -i  "s/127\.0\.0\.1:8000/127\.0\.0\.1:${CLIENTPORT}/g"
 sudo apt-get install -y npm
 npm install
 

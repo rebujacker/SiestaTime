@@ -866,6 +866,7 @@ func createImplant(Offline string,name string,ttl string,resptime string,coms st
 	if Offline == "No" {
 		infraResult := generateImplantInfra(implantFolder,coms,comsparams,redirectors)
 		if infraResult != "Done" {
+			fmt.Println("Implant Infra Debug: "+infraResult)
 			return infraResult
 		}
 	}
@@ -901,63 +902,88 @@ TO-DO, remove orphan bichitos (sending remove infection,logs, etc...)
 */
 func removeImplant(name string) string{
 
+	var errorBuffer string
+
+	//Try to remove Infra, if it fails, don't remove Anything else, so there are track of non-removed Infra and Implant
 	implantFolder := "/usr/local/STHive/implants/"+name
 	resRemove := destroyImplantInfra(implantFolder)
 	if resRemove != "Done"{
-		return resRemove
+		errorBuffer = "-- Error on Destroying Implant Infrastructure: "+resRemove
+		return errorBuffer 
 	}
+	
+	//Check if there are any bichito attached and remove them
 	bichitosIds,err := getAllBidbyImplantNameDB(name)
 	if err != nil{
-		return err.Error()
+		errorBuffer = "-- Error on Retrieving Implant Bichitos from DB: "+err.Error()
+
+	}else{
+
+		for _,bid := range bichitosIds {
+			//TO-DO:Send remove infection
+			errSet1 := rmJobsbyChidDB(bid) 
+			errSet2 := rmLogsbyPidDB(bid)
+			//removeInfection(bid)
+			errSet3 := rmBibyBidDB(bid)
+			if (errSet1 != nil) {
+				errorBuffer = errorBuffer+"-- Error on Removing Bichitos Jobs from DB: "+errSet1.Error()
+			}
+			if (errSet2 != nil)  {
+				errorBuffer = errorBuffer+"-- Error on Removing Bichitos Logs from DB: "+errSet2.Error()
+			}
+			if (errSet3 != nil) {
+				errorBuffer = errorBuffer+"-- Error on Removing Bichitos from DB: "+errSet3.Error()
+			}
+		}
 	}
 
-	for _,bid := range bichitosIds {
-		//TO-DO:Send remove infection
-		errSet1 := rmJobsbyChidDB(bid) 
-		errSet2 := rmLogsbyPidDB(bid)
-		//removeInfection(bid)
-		errSet3 := rmBibyBidDB(bid)
-		if (errSet1 != nil) {
-			return errSet1.Error()
-		}
-		if (errSet2 != nil)  {
-			return errSet3.Error()
-		}
-		if (errSet3 != nil) {
-			return errSet3.Error() 
-		}
-	}
-
-
+	//Check if there are any redirectors attached and remove them
 	redirectorsIds,err2 := getAllRidbyImplantNameDB(name)
 	if err2 != nil{
-		return err2.Error()
+		errorBuffer = errorBuffer+"-- Error Getting Redirectors from DB: "+err2.Error()
+	
+	}else{
+
+		//remove reds, liberate domains,remove infra. TO-DO: Search domainId per implant itself! (for SaaS's)
+		for _,rid := range redirectorsIds {
+			dname,_ := getDomainbyRidDB(rid)
+			errSet1 := setUsedDomainDB(dname,"No")
+			errSet2 := rmLogsbyPidDB(rid)
+			errSet3 := rmRedbyRidDB(rid)
+			if (errSet1 != nil) {
+				errorBuffer = errorBuffer+"-- Error changing Domain status from DB: "+errSet1.Error()
+			}
+			if (errSet2 != nil) {
+				errorBuffer = errorBuffer+"-- Error removing redirector Logs from DB: "+errSet2.Error()
+			}
+			if (errSet3 != nil) {
+				errorBuffer = errorBuffer+"-- Error removing Redirectors from DB: "+errSet3.Error()
+			}		
+		}
 	}
 
-	//remove reds, liberate domains,remove infra. TO-DO: Search domainId per implant itself! (for SaaS's)
-	for _,rid := range redirectorsIds {
-		dname,_ := getDomainbyRidDB(rid)
-		errSet1 := setUsedDomainDB(dname,"No")
-		errSet2 := rmLogsbyPidDB(rid)
-		errSet3 := rmRedbyRidDB(rid)
-		if (errSet1 != nil) {
-			return errSet1.Error()
-		}
-		if (errSet2 != nil) {
-			return errSet2.Error()
-		}
-		if (errSet3 != nil) {
-			return errSet3.Error()
-		}		
-	}
-
+	//Finally Remove Folder
 	errRmdb := rmImplantDB(name)
 	if (errRmdb != nil) {
-		return errRmdb.Error()
+		errorBuffer = errorBuffer+"-- Error removing Implant from DB: "+errRmdb.Error()
 	}
 
+	//Start to compile eveything one by one, to avoid Hive to over-load
+	var removeImplantFolderErr bytes.Buffer
+
 	rmdir := exec.Command("/bin/rm","-rf",implantFolder)
+	rmdir.Stderr = &removeImplantFolderErr
 	rmdir.Start()
 	rmdir.Wait()
+	
+	if (removeImplantFolderErr.String() != ""){
+		errorBuffer = errorBuffer+"-- Error removing Implant folder: "+removeImplantFolderErr.String()
+	}
+
+	//Decide if remove the Implant was or not without errors and return
+	if (errorBuffer != ""){
+		return errorBuffer
+	}
+
 	return "Done"
 }

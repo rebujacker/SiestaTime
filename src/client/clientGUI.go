@@ -29,6 +29,7 @@ type InteractObject struct {
     Handler string   `json:"handler"`
     VpsName string   `json:"vpsname"`
     TunnelPort string   `json:"tunnelport"`
+    Socks5Port string   `json:"socks5port"`
 }
 
 type ReportObject struct {
@@ -282,6 +283,19 @@ func CreateJob(w http.ResponseWriter, r *http.Request) {
         job Job
     )
 
+    //Some basic CSRF protection with custom headers, will Implement csrf tokens soon
+    ua := r.Header.Get("User-Agent")
+    if !strings.Contains(ua,"SiestaTime") {
+        fmt.Println("There it was an attempt to perform a POST with a different User Agent: "+ua)
+        return
+    }
+
+    ct := r.Header.Get("Content-Type")
+    if !strings.Contains(ct,"application/json") {
+        fmt.Println("There it was an attempt to perform a POST with a different Content-Type: "+ct)
+        return
+    }
+
 
     buf := new(bytes.Buffer)
     buf.ReadFrom(r.Body)
@@ -418,14 +432,28 @@ C. SSH connect to target object (through Hive), pop-up a terminal to the Operato
 func Interact(w http.ResponseWriter, r *http.Request) {
     
 
-
     var(
         interact InteractObject
         sshPort string
         vpsName string
         hiveD string
     )
-    
+
+
+    //Some basic CSRF protection with custom headers, will Implement csrf tokens soon
+    ua := r.Header.Get("User-Agent")
+    if !strings.Contains(ua,"SiestaTime") {
+        fmt.Println("There it was an attempt to perform a POST with a different User Agent: "+ua)
+        return
+    }
+
+    ct := r.Header.Get("Content-Type")
+    if !strings.Contains(ct,"application/json") {
+        fmt.Println("There it was an attempt to perform a POST with a different Content-Type: "+ct)
+        return
+    }
+
+
     buf := new(bytes.Buffer)
     buf.ReadFrom(r.Body)
     
@@ -453,6 +481,37 @@ func Interact(w http.ResponseWriter, r *http.Request) {
     stderr := errbuf.String()
     if stderr != ""{
         fmt.Println(stderr+stdout)
+    }
+
+    //Perform Input sanitation
+    if !namesInputWhite(stagingName){
+        fmt.Println("Dangerous Input For Interact: "+stagingName)
+        return
+    }
+
+    if !namesInputWhite(username){
+        fmt.Println("Dangerous Input For Interact: "+username)
+        return
+    }
+
+    if !namesInputWhite(interact.Handler){
+        fmt.Println("Dangerous Input For Interact: "+interact.Handler)
+        return
+    }    
+
+    if !domainsInputWhite(hiveD){
+        fmt.Println("Dangerous Input For Interact: "+hiveD)
+        return
+    }
+
+    if !tcpPortInputWhite(sshPort){
+        fmt.Println("Dangerous Input For Interact: "+sshPort)
+        return
+    }
+
+    if (!tcpPortInputWhite(interact.Socks5Port) && !(interact.Socks5Port == "")){
+        fmt.Println("Dangerous Input For Interact: "+interact.Socks5Port)
+        return
     }
 
     if !strings.Contains(outbuf.String(),stagingName){
@@ -495,7 +554,11 @@ func Interact(w http.ResponseWriter, r *http.Request) {
         command = "gnome-terminal -- ssh -oStrictHostKeyChecking=no -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo printf \"\n\nInteractive Session started "+timeLog+",from:"+username+"\n\n\" >> "+interact.Handler+".log;sudo reptyr -s $(pgrep python)|tee -a "+interact.Handler+".log'" 
     case "ssh":
         command = "gnome-terminal -- ssh -oStrictHostKeyChecking=no -t -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo printf \"\n\nInteractive Session started "+timeLog+",from:"+username+"\n\n\" >> "+interact.Handler+".log;./tools revsshclient 2222|tee -a "+interact.Handler+".log'"
-    }
+    case "socks5":
+        command = "gnome-terminal -- ssh -oStrictHostKeyChecking=no -t -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem -L 127.0.0.1:"+interact.Socks5Port+":127.0.0.1:2222 ubuntu@"+hiveD+" -N"
+    case "killssh":
+        command = "ssh -oStrictHostKeyChecking=no -t -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo pkill -u anonymous'"
+    }    
 
 
     outbuf.Reset()
@@ -520,7 +583,20 @@ func DownloadReport(w http.ResponseWriter, r *http.Request) {
     var(
         report ReportObject
     )
-    
+
+    //Some basic CSRF protection with custom headers, will Implement csrf tokens soon
+    ua := r.Header.Get("User-Agent")
+    if !strings.Contains(ua,"SiestaTime") {
+        fmt.Println("There it was an attempt to perform a POST with a different User Agent: "+ua)
+        return
+    }
+
+    ct := r.Header.Get("Content-Type")
+    if !strings.Contains(ct,"application/json") {
+        fmt.Println("There it was an attempt to perform a POST with a different Content-Type: "+ct)
+        return
+    }
+
     buf := new(bytes.Buffer)
     buf.ReadFrom(r.Body)
     
@@ -528,6 +604,11 @@ func DownloadReport(w http.ResponseWriter, r *http.Request) {
     errDaws := json.Unmarshal([]byte(buf.String()),&report)
     if errDaws != nil {
         fmt.Println("Error Decoding Json"+ errDaws.Error())
+    }
+
+    if !namesInputWhite(report.Name){
+        fmt.Println("Dangerous Input For Download Report: "+report.Name)
+        return
     }
 
     error := getReport(report.Name)
@@ -542,7 +623,20 @@ func DownloadImplant(w http.ResponseWriter, r *http.Request) {
     var(
         implant ImplantObject
     )
-    
+
+    //Some basic CSRF protection with custom headers, will Implement csrf tokens soon
+    ua := r.Header.Get("User-Agent")
+    if !strings.Contains(ua,"SiestaTime") {
+        fmt.Println("There it was an attempt to perform a POST with a different User Agent: "+ua)
+        return
+    }
+
+    ct := r.Header.Get("Content-Type")
+    if !strings.Contains(ct,"application/json") {
+        fmt.Println("There it was an attempt to perform a POST with a different Content-Type: "+ct)
+        return
+    }
+ 
     buf := new(bytes.Buffer)
     buf.ReadFrom(r.Body)
     
@@ -550,6 +644,11 @@ func DownloadImplant(w http.ResponseWriter, r *http.Request) {
     errDaws := json.Unmarshal([]byte(buf.String()),&implant)
     if errDaws != nil {
         fmt.Println("Error Decoding Json"+ errDaws.Error())
+    }
+
+    if !namesInputWhite(implant.Name){
+        fmt.Println("Dangerous Input For Download Implant: "+implant.Name)
+        return
     }
 
     error := getImplant(implant.Name,implant.OsName,implant.Arch)
@@ -564,7 +663,20 @@ func DownloadRedirector(w http.ResponseWriter, r *http.Request) {
     var(
         implant ImplantObject
     )
-    
+
+    //Some basic CSRF protection with custom headers, will Implement csrf tokens soon
+    ua := r.Header.Get("User-Agent")
+    if !strings.Contains(ua,"SiestaTime") {
+        fmt.Println("There it was an attempt to perform a POST with a different User Agent: "+ua)
+        return
+    }
+
+    ct := r.Header.Get("Content-Type")
+    if !strings.Contains(ct,"application/json") {
+        fmt.Println("There it was an attempt to perform a POST with a different Content-Type: "+ct)
+        return
+    }
+
     buf := new(bytes.Buffer)
     buf.ReadFrom(r.Body)
     
@@ -575,7 +687,13 @@ func DownloadRedirector(w http.ResponseWriter, r *http.Request) {
     }
 
     //Debug
-    fmt.Println("Downloading:"+implant.Name)
+    //fmt.Println("Downloading:"+implant.Name)
+    
+    if !namesInputWhite(implant.Name){
+        fmt.Println("Dangerous Input For Download Redirector: "+implant.Name)
+        return
+    }
+
     error := getRedirector(implant.Name)
     if error != "" {
        fmt.Println("Error Downloading Redirector"+ error) 

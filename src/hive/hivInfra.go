@@ -281,11 +281,15 @@ func generateImplantInfra(implantpath string,coms string,comsparams []string,red
 	}
 
 	
-	if (errInfra1 != nil) || (errInfra2 != nil){
-		elog := "TaraformerError(ImplantGeneration),Incorrect VPC/Domain data most probably"
+	if (errInfra1 != nil){
+		elog := "TerraformerError(ImplantGeneration)-- Init: "+errInfra1.Error()
 		return elog
 	}
-	
+
+	if (errInfra2 != nil){
+		elog := "TerraformerError(ImplantGeneration)(Normally happens because incorrect VPS/Domain credentials)-- Apply: "+errInfra2.Error() +"--"+errApplybuf.String()
+		return elog
+	}
 	
 
 	return "Done"
@@ -650,7 +654,7 @@ func destroyImplantInfra(implantpath string) string{
 	errInfra1 := terraApply.Wait()
 	
 	if (errInfra1 != nil){
-		elog := "TaraformerError(RemoveImplantInfra)"
+		elog := "TerraformerError(ImplantDestroy)-- Destroy: "+errInfra1.Error()
 		return elog
 	}
 
@@ -880,11 +884,15 @@ func generateStagingInfra(stagingName string,stype string,tunnelPort string,para
 
 
 
-	if (errInfra1 != nil) || (errInfra2 != nil){
-		elog := "TaraformerError(ImplantGeneration),Incorrect VPC/Domain data most probably"
+	if (errInfra1 != nil){
+		elog := "TerraformerError(StagingGeneration)-- Init: "+errInfra1.Error()
 		return elog
 	}
 
+	if (errInfra2 != nil){
+		elog := "TerraformerError(StagingGeneration)--(Normally happens because incorrect VPS/Domain credentials)-Apply: "+errInfra2.Error()+"--"+errApplybuf.String()
+		return elog
+	}
 
 	//Apply Staging Script
 	//The Staging Script will:
@@ -1431,7 +1439,7 @@ func destroyStagingInfra(stagingName string) string{
 	errInfra1 := terraApply.Wait()
 	
 	if (errInfra1 != nil){
-		elog := "TaraformerError(RemoveStagingInfra)"
+		elog := "TaraformerError(RemoveStagingInfra): "+errInfra1.Error()
 		return elog
 	}
 
