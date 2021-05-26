@@ -41,13 +41,12 @@ $('#interactType').change(function(){
       <button type="button" class="btn btn-primary" id="interact">Kill Active SSH Sessions</button>
     `);  
   
-}else if ($('#interactType').val() == 'fullinteractive'){
-
   }else{
+
     $("#interactParams").empty();
     $("#interactParams").append(`
     
-      <button type="button" class="btn btn-primary" id="interact">Interact</button>
+      <button type="button" class="btn btn-primary" id="interact"> Interact with SSH </button>
     `); 
   }
 
@@ -87,8 +86,11 @@ $("#interactParams").on('click','#interact',function(){
           handlerN = "empire";
           break;
         case "ssh_rev_shell":
-          if ($('#interactType').val() == 'fullinteractive'){
-            handlerN = "ssh";
+          if ($('#interactType').val() == 'fullinteractive_LinOsx'){
+            handlerN = "sshLinOsx";
+            break;
+          }else if ($('#interactType').val() == 'fullinteractive_WinCMD'){
+            handlerN = "sshCmd";
             break;
           }else if ($('#interactType').val() == 'socks5'){
 

@@ -742,6 +742,7 @@ func createImplant(Offline string,name string,ttl string,resptime string,coms st
 	redgen := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+redCompilParams,"-tags",
 		rModules,"-o",implantFolder+"/redirector","redirector")
 	redgen.Env = os.Environ()
+	redgen.Env = append(redgen.Env,"GO111MODULE=off")
 	redgen.Env = append(redgen.Env,"GOPATH=/usr/local/STHive/sources/")
 	redgen.Env = append(redgen.Env,"GOOS=linux")
 	redgen.Env = append(redgen.Env,"GOARCH=amd64")
@@ -751,6 +752,7 @@ func createImplant(Offline string,name string,ttl string,resptime string,coms st
 	bichitoLx32 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+biCompilParamsLinux,"-tags",
 		bModulesLinux,"-o",implantFolder+"/bichitoLinuxx32","bichito")
 	bichitoLx32.Env = os.Environ()
+	bichitoLx32.Env = append(bichitoLx32.Env,"GO111MODULE=off")
 	bichitoLx32.Env = append(bichitoLx32.Env,"GOPATH=/usr/local/STHive/sources/")
 	bichitoLx32.Env = append(bichitoLx32.Env,"GOOS=linux")
 	bichitoLx32.Env = append(bichitoLx32.Env,"GOARCH=386")
@@ -759,6 +761,7 @@ func createImplant(Offline string,name string,ttl string,resptime string,coms st
 	bichitoLx64 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+biCompilParamsLinux,"-tags",
 		bModulesLinux,"-o",implantFolder+"/bichitoLinuxx64","bichito")
 	bichitoLx64.Env = os.Environ()
+	bichitoLx64.Env = append(bichitoLx64.Env,"GO111MODULE=off")
 	bichitoLx64.Env = append(bichitoLx64.Env,"GOPATH=/usr/local/STHive/sources/")
 	bichitoLx64.Env = append(bichitoLx64.Env,"GOOS=linux")
 	bichitoLx64.Env = append(bichitoLx64.Env,"GOARCH=amd64")
@@ -766,9 +769,12 @@ func createImplant(Offline string,name string,ttl string,resptime string,coms st
 
 
 	//Windows x32,x64
-	bichitoWx32 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+biCompilParamsWindows+" -H=windowsgui",
+	//-buildmode=pie, this is for being able to use donut and generate Shellcodes
+	//-H=windowsgui, will avoid to keep a cmd open if exdecuted from console
+	bichitoWx32 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","-buildmode=pie","--ldflags","-X main.parameters="+biCompilParamsWindows+" -H=windowsgui",
 		"-tags",bModulesWindows,"-o",implantFolder+"/bichitoWindowsx32","bichito")
 	bichitoWx32.Env = os.Environ()
+	bichitoWx32.Env = append(bichitoWx32.Env,"GO111MODULE=off")
 	bichitoWx32.Env = append(bichitoWx32.Env,"GOPATH=/usr/local/STHive/sources/")
 	bichitoWx32.Env = append(bichitoWx32.Env,"GOOS=windows")
 	bichitoWx32.Env = append(bichitoWx32.Env,"GOARCH=386")
@@ -777,9 +783,10 @@ func createImplant(Offline string,name string,ttl string,resptime string,coms st
 	bichitoWx32.Env = append(bichitoWx32.Env,"CC=i686-w64-mingw32-gcc")
 	bichitoWx32.Env = append(bichitoWx32.Env,"CXX=i686-w64-mingw32-g++")
 
-	bichitoWx64 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+biCompilParamsWindows+" -H=windowsgui",
+	bichitoWx64 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","-buildmode=pie","--ldflags","-X main.parameters="+biCompilParamsWindows+" -H=windowsgui",
 		"-tags",bModulesWindows,"-o",implantFolder+"/bichitoWindowsx64","bichito")
 	bichitoWx64.Env = os.Environ()
+	bichitoWx64.Env = append(bichitoWx64.Env,"GO111MODULE=off")
 	bichitoWx64.Env = append(bichitoWx64.Env,"GOPATH=/usr/local/STHive/sources/")
 	bichitoWx64.Env = append(bichitoWx64.Env,"GOOS=windows")
 	bichitoWx64.Env = append(bichitoWx64.Env,"GOARCH=amd64")
@@ -788,10 +795,22 @@ func createImplant(Offline string,name string,ttl string,resptime string,coms st
 	bichitoWx64.Env = append(bichitoWx64.Env,"CC=x86_64-w64-mingw32-gcc")
 	bichitoWx64.Env = append(bichitoWx64.Env,"CXX=x86_64-w64-mingw32-g++")
 	
+	//Generate Windows Shellcodes using donut
+	//x32
+	bichitoWx32_exe := exec.Command("/usr/bin/cp",implantFolder+"/bichitoWindowsx32",implantFolder+"/bichitoWindowsx32.exe")
+	bichitoWx32_shellcode_bin := exec.Command("/usr/local/STHive/tools/donut",implantFolder+"/bichitoWindowsx32.exe","-o",implantFolder+"/bichitoWindowsx32_shellcode.binary")
+	bichitoWx32_shellcode_hex := exec.Command("/usr/local/STHive/tools/donut","-f","3",implantFolder+"/bichitoWindowsx32.exe","-o",implantFolder+"/bichitoWindowsx32_shellcode.hex")
+	//x64
+	bichitoWx64_exe := exec.Command("/usr/bin/cp",implantFolder+"/bichitoWindowsx64",implantFolder+"/bichitoWindowsx64.exe")
+	bichitoWx64_shellcode_bin := exec.Command("/usr/local/STHive/tools/donut",implantFolder+"/bichitoWindowsx64.exe","-o",implantFolder+"/bichitoWindowsx64_shellcode.binary")
+	bichitoWx64_shellcode_hex := exec.Command("/usr/local/STHive/tools/donut","-f","3",implantFolder+"/bichitoWindowsx64.exe","-o",implantFolder+"/bichitoWindowsx64_shellcode.hex")
+
+
 	//Darwin x32,x64
 	bichitoOx32 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+biCompilParamsOSX,"-tags",bModulesOSX,"-o",
 		implantFolder+"/bichitoOSXx32","bichito")
 	bichitoOx32.Env = os.Environ()
+	bichitoOx32.Env = append(bichitoOx32.Env,"GO111MODULE=off")
 	bichitoOx32.Env = append(bichitoOx32.Env,"GOPATH=/usr/local/STHive/sources/")
 	bichitoOx32.Env = append(bichitoOx32.Env,"GOOS=darwin")
 	bichitoOx32.Env = append(bichitoOx32.Env,"GOARCH=386")
@@ -803,6 +822,7 @@ func createImplant(Offline string,name string,ttl string,resptime string,coms st
 	bichitoOx64 := exec.Command("/usr/local/STHive/sources/go/bin/go","build","--ldflags","-X main.parameters="+biCompilParamsOSX,"-tags",bModulesOSX,"-o",
 		implantFolder+"/bichitoOSXx64","bichito")
 	bichitoOx64.Env = os.Environ()
+	bichitoOx64.Env = append(bichitoOx64.Env,"GO111MODULE=off")
 	bichitoOx64.Env = append(bichitoOx64.Env,"GOPATH=/usr/local/STHive/sources/")
 	bichitoOx64.Env = append(bichitoOx64.Env,"GOOS=darwin")
 	bichitoOx64.Env = append(bichitoOx64.Env,"GOARCH=amd64")
@@ -838,10 +858,24 @@ func createImplant(Offline string,name string,ttl string,resptime string,coms st
 	bichitoLx32.Wait()
 	bichitoLx64.Start()
 	bichitoLx64.Wait()
+	
 	bichitoWx32.Start()
 	bichitoWx32.Wait()
 	bichitoWx64.Start()
 	bichitoWx64.Wait()
+	bichitoWx32_exe.Start()
+	bichitoWx32_exe.Wait()
+	bichitoWx32_shellcode_bin.Start()
+	bichitoWx32_shellcode_bin.Wait()
+	bichitoWx32_shellcode_hex.Start()
+	bichitoWx32_shellcode_hex.Wait()
+	bichitoWx64_exe.Start()
+	bichitoWx64_exe.Wait()
+	bichitoWx64_shellcode_bin.Start() 
+	bichitoWx64_shellcode_bin.Wait()
+	bichitoWx64_shellcode_hex.Start()
+	bichitoWx64_shellcode_hex.Wait()
+
 	bichitoOx32.Start()
 	bichitoOx32.Wait()
 	bichitoOx64.Start()

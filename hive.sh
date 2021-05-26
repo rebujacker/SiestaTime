@@ -109,8 +109,10 @@ EOF
 	
 	#Download Terraform, parse the layout "hive_plan.txt" to "hive.tf" with AWS Account and params.
 	cd installConfig
-	wget wget https://releases.hashicorp.com/terraform/0.11.13/terraform_0.11.13_linux_amd64.zip
-	unzip terraform_0.11.13_linux_amd64.zip
+	#wget wget https://releases.hashicorp.com/terraform/0.11.13/terraform_0.11.13_linux_amd64.zip
+	#unzip terraform_0.11.13_linux_amd64.zip
+	wget wget https://releases.hashicorp.com/terraform/0.15.1/terraform_0.15.1_linux_amd64.zip
+	unzip terraform_0.15.1_linux_amd64.zip
 
 
 	cp hive_plan.txt hive.tf
@@ -159,18 +161,31 @@ EOF
 		AMI=${VARS[7]}
 		ITYPE=${VARS[8]}
 		
-
+		#Old
 		#Download GO and Compile Hive
-		wget https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz -P ./installConfig/
-		tar xvf ./installConfig/go1.13.3.linux-amd64.tar.gz -C ./installConfig/
+		#wget https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz -P ./installConfig/
+		#tar xvf ./installConfig/go1.13.3.linux-amd64.tar.gz -C ./installConfig/
+		#export GOROOT="$(pwd)/installConfig/go/"
+		#export GOPATH="$(pwd)"
+		#./installConfig/go/bin/go get "github.com/mattn/go-sqlite3"
+		#./installConfig/go/bin/go get "github.com/gorilla/mux"
+		#./installConfig/go/bin/go get "golang.org/x/crypto/bcrypt"
+		#./installConfig/go/bin/go get "golang.org/x/sys/unix"
+		#./installConfig/go/bin/go get "golang.org/x/term"
+		#GOOS=linux GOARCH=amd64 ./installConfig/go/bin/go build --ldflags "-X main.roasterString=0.0.0.0:${PORT}" -o ./installConfig/hive hive
+
+		wget https://golang.org/dl/go1.16.linux-amd64.tar.gz -P ./installConfig/
+		tar xvf ./installConfig/go1.16.linux-amd64.tar.gz -C ./installConfig/
 		export GOROOT="$(pwd)/installConfig/go/"
 		export GOPATH="$(pwd)"
-		./installConfig/go/bin/go get "github.com/mattn/go-sqlite3"
-		./installConfig/go/bin/go get "github.com/gorilla/mux"
-		./installConfig/go/bin/go get "golang.org/x/crypto/bcrypt"
-		./installConfig/go/bin/go get "golang.org/x/sys/unix"
-		./installConfig/go/bin/go get "golang.org/x/term"
-		GOOS=linux GOARCH=amd64 ./installConfig/go/bin/go build --ldflags "-X main.roasterString=0.0.0.0:${PORT}" -o ./installConfig/hive hive
+		GO111MODULE=off ./installConfig/go/bin/go get "github.com/mattn/go-sqlite3"
+		GO111MODULE=off ./installConfig/go/bin/go get "github.com/gorilla/mux"
+		GO111MODULE=off ./installConfig/go/bin/go get "golang.org/x/crypto/bcrypt"
+		GO111MODULE=off ./installConfig/go/bin/go get "golang.org/x/sys/unix"
+		GO111MODULE=off ./installConfig/go/bin/go get "golang.org/x/term"
+		
+		GO111MODULE=off GOOS=linux GOARCH=amd64 ./installConfig/go/bin/go build --ldflags "-X main.roasterString=0.0.0.0:${PORT}" -o ./installConfig/hive hive
+
 
 		if [[ $AKEY == *"|"* ]] || [[ $SKEY == *"|"* ]] || [[ $AMI == *"|"* ]] || [[ $REGION == *"/"* ]] || [[ $KEYNAME == *"/"* ]]; then
   			echo "Forbidden char into config file"
@@ -182,7 +197,7 @@ EOF
 
 
 		#Compile Tools
-		GOOS=linux GOARCH=amd64 ./installConfig/go/bin/go build -o ./installConfig/tools tools
+		GO111MODULE=off GOOS=linux GOARCH=amd64 ./installConfig/go/bin/go build -o ./installConfig/tools tools
 
 		
 
@@ -207,9 +222,10 @@ EOF
 
 	#Download Terraform, parse the layout "hive_planNoDarwin.txt" to "hive.tf" with AWS Account and params.
 	cd installConfig
-	wget wget https://releases.hashicorp.com/terraform/0.11.13/terraform_0.11.13_linux_amd64.zip
-	unzip terraform_0.11.13_linux_amd64.zip
-
+	#wget wget https://releases.hashicorp.com/terraform/0.11.13/terraform_0.11.13_linux_amd64.zip
+	#unzip terraform_0.11.13_linux_amd64.zip
+	wget wget https://releases.hashicorp.com/terraform/0.15.1/terraform_0.15.1_linux_amd64.zip
+	unzip terraform_0.15.1_linux_amd64.zip
 
 	cp hive_planNoDarwin.txt hive.tf
 	sed -i -e 's|@access_key|'"$AKEY"'|g' hive.tf
@@ -305,21 +321,20 @@ EOF
 
 	#Modified Golang Source Code Dependencies (for certain capabilities like TLS mimic)
 	#crypto/tls
-	cp ./src/rebugo/tls/* ./STHive/sources/go/src/crypto/tls/
+	#cp ./src/rebugo/tls/* ./STHive/sources/go/src/crypto/tls/
 	#golang.org/x/oauth2
-	cp ./src/rebugo/oauth2/oauth2.go ./STHive/sources/src/golang.org/x/oauth2/.
-	cp ./src/rebugo/oauth2/token.go ./STHive/sources/src/golang.org/x/oauth2/.
-	cp ./src/rebugo/oauth2/internal/token.go ./STHive/sources/src/golang.org/x/oauth2/internal/.
+	#cp ./src/rebugo/oauth2/oauth2.go ./STHive/sources/src/golang.org/x/oauth2/.
+	#cp ./src/rebugo/oauth2/token.go ./STHive/sources/src/golang.org/x/oauth2/.
+	#cp ./src/rebugo/oauth2/internal/token.go ./STHive/sources/src/golang.org/x/oauth2/internal/.
 	#google.golang.org/api/gmail/v1
-	cp ./src/rebugo/gmail/v1/gmail-gen.go ./STHive/sources/src/google.golang.org/api/gmail/v1/.
-
+	#cp ./src/rebugo/gmail/v1/gmail-gen.go ./STHive/sources/src/google.golang.org/api/gmail/v1/.
 
 
 	#Infraestructure Support: Terraform, go-daddy plugin and Configurations
 	#Terraform
-	wget -O ./STHive/sources/src/infra/terraform_0.11.13_linux_amd64.zip https://releases.hashicorp.com/terraform/0.11.13/terraform_0.11.13_linux_amd64.zip
-	unzip ./STHive/sources/src/infra/terraform_0.11.13_linux_amd64.zip -d ./STHive/sources/src/infra/
-	rm ./STHive/sources/src/infra/terraform_0.11.13_linux_amd64.zip
+	wget -O ./STHive/sources/src/infra/terraform_0.15.1_linux_amd64.zip https://releases.hashicorp.com/terraform/0.15.1/terraform_0.15.1_linux_amd64.zip
+	unzip ./STHive/sources/src/infra/terraform_0.15.1_linux_amd64.zip -d ./STHive/sources/src/infra/
+	rm ./STHive/sources/src/infra/terraform_0.15.1_linux_amd64.zip
 	#GO-daddy config
 	wget -O ./STHive/terraform-godaddy_linux_amd64.tgz https://github.com/n3integration/terraform-godaddy/releases/download/v1.6.4/terraform-godaddy_linux_amd64.tgz
 	tar xvf ./STHive/terraform-godaddy_linux_amd64.tgz -C ./STHive/
@@ -441,21 +456,21 @@ EOF
 
 	#Modified Golang Source Code Dependencies (for certain capabilities like TLS mimic)
 	#crypto/tls
-	cp ./src/rebugo/tls/* ./STHive/sources/go/src/crypto/tls/
+	#cp ./src/rebugo/tls/* ./STHive/sources/go/src/crypto/tls/
 	#golang.org/x/oauth2
-	cp ./src/rebugo/oauth2/oauth2.go ./STHive/sources/src/golang.org/x/oauth2/.
-	cp ./src/rebugo/oauth2/token.go ./STHive/sources/src/golang.org/x/oauth2/.
-	cp ./src/rebugo/oauth2/internal/token.go ./STHive/sources/src/golang.org/x/oauth2/internal/.
+	#cp ./src/rebugo/oauth2/oauth2.go ./STHive/sources/src/golang.org/x/oauth2/.
+	#cp ./src/rebugo/oauth2/token.go ./STHive/sources/src/golang.org/x/oauth2/.
+	#cp ./src/rebugo/oauth2/internal/token.go ./STHive/sources/src/golang.org/x/oauth2/internal/.
 	#google.golang.org/api/gmail/v1
-	cp ./src/rebugo/gmail/v1/gmail-gen.go ./STHive/sources/src/google.golang.org/api/gmail/v1/.
+	#cp ./src/rebugo/gmail/v1/gmail-gen.go ./STHive/sources/src/google.golang.org/api/gmail/v1/.
 
 
 
 	#Infraestructure Support: Terraform, go-daddy plugin and Configurations
 	#Terraform
-	wget -O ./STHive/sources/src/infra/terraform_0.11.13_linux_amd64.zip https://releases.hashicorp.com/terraform/0.11.13/terraform_0.11.13_linux_amd64.zip
-	unzip ./STHive/sources/src/infra/terraform_0.11.13_linux_amd64.zip -d ./STHive/sources/src/infra/
-	rm ./STHive/sources/src/infra/terraform_0.11.13_linux_amd64.zip
+	wget -O ./STHive/sources/src/infra/terraform_0.15.1_linux_amd64.zip https://releases.hashicorp.com/terraform/0.15.1/terraform_0.15.1_linux_amd64.zip
+	unzip ./STHive/sources/src/infra/terraform_0.15.1_linux_amd64.zip -d ./STHive/sources/src/infra/
+	rm ./STHive/sources/src/infra/terraform_0.15.1_linux_amd64.zip
 	#GO-daddy config
 	wget -O ./STHive/terraform-godaddy_linux_amd64.tgz https://github.com/n3integration/terraform-godaddy/releases/download/v1.6.4/terraform-godaddy_linux_amd64.tgz
 	tar xvf ./STHive/terraform-godaddy_linux_amd64.tgz -C ./STHive/

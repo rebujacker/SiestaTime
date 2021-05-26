@@ -355,7 +355,7 @@ func aws_instance_paranoidhttpsgo(comsparams string,vps *Vps,implantpath string,
 		}
 
 		resource "aws_security_group" "%s" {
-		  provider = "aws.%s"
+		  provider = aws.%s
 		  name        = "%s"
 
 		  ingress {
@@ -382,8 +382,8 @@ func aws_instance_paranoidhttpsgo(comsparams string,vps *Vps,implantpath string,
 
 
 		resource "aws_instance" "%s" {
-		  provider = "aws.%s"
-		  depends_on = ["aws_security_group.%s"]
+		  provider = aws.%s
+		  depends_on = [aws_security_group.%s]
 		  ami           = "%s"
 		  instance_type = "t2.micro"
 		  key_name = "%s"
@@ -400,6 +400,7 @@ func aws_instance_paranoidhttpsgo(comsparams string,vps *Vps,implantpath string,
 		      type     = "ssh"
 		      user     = "ubuntu"
 		      private_key = "${file("%s")}"
+		      host     = "${aws_instance.%s.public_ip}"
 		    }
 		  }
 
@@ -410,6 +411,7 @@ func aws_instance_paranoidhttpsgo(comsparams string,vps *Vps,implantpath string,
 		      type     = "ssh"
 		      user     = "ubuntu"
 		      private_key = "${file("%s")}"
+		      host     = "${aws_instance.%s.public_ip}"
 		    }
 		  }
 
@@ -421,6 +423,7 @@ func aws_instance_paranoidhttpsgo(comsparams string,vps *Vps,implantpath string,
 		      type     = "ssh"
 		      user     = "ubuntu"
 		      private_key = "${file("%s")}"
+		      host     = "${aws_instance.%s.public_ip}"
 		    }
 		  }
 
@@ -432,6 +435,7 @@ func aws_instance_paranoidhttpsgo(comsparams string,vps *Vps,implantpath string,
 		      type     = "ssh"
 		      user     = "ubuntu"
 		      private_key = "${file("%s")}"
+		      host     = "${aws_instance.%s.public_ip}"
 		    }
 		  }
 
@@ -443,6 +447,7 @@ func aws_instance_paranoidhttpsgo(comsparams string,vps *Vps,implantpath string,
 		      type     = "ssh"
 		      user     = "ubuntu"
 		      private_key = "${file("%s")}"
+		      host     = "${aws_instance.%s.public_ip}"
 		    }
 		  }
 
@@ -455,15 +460,16 @@ func aws_instance_paranoidhttpsgo(comsparams string,vps *Vps,implantpath string,
 		      "sudo systemctl enable redirector.service",
 		      "sudo reboot",
 		    ]
-		     on_failure = "continue"
+		     on_failure = continue
 
 		    connection {
 		      type     = "ssh"
 		      user     = "ubuntu"
 		      private_key = "${file("%s")}"
+		      host     = "${aws_instance.%s.public_ip}"
 		    }
 		  }
-		}`,domainO.Name,accesskey,secretkey,region,domainO.Name,domainO.Name,domainO.Name,redport,redport,domainO.Name,domainO.Name,domainO.Name,ami,keyname,domainO.Name,domainO.Domain,keypath,implantpath,keypath,implantpath,keypath,implantpath,keypath,keypath,keypath)
+		}`,domainO.Name,accesskey,secretkey,region,domainO.Name,domainO.Name,domainO.Name,redport,redport,domainO.Name,domainO.Name,domainO.Name,ami,keyname,domainO.Name,domainO.Domain,keypath,domainO.Name,implantpath,keypath,domainO.Name,implantpath,keypath,domainO.Name,implantpath,keypath,domainO.Name,keypath,domainO.Name,keypath,domainO.Name)
 
 	return vps_plan_string,"Success" 
 }
@@ -515,7 +521,7 @@ func aws_instance_saas(vps *Vps,implantpath string,domainO *Domain) (string,stri
 		}
 
 		resource "aws_security_group" "%s" {
-		  provider = "aws.%s"
+		  provider = aws.%s
 		  name        = "%s"
 
 		  ingress {
@@ -535,8 +541,8 @@ func aws_instance_saas(vps *Vps,implantpath string,domainO *Domain) (string,stri
 
 
 		resource "aws_instance" "%s" {
-		  provider = "aws.%s"
-		  depends_on = ["aws_security_group.%s"]
+		  provider = aws.%s
+		  depends_on = [aws_security_group.%s]
 		  ami           = "%s"
 		  instance_type = "t2.micro"
 		  key_name = "%s"
@@ -553,6 +559,7 @@ func aws_instance_saas(vps *Vps,implantpath string,domainO *Domain) (string,stri
 		      type     = "ssh"
 		      user     = "ubuntu"
 		      private_key = "${file("%s")}"
+		      host     = "${aws_instance.%s.public_ip}"
 		    }
 		  }
 
@@ -564,6 +571,7 @@ func aws_instance_saas(vps *Vps,implantpath string,domainO *Domain) (string,stri
 		      type     = "ssh"
 		      user     = "ubuntu"
 		      private_key = "${file("%s")}"
+		      host     = "${aws_instance.%s.public_ip}"
 		    }
 		  }
 
@@ -575,6 +583,7 @@ func aws_instance_saas(vps *Vps,implantpath string,domainO *Domain) (string,stri
 		      type     = "ssh"
 		      user     = "ubuntu"
 		      private_key = "${file("%s")}"
+		      host     = "${aws_instance.%s.public_ip}"
 		    }
 		  }
 
@@ -587,15 +596,16 @@ func aws_instance_saas(vps *Vps,implantpath string,domainO *Domain) (string,stri
 		      "sudo systemctl enable redirector.service",
 		      "sudo reboot",
 		    ]
-		     on_failure = "continue"
+		     on_failure = continue
 
 		    connection {
 		      type     = "ssh"
 		      user     = "ubuntu"
 		      private_key = "${file("%s")}"
+		      host     = "${aws_instance.%s.public_ip}"
 		    }
 		  }
-		}`,domainO.Name,accesskey,secretkey,region,domainO.Name,domainO.Name,domainO.Name,domainO.Name,domainO.Name,domainO.Name,ami,keyname,domainO.Name,domainO.Domain,keypath,implantpath,keypath,keypath,keypath)
+		}`,domainO.Name,accesskey,secretkey,region,domainO.Name,domainO.Name,domainO.Name,domainO.Name,domainO.Name,domainO.Name,ami,keyname,domainO.Name,domainO.Domain,keypath,domainO.Name,implantpath,keypath,domainO.Name,keypath,domainO.Name,keypath,domainO.Name)
 
 	return vps_plan_string,"Success" 
 }
@@ -630,7 +640,7 @@ func godaddy(vps *Vps,domainO *Domain) (string,string){
 		}
 
 		resource "godaddy_domain_record" "%s" {
-		  provider = "godaddy.%s"
+		  provider = godaddy.%s
 		  domain   = "%s"
 		  depends_on = ["%s.%s"]
 		  addresses   = ["${%s.%s.public_ip}"]
@@ -964,7 +974,7 @@ func staging_aws_instance(vps *Vps,keypath string,domainO *Domain,port string) (
 		}
 
 		resource "aws_security_group" "%s" {
-		  provider = "aws.%s"
+		  provider = aws.%s
 		  name        = "%s"
 
 		  ingress {
@@ -998,8 +1008,8 @@ func staging_aws_instance(vps *Vps,keypath string,domainO *Domain,port string) (
 
 
 		resource "aws_instance" "%s" {
-		  provider = "aws.%s"
-		  depends_on = ["aws_security_group.%s"]
+		  provider = aws.%s
+		  depends_on = [aws_security_group.%s]
 		  ami           = "%s"
 		  instance_type = "t2.micro"
 		  key_name = "%s"
@@ -1034,7 +1044,7 @@ func staging_godaddy(vps *Vps,domainO *Domain,domainName string) (string,string)
 		}
 
 		resource "godaddy_domain_record" "%s" {
-		  provider = "godaddy.%s"
+		  provider = godaddy.%s
 		  domain   = "%s"
 		  depends_on = ["%s.%s"]
 		  addresses   = ["${%s.%s.public_ip}"]

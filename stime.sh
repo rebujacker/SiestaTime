@@ -50,15 +50,15 @@ sudo apt-get update
 sudo apt-get install gcc unzip
 
 # Download GO and Compile Hive
-wget https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz -P ./installConfig/
-tar xvf ./installConfig/go1.13.3.linux-amd64.tar.gz -C ./installConfig/
+wget https://golang.org/dl/go1.16.linux-amd64.tar.gz -P ./installConfig/
+tar xvf ./installConfig/go1.16.linux-amd64.tar.gz -C ./installConfig/
 export GOROOT="$(pwd)/installConfig/go/"
 export GOPATH="$(pwd)"
 
 #Compile client with target variables and prepare electron front-end
 cd ./installConfig
-./go/bin/go get "github.com/gorilla/mux"
-GOOS=linux GOARCH=amd64 ./go/bin/go build --ldflags "-X main.username=${USERNAME} -X main.password=${PASSWORD} -X main.roasterString=${HIVIP}:${HIVPORT} -X main.fingerPrint=${HIVTLSHASH} -X main.clientPort=${CLIENTPORT}" -o stclient client
+GO111MODULE=off ./go/bin/go get "github.com/gorilla/mux"
+GO111MODULE=off GOOS=linux GOARCH=amd64 ./go/bin/go build --ldflags "-X main.username=${USERNAME} -X main.password=${PASSWORD} -X main.roasterString=${HIVIP}:${HIVPORT} -X main.fingerPrint=${HIVTLSHASH} -X main.clientPort=${CLIENTPORT}" -o stclient client
 
 
 cp -r ../src/client/electronGUI/ .

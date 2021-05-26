@@ -275,3 +275,67 @@ $("#downloadRedirector").on('click',function() {
     });
 
 });
+
+
+/* Craft a Job with the following JSON Object towards client:
+
+type ShellcodeObject struct {
+    Name string   `json:"name"`
+    OsName string   `json:"osname"`
+    Arch string   `json:"arch"`
+    Format string   `json:"format"`
+}
+*/
+$("#downloadShellcodeBin").on('click',function() {
+
+  var implantName = $(".STmain").attr("id");
+
+  //Create Job to send with two elements
+  var data = {name:implantName,osname:$("#osD").val(),arch:$("#archD").val(),format:"binary"};
+
+  $.ajax({
+        type: "POST",
+        url: "http://127.0.0.1:8000/shellcode",
+        data:  JSON.stringify(data),
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function (response){
+          console.log("Interact Sent!");
+
+        }
+
+    });
+
+});
+
+
+/* Craft a Job with the following JSON Object towards client:
+
+type ShellcodeObject struct {
+    Name string   `json:"name"`
+    OsName string   `json:"osname"`
+    Arch string   `json:"arch"`
+    Format string   `json:"format"`
+}
+*/
+$("#downloadShellcodeHex").on('click',function() {
+
+  var implantName = $(".STmain").attr("id");
+
+  //Create Job to send with two elements
+  var data = {name:implantName,osname:$("#osD").val(),arch:$("#archD").val(),format:"hex"};
+
+  $.ajax({
+        type: "POST",
+        url: "http://127.0.0.1:8000/shellcode",
+        data:  JSON.stringify(data),
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function (response){
+          console.log("Interact Sent!");
+
+        }
+
+    });
+
+});

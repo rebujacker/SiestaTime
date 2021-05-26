@@ -19,24 +19,27 @@ import (
 
 func main() {
 
-	if (len(os.Args) < 2){ 
-		fmt.Println("Not Enough Arguments")
-		return 
-	}
-	
-	switch os.Args[1]{
-	
-		case "revsshclient":
-			_,result := ConnectRevSshShell("127.0.0.1",os.Args[2])
-			fmt.Println(result)
-	
-		default:
-			fmt.Println("Not Toolset Command")	 
-	}
+    if (len(os.Args) < 2){ 
+        fmt.Println("Not Enough Arguments")
+        return 
+    }
+    
+    switch os.Args[1]{
+    
+        case "revsshclientLinDar":
+            _,result := ConnectRevSshShellLinDarwin("127.0.0.1",os.Args[2])
+            fmt.Println(result)
+        
+        case "revsshclientClassicCMD":
+            _,result := ConnectRevSshClassicCMD("127.0.0.1",os.Args[2])
+            fmt.Println(result)
+        default:
+            fmt.Println("Not Toolset Command")   
+    }
 
 }
 
-func ConnectRevSshShell(domain string,port string) (bool,string){
+func ConnectRevSshShellLinDarwin(domain string,port string) (bool,string){
 
     // connect to this socket
     conn, e := net.Dial("tcp", domain+":"+port)
@@ -52,6 +55,21 @@ func ConnectRevSshShell(domain string,port string) (bool,string){
         return true,"Error making raw terminal: "+e.Error()
     }
     defer func() { _ = terminal.Restore(int(os.Stdin.Fd()), oldState) }()
+
+    go func() { _, _ = io.Copy(os.Stdout, conn) }()
+    _, e = io.Copy(conn, os.Stdin)
+
+    return false,"Session Finished"
+
+}
+
+func ConnectRevSshClassicCMD(domain string,port string) (bool,string){
+
+    // connect to this socket
+    conn, e := net.Dial("tcp", domain+":"+port)
+    if e != nil {
+        return true,"Error connecting ssh socket: "+e.Error()
+    }
 
     go func() { _, _ = io.Copy(os.Stdout, conn) }()
     _, e = io.Copy(conn, os.Stdin)

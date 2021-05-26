@@ -6,7 +6,7 @@
 		}
 
 		resource "aws_security_group" "hive_sec_group" {
-		  provider = "aws.hiveaws"
+		  provider = aws.hiveaws
 		  name        = "hive_sec_group"
 
 		  ingress {
@@ -26,8 +26,8 @@
 
 
 		resource "aws_instance" "hiveinstance" {
-		  provider = "aws.hiveaws"
-		  depends_on = ["aws_security_group.hive_sec_group"]
+		  provider = aws.hiveaws
+		  depends_on = [aws_security_group.hive_sec_group]
 		  ami           = "@ami"
 		  instance_type = "@instancetype"
 		  key_name = "@keyname"
@@ -62,41 +62,49 @@
 		    	"sudo mkdir /usr/local/STHive/sources/src/infra",
 		    	"sudo mkdir /usr/local/STHive/sources/src/infra/.terraform",
 		    	"sudo mkdir /usr/local/STHive/sources/src/infra/.terraform/plugins",
-		    	"sudo wget https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz -P /usr/local/STHive",
-		    	"sudo tar xvf /usr/local/STHive/go1.13.3.linux-amd64.tar.gz -C /usr/local/STHive/sources",
+		    	"sudo wget https://golang.org/dl/go1.16.linux-amd64.tar.gz -P /usr/local/STHive",
+		    	"sudo tar xvf /usr/local/STHive/go1.16.linux-amd64.tar.gz -C /usr/local/STHive/sources",
 		    	"sudo chown -R ubuntu:ubuntu /usr/local/STHive/sources",
 		    	"export GOPATH=/usr/local/STHive/sources/",
-		    	"/usr/local/STHive/sources/go/bin/go get \"github.com/mattn/go-sqlite3\"",
-				"/usr/local/STHive/sources/go/bin/go get \"github.com/gorilla/mux\"",
-				"/usr/local/STHive/sources/go/bin/go get \"golang.org/x/crypto/blowfish\"",
-				"/usr/local/STHive/sources/go/bin/go get \"golang.org/x/crypto/bcrypt\"",
-				"/usr/local/STHive/sources/go/bin/go get \"golang.org/x/net/context\"",
-				"/usr/local/STHive/sources/go/bin/go get \"golang.org/x/oauth2\"",
-				"/usr/local/STHive/sources/go/bin/go get \"golang.org/x/oauth2/google\"",
-				"/usr/local/STHive/sources/go/bin/go get \"google.golang.org/api/gmail/v1\"",
-				"/usr/local/STHive/sources/go/bin/go get \"github.com/hectane/go-acl/api\"",
-				"/usr/local/STHive/sources/go/bin/go get \"golang.org/x/crypto/ssh\"",
-				"/usr/local/STHive/sources/go/bin/go get \"golang.org/x/crypto/ssh/terminal\"",
-				"/usr/local/STHive/sources/go/bin/go get \"github.com/kr/pty\"",
-				"/usr/local/STHive/sources/go/bin/go get \"github.com/armon/go-socks5\"",
-		    	"cd /usr/local/STHive/sources/src/infra/.terraform/plugins",
-		    	"sudo wget https://github.com/n3integration/terraform-godaddy/releases/download/v1.6.4/terraform-godaddy_linux_amd64.tgz",
-		    	"sudo tar xvf terraform-godaddy_linux_amd64.tgz",
-		    	"sudo mv terraform-godaddy_linux_amd64 terraform-godaddy",
-		    	"sudo rm terraform-godaddy_linux_amd64.tgz",
+		    	"GO111MODULE=off /usr/local/STHive/sources/go/bin/go get \"github.com/mattn/go-sqlite3\"",
+				"GO111MODULE=off /usr/local/STHive/sources/go/bin/go get \"github.com/gorilla/mux\"",
+				"GO111MODULE=off /usr/local/STHive/sources/go/bin/go get \"golang.org/x/crypto/blowfish\"",
+				"GO111MODULE=off /usr/local/STHive/sources/go/bin/go get \"golang.org/x/crypto/bcrypt\"",
+				"GO111MODULE=off /usr/local/STHive/sources/go/bin/go get \"golang.org/x/net/context\"",
+				"GO111MODULE=off /usr/local/STHive/sources/go/bin/go get \"golang.org/x/oauth2\"",
+				"GO111MODULE=off /usr/local/STHive/sources/go/bin/go get \"golang.org/x/oauth2/google\"",
+				"GO111MODULE=off /usr/local/STHive/sources/go/bin/go get \"google.golang.org/api/gmail/v1\"",
+				"GO111MODULE=off /usr/local/STHive/sources/go/bin/go get \"github.com/hectane/go-acl/api\"",
+				"GO111MODULE=off /usr/local/STHive/sources/go/bin/go get \"golang.org/x/crypto/ssh\"",
+				"GO111MODULE=off /usr/local/STHive/sources/go/bin/go get \"golang.org/x/crypto/ssh/terminal\"",
+				"GO111MODULE=off /usr/local/STHive/sources/go/bin/go get \"github.com/kr/pty\"",
+				"GO111MODULE=off /usr/local/STHive/sources/go/bin/go get \"github.com/armon/go-socks5\"",
+		    "sudo wget https://github.com/n3integration/terraform-provider-godaddy/releases/download/v1.8.7/terraform-provider-godaddy_1.8.7_linux_amd64.zip",
+		    	"sudo mkdir -p /root/.terraform.d/plugins/registry.terraform.io/hashicorp/godaddy/1.8.7/linux_amd64/",
+		   		"unzip terraform-provider-godaddy_1.8.7_linux_amd64.zip -d tmp",
+				"sudo cp tmp/terraform-provider-godaddy_v1.8.7 /root/.terraform.d/plugins/registry.terraform.io/hashicorp/godaddy/1.8.7/linux_amd64/",
+				"rm -rf tmp",
+				"rm -rf terraform-provider-godaddy_1.8.7_linux_amd64.zip",
 		    	"cd /usr/local/STHive/sources/src/infra/",
-		    	"sudo wget https://releases.hashicorp.com/terraform/0.11.13/terraform_0.11.13_linux_amd64.zip",
-		    	"sudo unzip terraform_0.11.13_linux_amd64.zip",
-		    	"sudo rm terraform_0.11.13_linux_amd64.zip",
+		    	"sudo wget https://releases.hashicorp.com/terraform/0.15.1/terraform_0.15.1_linux_amd64.zip",
+		    	"sudo unzip terraform_0.15.1_linux_amd64.zip",
+		    	"sudo rm terraform_0.15.1_linux_amd64.zip",
+		    	"cd /usr/local/STHive/",
+		    	"sudo git clone https://github.com/TheWover/donut",
+		    	"cd /usr/local/STHive/donut",
+		    	"sudo make",
+		    	"sudo cp donut /usr/local/STHive/tools/donut",
+		    	"sudo rm -rf /usr/local/STHive/donut",
 		    	"sudo chown ubuntu:ubuntu -R /usr/local/STHive/",
 		    ]
 			
-			on_failure = "continue"
+			on_failure = continue
 		    
 		    connection {
 		      type     = "ssh"
 		      user     = "ubuntu"
 		      private_key = "${file("@keyname.pem")}"
+		      host     = "${aws_instance.hiveinstance.public_ip}"
 		    }
 		  }
 
@@ -107,6 +115,7 @@
 		      type     = "ssh"
 		      user     = "ubuntu"
 		      private_key = "${file("@keyname.pem")}"
+		      host     = "${aws_instance.hiveinstance.public_ip}"
 		    }
 		  }
 
@@ -118,6 +127,7 @@
 		      type     = "ssh"
 		      user     = "ubuntu"
 		      private_key = "${file("@keyname.pem")}"
+		      host     = "${aws_instance.hiveinstance.public_ip}"
 		    }
 		  }
 
@@ -128,6 +138,7 @@
 		      type     = "ssh"
 		      user     = "ubuntu"
 		      private_key = "${file("@keyname.pem")}"
+		      host     = "${aws_instance.hiveinstance.public_ip}"
 		    }
 		  }
 
@@ -138,6 +149,7 @@
 		      type     = "ssh"
 		      user     = "ubuntu"
 		      private_key = "${file("@keyname.pem")}"
+		      host     = "${aws_instance.hiveinstance.public_ip}"
 		    }
 		  }
 
@@ -148,6 +160,7 @@
 		      type     = "ssh"
 		      user     = "ubuntu"
 		      private_key = "${file("@keyname.pem")}"
+		      host     = "${aws_instance.hiveinstance.public_ip}"
 		    }
 		  }
 
@@ -158,6 +171,7 @@
 		      type     = "ssh"
 		      user     = "ubuntu"
 		      private_key = "${file("@keyname.pem")}"
+		      host     = "${aws_instance.hiveinstance.public_ip}"
 		    }
 		  }
 
@@ -168,6 +182,7 @@
 		      type     = "ssh"
 		      user     = "ubuntu"
 		      private_key = "${file("@keyname.pem")}"
+		      host     = "${aws_instance.hiveinstance.public_ip}"
 		    }
 		  }
 
@@ -178,6 +193,7 @@
 		      type     = "ssh"
 		      user     = "ubuntu"
 		      private_key = "${file("@keyname.pem")}"
+		      host     = "${aws_instance.hiveinstance.public_ip}"
 		    }
 		  }
 
@@ -189,6 +205,7 @@
 		      type     = "ssh"
 		      user     = "ubuntu"
 		      private_key = "${file("@keyname.pem")}"
+		      host     = "${aws_instance.hiveinstance.public_ip}"
 		    }
 		  }
 
@@ -200,6 +217,7 @@
 		      type     = "ssh"
 		      user     = "ubuntu"
 		      private_key = "${file("@keyname.pem")}"
+		      host     = "${aws_instance.hiveinstance.public_ip}"
 		    }
 		  }
 
@@ -211,6 +229,7 @@
 		      type     = "ssh"
 		      user     = "ubuntu"
 		      private_key = "${file("@keyname.pem")}"
+		      host     = "${aws_instance.hiveinstance.public_ip}"
 		    }
 		  }
 
@@ -222,6 +241,7 @@
 		      type     = "ssh"
 		      user     = "ubuntu"
 		      private_key = "${file("@keyname.pem")}"
+		      host     = "${aws_instance.hiveinstance.public_ip}"
 		    }
 		  }		  
 
@@ -232,12 +252,13 @@
 		      "sudo rm /tmp/instScriptNoDarwin.sh",
 		      "sudo reboot",
 		    ]
-		    on_failure = "continue"
+		    on_failure = continue
 
 		    connection {
 		      type     = "ssh"
 		      user     = "ubuntu"
 		      private_key = "${file("@keyname.pem")}"
+		      host     = "${aws_instance.hiveinstance.public_ip}"
 		    }
 		  }
 		}

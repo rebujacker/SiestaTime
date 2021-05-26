@@ -59,6 +59,7 @@ func startRoaster(){
     router.HandleFunc("/client", GetUser).Methods("GET")
     router.HandleFunc("/vpskey", GetVpsKey).Methods("GET")
     router.HandleFunc("/implant", GetImplant).Methods("GET")
+    router.HandleFunc("/shellcode", GetShellcode).Methods("GET")
     router.HandleFunc("/redirector", GetRedirector).Methods("GET")
     router.HandleFunc("/report", GetReport).Methods("GET")
     router.HandleFunc("/jobresult", GetJobResult).Methods("GET")
@@ -272,6 +273,80 @@ func GetImplant(w http.ResponseWriter, r *http.Request) {
         //ErrorLog
         time := time.Now().Format("02/01/2006 15:04:05 MST")
         go addLogDB("Hive",time,"Error reading Implant File:"+cid)
+        return
+    }
+
+    contentb64 := base64.StdEncoding.EncodeToString(content)
+
+
+    fmt.Fprint(w, contentb64)
+    return
+}
+
+
+
+/*
+Description: GET Functions for Operators/Clients to retrieve target Shellcode
+Flow:
+A.Retrieve Authenthicathion header, and check if credentials are valid
+B.Retrieve GET parameter with the target implant name,OS and architecture
+C.Apply name whitelist over GET params
+D.Using previous params, craft a string PATH  and read the target shellcode
+E.Encode it to b64 and put it within http body response
+*/
+func GetShellcode(w http.ResponseWriter, r *http.Request) {
+    
+
+    //Do auth flow, get CID if valid
+    cid := userAuth(r.Header.Get("Authorization"))
+    if cid == "Bad"{    
+        return
+    }
+
+    implantname, ok := r.URL.Query()["implantname"]
+    if !ok || len(implantname[0]) < 1 {
+        //ErrorLog
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
+        go addLogDB("Hive",time,"Bad implantname Get Shelcode Query from: "+cid)
+        return
+    }
+
+    osName, ok := r.URL.Query()["osName"]
+    if !ok || len(osName[0]) < 1 {
+        //ErrorLog
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
+        go addLogDB("Hive",time,"Bad osName Get Shelcode Query from: "+cid)
+        return
+    }
+
+    arch, ok := r.URL.Query()["arch"]
+    if !ok || len(arch[0]) < 1 {
+        //ErrorLog
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
+        go addLogDB("Hive",time,"Bad arch Get Shelcode Query from: "+cid)
+        return
+    }
+
+    format, ok := r.URL.Query()["format"]
+    if !ok || len(arch[0]) < 1 {
+        //ErrorLog
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
+        go addLogDB("Hive",time,"Bad format Get Shelcode Query from: "+cid)
+        return
+    }
+
+    if !(namesInputWhite(implantname[0]) && namesInputWhite(osName[0]) && namesInputWhite(arch[0]) && namesInputWhite(format[0])){
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
+        go addLogDB("Hive",time,"Bad getShelcode GET Input params formatting: "+cid)
+        return
+    }
+
+
+    content, err := ioutil.ReadFile("/usr/local/STHive/implants/"+implantname[0]+"/bichito"+osName[0]+arch[0]+"_shellcode."+format[0])
+    if err != nil {
+        //ErrorLog
+        time := time.Now().Format("02/01/2006 15:04:05 MST")
+        go addLogDB("Hive",time,"Error reading Shellcode: "+cid)
         return
     }
 

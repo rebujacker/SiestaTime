@@ -69,6 +69,9 @@
         break; 
       case "removeInfection":
         sendBjob(id,jobEx,args);
+        break; 
+      case "migrate":
+        sendBjob(id,jobEx,args);
         break;                          
       default:
         help();
@@ -90,7 +93,7 @@ function clearConsole() {
 }
 
 function help(){
-  localEcho.println('Help: List of available commands: help,clear,respTime,ttl,exec,ls,accesschk,read,write,wipe,upload,download,kill,removeInfection');
+  localEcho.println('Help: List of available commands: help,clear,respTime,ttl,exec,ls,accesschk,read,write,wipe,upload,download,kill,removeInfection,migrate');
 }
 
 //On console input feed check if a job got an sucessful output and print it on JS console

